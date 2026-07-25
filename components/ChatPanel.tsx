@@ -44,6 +44,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   const [pondering, setPondering] = useState(false);
   const [latestKeywords, setLatestKeywords] = useState<string[]>([]);
   const [dedupSavedTokens, setDedupSavedTokens] = useState<number>(0);
+  const [speakOnTyping, setSpeakOnTyping] = useState<boolean>(true);
 
   // UI states
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -193,7 +194,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to communicate with U.L.T.R.O.N.");
 
-        if (voiceEngine && voiceEngine.getProfile() !== "off") {
+        if (voiceEngine && (speakOnTyping || overrideText)) {
           voiceEngine.speak(
             data.content,
             () => sceneRef.current?.setAIState("speaking"),
@@ -213,9 +214,10 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
           setDedupSavedTokens((prev) => prev + data.dedupStats.tokensSavedEstimate);
         }
 
+        const fullText = data.content;
         const assistantMsg: Message = {
           role: "assistant",
-          content: data.content,
+          content: "",
           engine: data.engine,
           failoverOccurred: data.failoverOccurred,
           failoverReason: data.failoverReason,
@@ -224,6 +226,25 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         };
 
         setMessages((prev) => [...prev, assistantMsg]);
+
+        let currentLen = 0;
+        const step = Math.max(1, Math.floor(fullText.length / 35));
+        const typeTimer = setInterval(() => {
+          currentLen += step;
+          if (currentLen >= fullText.length) {
+            currentLen = fullText.length;
+            clearInterval(typeTimer);
+          }
+          const typedText = fullText.slice(0, currentLen);
+          setMessages((prev) => {
+            const copy = [...prev];
+            const lastIdx = copy.length - 1;
+            if (lastIdx >= 0 && copy[lastIdx].role === "assistant") {
+              copy[lastIdx] = { ...copy[lastIdx], content: typedText };
+            }
+            return copy;
+          });
+        }, 20);
       } catch (err) {
         sceneRef.current?.setAIState("idle");
         setMessages((prev) => [
@@ -462,6 +483,23 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
           >
             <VoiceIcon size={14} color="#00e5ff" />
             VOICE: {voiceProfile.toUpperCase()}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSpeakOnTyping(!speakOnTyping)}
+            className="collapse-btn"
+            style={{
+              borderColor: speakOnTyping ? "#00ff66" : "#888",
+              color: speakOnTyping ? "#00ff66" : "#888",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+            title="Toggle whether Ultron speaks aloud when you type in the text prompt box"
+          >
+            <VoiceIcon size={14} active={speakOnTyping} />
+            {speakOnTyping ? "AUTO-SPEAK TYPED: ON" : "AUTO-SPEAK TYPED: OFF"}
           </button>
 
           {dedupSavedTokens > 0 && (
