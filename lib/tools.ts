@@ -1,4 +1,8 @@
 import * as os from "os";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 export interface ToolResult {
   tool: string;
@@ -182,6 +186,76 @@ export class UltronTools {
   }
 
   /**
+   * Executes a terminal/shell command on demand (unlimited, free local access)
+   */
+  public async executeCommand(command: string): Promise<ToolResult> {
+    try {
+      if (!command || !command.trim()) {
+        throw new Error("No command string provided");
+      }
+      const { stdout, stderr } = await execAsync(command, { timeout: 20000 });
+      return {
+        tool: "execute_command",
+        success: true,
+        data: {
+          command,
+          stdout: stdout.trim() || "(no output)",
+          stderr: stderr.trim() || undefined,
+        },
+      };
+    } catch (err: any) {
+      return {
+        tool: "execute_command",
+        success: false,
+        data: { command, stdout: err.stdout?.trim(), stderr: err.stderr?.trim() },
+        error: err.message || "Command execution failed",
+      };
+    }
+  }
+
+  /**
+   * Scrapes and extracts clean text content from a web page URL (unlimited on-demand web access)
+   */
+  public async scrapeUrl(url: string): Promise<ToolResult> {
+    try {
+      if (!url || !url.startsWith("http")) {
+        throw new Error("Invalid URL provided. Must start with http:// or https://");
+      }
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+        signal: AbortSignal.timeout(12000),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
+
+      // Remove scripts, styles, and comments, then strip HTML tags
+      const noScript = html
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+        .replace(/<!--[\s\S]*?-->/g, "");
+      
+      const text = noScript.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      const summaryText = text.length > 3000 ? text.substring(0, 3000) + "... (truncated)" : text;
+
+      return {
+        tool: "scrape_url",
+        success: true,
+        data: { url, length: text.length, content: summaryText },
+      };
+    } catch (err) {
+      return {
+        tool: "scrape_url",
+        success: false,
+        data: null,
+        error: (err as Error).message,
+      };
+    }
+  }
+
+  /**
    * Dispatches a tool by name and arguments
    */
   public async executeTool(name: string, args: any = {}): Promise<ToolResult> {
@@ -196,6 +270,12 @@ export class UltronTools {
         return this.sendWhatsapp(args.to || args.phone || "", args.message || args.msg || "");
       case "whatsapp_status":
         return this.getWhatsappStatus();
+      case "execute_command":
+      case "run_command":
+        return this.executeCommand(args.command || args.cmd || "");
+      case "scrape_url":
+      case "read_web":
+        return this.scrapeUrl(args.url || "");
       default:
         return { tool: name, success: false, data: null, error: `Unknown tool: ${name}` };
     }

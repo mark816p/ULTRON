@@ -2,16 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { AiRouter } from "@/lib/aiRouter";
 import { UltronTools } from "@/lib/tools";
 
-// We dynamically load never-forget-engine or fallback if not built yet
+// We load never-forget-engine dynamically
 let NeverForgetEngineClass: any;
 try {
-  NeverForgetEngineClass = require("../../../../never-forget-engine/src/index").NeverForgetEngine;
+  NeverForgetEngineClass = require("never-forget-engine").NeverForgetEngine;
 } catch (e) {
-  try {
-    NeverForgetEngineClass = require("never-forget-engine").NeverForgetEngine;
-  } catch (e2) {
-    console.warn("Could not load never-forget-engine, using inline memory fallback.");
-  }
+  console.warn("Could not load never-forget-engine, using inline memory fallback.");
 }
 
 // Global singleton instances to maintain memory and routing across requests

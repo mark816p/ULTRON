@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AiRouter } from "@/lib/aiRouter";
 import { UltronTools } from "@/lib/tools";
+import { globalTaskManager } from "@/lib/autonomousTasks";
 
 let NeverForgetEngineClass: any;
 try {
-  NeverForgetEngineClass = require("../../../../never-forget-engine/src/index").NeverForgetEngine;
-} catch (e) {
-  try {
-    NeverForgetEngineClass = require("never-forget-engine").NeverForgetEngine;
-  } catch (e2) {}
-}
+  NeverForgetEngineClass = require("never-forget-engine").NeverForgetEngine;
+} catch (e) {}
 
 const aiRouter = new AiRouter();
 const ultronTools = new UltronTools();
@@ -26,6 +23,11 @@ export async function POST(req: NextRequest) {
   try {
     const { sessionId = "default_session" } = await req.json().catch(() => ({}));
     const mem = getMemoryEngine();
+
+    // 0. Process any queued autonomous exploration tasks in the background!
+    try {
+      await globalTaskManager.processNextTask(mem);
+    } catch (err) {}
 
     // 1. Perform autonomous background task: Fetch latest news & sysinfo
     const newsRes = await ultronTools.getNews();

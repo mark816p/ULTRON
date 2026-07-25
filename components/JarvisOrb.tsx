@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createOrbScene, type OrbSceneApi } from "@/lib/orbScene";
 import { HandTracker, type TrackerStatus } from "@/lib/handTracker";
 import ChatPanel from "./ChatPanel";
+import OnboardingWizard from "./OnboardingWizard";
 
 type CameraState = "off" | "starting" | "on" | "error";
 
@@ -24,6 +25,16 @@ export default function JarvisOrb() {
   const [camera, setCamera] = useState<CameraState>("off");
   const [status, setStatus] = useState<TrackerStatus>({ hands: 0, mode: "idle" });
   const [error, setError] = useState<string | null>(null);
+
+  // New features UI state
+  const [showWizard, setShowWizard] = useState(false);
+  const [hideUI, setHideUI] = useState(false);
+  const [showWebcamFeed, setShowWebcamFeed] = useState(false);
+
+  useEffect(() => {
+    const isOnboarded = localStorage.getItem("ultron_onboarded");
+    if (!isOnboarded) setShowWizard(true);
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -82,6 +93,10 @@ export default function JarvisOrb() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "u" || e.key === "U") {
+        setHideUI((prev) => !prev);
+        return;
+      }
       switch (e.key) {
         case "+":
         case "=":
@@ -115,68 +130,111 @@ export default function JarvisOrb() {
       <div className="overlay-grain" />
       <div className="overlay-scanlines" />
 
-      <div className="hud hud-title">U.L.T.R.O.N.</div>
+      {/* Floating Hide UI / Show UI toggle */}
+      <button
+        type="button"
+        className="hide-ui-btn"
+        onClick={() => setHideUI((prev) => !prev)}
+        title="Toggle HUD Visibility (Press 'U')"
+      >
+        {hideUI ? "👁️ SHOW UI" : "🙈 HIDE UI"}
+      </button>
 
-      <div className="hud hud-hint">
-        <div>
-          <span className="key">DRAG</span> spin&nbsp;&nbsp;
-          <span className="key">SCROLL</span> zoom
-        </div>
-        {cameraOn ? (
-          <div>
-            <span className="key">PINCH / SWIPE</span> spin&nbsp;&nbsp;
-            <span className="key">PINCH BOTH HANDS ± SPREAD</span> zoom
+      {/* Onboarding Wizard Overlay */}
+      <OnboardingWizard isOpen={showWizard} onClose={() => setShowWizard(false)} />
+
+      {/* When hideUI is false, render all text HUD and chat panels */}
+      {!hideUI && (
+        <>
+          <div className="hud hud-title">U.L.T.R.O.N.</div>
+
+          <div className="hud hud-hint">
+            <div>
+              <span className="key">DRAG</span> spin&nbsp;&nbsp;
+              <span className="key">SCROLL</span> zoom
+            </div>
+            {cameraOn ? (
+              <div>
+                <span className="key">PINCH / SWIPE</span> spin&nbsp;&nbsp;
+                <span className="key">PINCH BOTH HANDS ± SPREAD</span> zoom
+              </div>
+            ) : (
+              <div>
+                <span className="key">G</span> hand gestures&nbsp;&nbsp;
+                <span className="key">R</span> reset&nbsp;&nbsp;
+                <span className="key">U</span> toggle UI
+              </div>
+            )}
           </div>
-        ) : (
-          <div>
-            <span className="key">G</span> hand gestures&nbsp;&nbsp;
-            <span className="key">R</span> reset&nbsp;&nbsp;
-            <span className="key">+/−</span> zoom
+
+          <div className="hud hud-controls">
+            <div className={`camera-panel${cameraOn ? " visible" : ""}`}>
+              {/* Webcam preview is collapsible via showWebcamFeed toggle! */}
+              <video
+                ref={videoRef}
+                muted
+                playsInline
+                className="camera-video"
+                style={{ display: showWebcamFeed ? "block" : "none" }}
+              />
+              <canvas
+                ref={overlayRef}
+                width={208}
+                height={156}
+                className="camera-overlay"
+                style={{ display: showWebcamFeed ? "block" : "none" }}
+              />
+              <div className="camera-status" style={{ borderTop: showWebcamFeed ? "1px solid rgba(255,170,48,0.4)" : "none" }}>
+                {status.hands > 0
+                  ? `👋 ${status.hands} HAND${status.hands > 1 ? "S" : ""} · ${MODE_LABEL[status.mode]}`
+                  : "✋ SENSOR ACTIVE"}
+              </div>
+            </div>
+
+            {error && <div className="hud-error">{error}</div>}
+
+            <div className="hud-row">
+              <button
+                type="button"
+                className="hud-btn"
+                aria-pressed={cameraOn}
+                onClick={toggleGestures}
+                disabled={camera === "starting"}
+              >
+                {camera === "starting" ? "INITIALIZING…" : cameraOn ? "🟢 GESTURES ON" : "⚪ GESTURES OFF"}
+              </button>
+              {cameraOn && (
+                <button
+                  type="button"
+                  className="hud-btn"
+                  onClick={() => setShowWebcamFeed((prev) => !prev)}
+                >
+                  {showWebcamFeed ? "🙈 HIDE FEED" : "👁️ VIEW FEED"}
+                </button>
+              )}
+            </div>
+            <div className="hud-row">
+              <button type="button" className="hud-btn" onClick={() => sceneRef.current?.zoomIn()} aria-label="Zoom in">
+                +
+              </button>
+              <button type="button" className="hud-btn" onClick={() => sceneRef.current?.zoomOut()} aria-label="Zoom out">
+                −
+              </button>
+              <button type="button" className="hud-btn" onClick={() => sceneRef.current?.resetView()}>
+                RESET
+              </button>
+            </div>
           </div>
-        )}
-      </div>
 
-      <div className="hud hud-controls">
-        <div className={`camera-panel${cameraOn ? " visible" : ""}`}>
-          {/* Camera feed is kept 100% invisible on UI per user directive while processing in background */}
-          <video ref={videoRef} muted playsInline className="camera-video" style={{ display: "none" }} />
-          <canvas ref={overlayRef} width={208} height={156} className="camera-overlay" style={{ display: "none" }} />
-          <div className="camera-status" style={{ borderTop: "none" }}>
-            {status.hands > 0
-              ? `👋 ${status.hands} HAND${status.hands > 1 ? "S" : ""} DETECTED · MODE: ${MODE_LABEL[status.mode]}`
-              : "✋ GESTURE SENSOR ONLINE (INVISIBLE FEED)"}
-          </div>
-        </div>
-
-        {error && <div className="hud-error">{error}</div>}
-
-        <div className="hud-row">
-          <button
-            type="button"
-            className="hud-btn"
-            aria-pressed={cameraOn}
-            onClick={toggleGestures}
-            disabled={camera === "starting"}
-          >
-            {camera === "starting" ? "INITIALIZING…" : cameraOn ? "🟢 GESTURES ON" : "⚪ GESTURES OFF"}
-          </button>
-        </div>
-        <div className="hud-row">
-          <button type="button" className="hud-btn" onClick={() => sceneRef.current?.zoomIn()} aria-label="Zoom in">
-            +
-          </button>
-          <button type="button" className="hud-btn" onClick={() => sceneRef.current?.zoomOut()} aria-label="Zoom out">
-            −
-          </button>
-          <button type="button" className="hud-btn" onClick={() => sceneRef.current?.resetView()}>
-            RESET
-          </button>
-        </div>
-      </div>
-
-      {/* Futuristic Chat & Cognitive Control Panel */}
-      <ChatPanel sceneRef={sceneRef} cameraState={camera} onToggleGestures={toggleGestures} />
+          {/* Futuristic Chat & Cognitive Control Panel */}
+          <ChatPanel
+            sceneRef={sceneRef}
+            cameraState={camera}
+            onToggleGestures={toggleGestures}
+            onOpenBenchmark={() => setShowWizard(true)}
+          />
+        </>
+      )}
     </>
   );
 }
-
