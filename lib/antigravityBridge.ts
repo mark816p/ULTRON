@@ -21,15 +21,15 @@ export class AntigravityBridge {
    * Attempts to execute inference using 100% FREE local Antigravity methods (CLI or Python SDK)
    * without requiring any cloud API key or credit billing.
    */
-  public async execute(prompt: string, systemInstructions?: string): Promise<AntigravityResponse> {
+  public async execute(prompt: string, systemInstructions?: string, modelName?: string): Promise<AntigravityResponse> {
     // Attempt 1: agy CLI binary
     try {
-      return await this.executeCli(prompt, systemInstructions);
+      return await this.executeCli(prompt, systemInstructions, modelName);
     } catch (cliErr) {
       console.warn("[AntigravityBridge] agy CLI execution failed or not found, attempting Python SDK bridge...", cliErr);
       // Attempt 2: Python SDK bridge
       try {
-        return await this.executePythonSdk(prompt, systemInstructions);
+        return await this.executePythonSdk(prompt, systemInstructions, modelName);
       } catch (sdkErr) {
         console.error("[AntigravityBridge] Both local Antigravity methods failed. Need fallback to Ollama/LM Studio.", sdkErr);
         throw new Error("Antigravity Local Bridge unavailable: " + (sdkErr as Error).message);
@@ -37,13 +37,17 @@ export class AntigravityBridge {
     }
   }
 
-  private async executeCli(prompt: string, systemInstructions?: string): Promise<AntigravityResponse> {
+  private async executeCli(prompt: string, systemInstructions?: string, modelName?: string): Promise<AntigravityResponse> {
     return new Promise((resolve, reject) => {
       const fullPrompt = systemInstructions ? `${systemInstructions}\n\nUser: ${prompt}` : prompt;
       
+      const args = ["--prompt", fullPrompt, "--non-interactive"];
+      if (modelName) {
+        args.push("--model", modelName);
+      }
+
       // Spawn agy CLI in non-interactive / one-shot mode
-      // Note: On Windows, agy might be agy.exe or a shell script
-      const child = spawn("agy", ["--prompt", fullPrompt, "--non-interactive"], {
+      const child = spawn("agy", args, {
         shell: true,
         timeout: this.timeoutMs,
       });
@@ -76,7 +80,7 @@ export class AntigravityBridge {
     });
   }
 
-  private async executePythonSdk(prompt: string, systemInstructions?: string): Promise<AntigravityResponse> {
+  private async executePythonSdk(prompt: string, systemInstructions?: string, modelName?: string): Promise<AntigravityResponse> {
     // Write a short inline Python script to invoke the google-antigravity async SDK
     const pyScript = `
 import asyncio, sys, json
@@ -85,6 +89,7 @@ from google.antigravity import Agent, LocalAgentConfig, CapabilitiesConfig
 async def main():
     config = LocalAgentConfig(
         system_instructions=${JSON.stringify(systemInstructions || "You are Ultron, an AI assistant.")},
+        model_name=${JSON.stringify(modelName || "gemini-2.5-pro")},
         capabilities=CapabilitiesConfig()
     )
     async with Agent(config) as agent:

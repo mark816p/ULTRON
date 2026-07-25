@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { OrbSceneApi } from "@/lib/orbScene";
 
 export interface Message {
@@ -24,7 +24,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "U.L.T.R.O.N. online. Neural vectors synchronized. Autonomous background loop active.",
+      content: "U.L.T.R.O.N. online. Neural vectors synchronized. Always-active wake word ('Ultron') listening.",
       engine: "system",
       timestamp: new Date().toLocaleTimeString(),
     },
@@ -32,12 +32,16 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [modelMode, setModelMode] = useState<"auto" | "antigravity" | "ollama" | "lm-studio">("auto");
+  const [selectedModelName, setSelectedModelName] = useState("gemini-2.5-pro");
+  const [modelsData, setModelsData] = useState<any>(null);
+
   const [isListening, setIsListening] = useState(false);
+  const [wakeWordActive, setWakeWordActive] = useState(true);
   const [pondering, setPondering] = useState(false);
   const [latestKeywords, setLatestKeywords] = useState<string[]>([]);
   const [dedupSavedTokens, setDedupSavedTokens] = useState<number>(0);
 
-  // New UI states
+  // UI states
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "tasks" | "system">("chat");
   const [tasks, setTasks] = useState<any[]>([]);
@@ -54,6 +58,29 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   useEffect(() => {
     if (activeTab === "chat") scrollToBottom();
   }, [messages, activeTab]);
+
+  // Load persisted engine & model choices
+  useEffect(() => {
+    const savedEngine = localStorage.getItem("ultron_engine");
+    const savedModel = localStorage.getItem("ultron_model");
+    if (savedEngine) setModelMode(savedEngine as any);
+    if (savedModel) setSelectedModelName(savedModel);
+
+    fetch("/api/models")
+      .then((res) => res.json())
+      .then((data) => setModelsData(data))
+      .catch(() => {});
+  }, []);
+
+  const handleEngineChange = (newEngine: "auto" | "antigravity" | "ollama" | "lm-studio") => {
+    setModelMode(newEngine);
+    localStorage.setItem("ultron_engine", newEngine);
+  };
+
+  const handleModelChange = (newModel: string) => {
+    setSelectedModelName(newModel);
+    localStorage.setItem("ultron_model", newModel);
+  };
 
   // Fetch autonomous tasks & sysinfo
   const fetchTasks = async () => {
@@ -99,7 +126,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
             setLatestKeywords(data.keywords);
             sceneRef.current?.setThoughtWords(data.keywords);
           }
-          fetchTasks(); // Refresh tasks as background loop processes them
+          fetchTasks();
         }
       } catch (e) {
         console.warn("Ponder loop error:", e);
@@ -111,6 +138,144 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
 
     return () => clearInterval(interval);
   }, [loading, isListening, sceneRef]);
+
+  const handleSend = useCallback(
+    async (e?: React.FormEvent, overrideText?: string) => {
+      if (e) e.preventDefault();
+      const textToSend = overrideText || input;
+      if (!textToSend.trim() || loading) return;
+
+      const userMsg: Message = {
+        role: "user",
+        content: textToSend,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+
+      setMessages((prev) => [...prev, userMsg]);
+      if (!overrideText) setInput("");
+      setLoading(true);
+
+      sceneRef.current?.setAIState("thinking");
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: textToSend,
+            sessionId: "ultron_user_1",
+            model: modelMode,
+            modelName: selectedModelName,
+            history: messages.slice(-10).map((m) => ({ role: m.role, content: m.content })),
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to communicate with U.L.T.R.O.N.");
+
+        sceneRef.current?.setAIState("speaking");
+        setTimeout(() => sceneRef.current?.setAIState("idle"), Math.min(6000, data.content.length * 50));
+
+        if (data.keywords && data.keywords.length > 0) {
+          setLatestKeywords(data.keywords);
+          sceneRef.current?.setThoughtWords(data.keywords);
+        }
+
+        if (data.dedupStats && data.dedupStats.tokensSavedEstimate > 0) {
+          setDedupSavedTokens((prev) => prev + data.dedupStats.tokensSavedEstimate);
+        }
+
+        const assistantMsg: Message = {
+          role: "assistant",
+          content: data.content,
+          engine: data.engine,
+          failoverOccurred: data.failoverOccurred,
+          failoverReason: data.failoverReason,
+          dedupStats: data.dedupStats,
+          timestamp: new Date().toLocaleTimeString(),
+        };
+
+        setMessages((prev) => [...prev, assistantMsg]);
+      } catch (err) {
+        sceneRef.current?.setAIState("idle");
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "system",
+            content: `⚠️ Error: ${(err as Error).message}. Attempting circuit-breaker reset...`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [input, loading, messages, modelMode, selectedModelName, sceneRef]
+  );
+
+  // Always-active Wake Word ("Ultron") continuous recognition
+  useEffect(() => {
+    if (!wakeWordActive || isListening || loading) return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    let recognitionStopped = false;
+
+    recognition.onresult = (event: any) => {
+      const results = event.results;
+      const latestResult = results[results.length - 1];
+      const transcript = latestResult[0].transcript.trim();
+
+      const lower = transcript.toLowerCase();
+      if (lower.includes("ultron") || lower.includes("altron")) {
+        const idx = Math.max(lower.indexOf("ultron"), lower.indexOf("altron"));
+        const command = transcript.slice(idx + 6).trim();
+
+        if (latestResult.isFinal && command.length > 2) {
+          recognitionStopped = true;
+          recognition.stop();
+          setInput(command);
+          handleSend(undefined, command);
+        } else if (latestResult.isFinal) {
+          sceneRef.current?.setAIState("thinking");
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "system",
+              content: "🎙️ U.L.T.R.O.N. active. Listening for your command...",
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+        }
+      }
+    };
+
+    recognition.onerror = () => {};
+    recognition.onend = () => {
+      if (!recognitionStopped && wakeWordActive) {
+        try {
+          recognition.start();
+        } catch (e) {}
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch (e) {}
+
+    return () => {
+      recognitionStopped = true;
+      try {
+        recognition.stop();
+      } catch (e) {}
+    };
+  }, [wakeWordActive, isListening, loading, handleSend, sceneRef]);
 
   const toggleListen = () => {
     if (isListening) {
@@ -154,76 +319,6 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
     recognition.start();
   };
 
-  const handleSend = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!input.trim() || loading) return;
-
-    const userMsg: Message = {
-      role: "user",
-      content: input,
-      timestamp: new Date().toLocaleTimeString(),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    const currentInput = input;
-    setInput("");
-    setLoading(true);
-
-    sceneRef.current?.setAIState("thinking");
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: currentInput,
-          sessionId: "ultron_user_1",
-          model: modelMode,
-          history: messages.slice(-10).map((m) => ({ role: m.role, content: m.content })),
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to communicate with U.L.T.R.O.N.");
-
-      sceneRef.current?.setAIState("speaking");
-      setTimeout(() => sceneRef.current?.setAIState("idle"), Math.min(6000, data.content.length * 50));
-
-      if (data.keywords && data.keywords.length > 0) {
-        setLatestKeywords(data.keywords);
-        sceneRef.current?.setThoughtWords(data.keywords);
-      }
-
-      if (data.dedupStats && data.dedupStats.tokensSavedEstimate > 0) {
-        setDedupSavedTokens((prev) => prev + data.dedupStats.tokensSavedEstimate);
-      }
-
-      const assistantMsg: Message = {
-        role: "assistant",
-        content: data.content,
-        engine: data.engine,
-        failoverOccurred: data.failoverOccurred,
-        failoverReason: data.failoverReason,
-        dedupStats: data.dedupStats,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-
-      setMessages((prev) => [...prev, assistantMsg]);
-    } catch (err) {
-      sceneRef.current?.setAIState("idle");
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "system",
-          content: `⚠️ Error: ${(err as Error).message}. Attempting circuit-breaker reset...`,
-          timestamp: new Date().toLocaleTimeString(),
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleQueueTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
@@ -231,7 +326,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
       await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "add", title: newTaskTitle, model: modelMode }),
+        body: JSON.stringify({ action: "add", title: newTaskTitle, model: `${modelMode} (${selectedModelName})` }),
       });
       setNewTaskTitle("");
       fetchTasks();
@@ -244,7 +339,11 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "add", title: "Consolidate Never-Forget SQZ memory and run SQLite VACUUM", model: modelMode }),
+        body: JSON.stringify({
+          action: "add",
+          title: "Consolidate Never-Forget SQZ memory and run SQLite VACUUM",
+          model: `${modelMode} (${selectedModelName})`,
+        }),
       });
       if (res.ok) {
         setMemOptResult("✅ Optimization task queued for background cycle!");
@@ -259,7 +358,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
     return (
       <div className="chat-panel-collapsed" onClick={() => setIsCollapsed(false)}>
         <span className="pulse-dot" />
-        <span className="hud-label">💬 U.L.T.R.O.N. NEURAL LINK</span>
+        <span className="hud-label">💬 U.L.T.R.O.N. ({selectedModelName})</span>
         {pondering && <span className="pondering-badge">🧠 PONDERING...</span>}
         <div style={{ flex: 1 }} />
         <button className="collapse-btn" title="Expand Panel">🗖 EXPAND</button>
@@ -269,6 +368,18 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
 
   const activeTaskCount = tasks.filter((t) => t.status === "active" || t.status === "queued").length;
 
+  const getAvailableModels = () => {
+    if (!modelsData) return ["gemini-2.5-pro", "gemini-1.5-pro", "llama3:8b", "qwen2.5:14b"];
+    if (modelMode === "antigravity") return modelsData.antigravityModels || ["gemini-2.5-pro"];
+    if (modelMode === "ollama") return modelsData.ollamaModels || ["llama3:8b"];
+    if (modelMode === "lm-studio") return modelsData.lmStudioModels || ["local-model"];
+    return [
+      ...(modelsData.antigravityModels || []),
+      ...(modelsData.ollamaModels || []),
+      ...(modelsData.lmStudioModels || []),
+    ];
+  };
+
   return (
     <div className="chat-panel-container">
       {/* Top Status HUD */}
@@ -276,10 +387,26 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         <div className="hud-title-box">
           <span className="pulse-dot" />
           <span className="hud-label">U.L.T.R.O.N. NEURAL LINK</span>
+          <span className="stat-pill" style={{ borderColor: "#00ff66", color: "#00ff66" }}>
+            🧠 {selectedModelName}
+          </span>
           {pondering && <span className="pondering-badge">🧠 PONDERING...</span>}
         </div>
 
         <div className="hud-stats">
+          <button
+            type="button"
+            onClick={() => setWakeWordActive(!wakeWordActive)}
+            className="collapse-btn"
+            style={{
+              borderColor: wakeWordActive ? "#00ff66" : "#888",
+              color: wakeWordActive ? "#00ff66" : "#888",
+            }}
+            title="Always-Active 'Ultron' Wake Word Toggle"
+          >
+            {wakeWordActive ? "🎙️ WAKE WORD: ON" : "🎙️ WAKE WORD: OFF"}
+          </button>
+
           {dedupSavedTokens > 0 && (
             <span className="stat-pill" title="Tokens saved by SQZ deduplication">
               ⚡ SQZ SAVED: {dedupSavedTokens}
@@ -361,7 +488,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
               type="button"
               onClick={toggleListen}
               className={`voice-btn ${isListening ? "listening" : ""}`}
-              title="Voice Command"
+              title="Manual Voice Command"
             >
               {isListening ? "🎙️ LISTENING..." : "🎙️"}
             </button>
@@ -370,7 +497,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Command U.L.T.R.O.N. (or ask to run terminal cmd, search web)..."
+              placeholder="Command U.L.T.R.O.N. (or say 'Ultron <command>')..."
               className="chat-input"
               disabled={loading}
             />
@@ -386,8 +513,8 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
       {activeTab === "tasks" && (
         <div className="tasks-area">
           <div className="tasks-header-box">
-            <span className="tasks-subtitle">AUTONOMOUS RESEARCH & EXPLORATION QUEUE</span>
-            <span className="tasks-hint">U.L.T.R.O.N. explores open topics and executes tasks during standby cycles.</span>
+            <span className="tasks-subtitle">UNLIMITED AUTONOMOUS RESEARCH QUEUE</span>
+            <span className="tasks-hint">Zero task cap! U.L.T.R.O.N. executes tasks during standby cycles.</span>
           </div>
 
           <form onSubmit={handleQueueTask} className="task-queue-form">
@@ -419,9 +546,54 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         </div>
       )}
 
-      {/* TAB 3: SYSTEM BENCHMARK & MEMORY */}
+      {/* TAB 3: SYSTEM BENCHMARK & COGNITIVE ENGINE CONTROL */}
       {activeTab === "system" && (
         <div className="system-area">
+          <div className="sys-section">
+            <div className="sys-header">🌐 CHANGE AI MIND AT ANY TIME</div>
+            <p className="sys-desc">
+              Select your backend engine and specific AI model below. Changes take effect immediately without repeating onboarding.
+            </p>
+            <label style={{ fontSize: "11px", color: "#aaa", display: "block", marginBottom: "4px" }}>
+              PRIMARY ROUTING ENGINE:
+            </label>
+            <select
+              value={modelMode}
+              onChange={(e) => handleEngineChange(e.target.value as any)}
+              className="model-select-large"
+              style={{ marginBottom: "10px" }}
+            >
+              <option value="auto">🔄 Auto Circuit-Breaker (Antigravity ↔ Local)</option>
+              <option value="antigravity">🌐 Antigravity Google Gemini Bridge</option>
+              <option value="ollama">🦙 Ollama Local Offline</option>
+              <option value="lm-studio">🖥️ LM Studio Bionic Local API</option>
+            </select>
+
+            <label style={{ fontSize: "11px", color: "#aaa", display: "block", marginBottom: "4px" }}>
+              EXACT AI MODEL TAG:
+            </label>
+            <select
+              value={selectedModelName}
+              onChange={(e) => handleModelChange(e.target.value)}
+              className="model-select-large"
+              style={{ marginBottom: "8px" }}
+            >
+              {getAvailableModels().map((mod: string, i: number) => (
+                <option key={i} value={mod}>
+                  {mod}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={selectedModelName}
+              onChange={(e) => handleModelChange(e.target.value)}
+              placeholder="Or type custom tag (e.g., gemini-2.5-pro, llama3:8b, local-model)..."
+              className="chat-input"
+              style={{ width: "100%", fontSize: "11px" }}
+            />
+          </div>
+
           <div className="sys-section">
             <div className="sys-header">💻 HOST HARDWARE BENCHMARK</div>
             {sysInfo ? (
@@ -437,20 +609,6 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
             <button type="button" onClick={onOpenBenchmark} className="hud-btn" style={{ width: "100%", marginTop: "8px" }}>
               ⚙️ RE-RUN ONBOARDING WIZARD
             </button>
-          </div>
-
-          <div className="sys-section">
-            <div className="sys-header">🌐 COGNITIVE ENGINE SELECTOR</div>
-            <select
-              value={modelMode}
-              onChange={(e) => setModelMode(e.target.value as any)}
-              className="model-select-large"
-            >
-              <option value="auto">🔄 Auto Circuit-Breaker (Antigravity ↔ Local)</option>
-              <option value="antigravity">🌐 Antigravity 100% Free Bridge</option>
-              <option value="ollama">🦙 Ollama Local Offline</option>
-              <option value="lm-studio">🖥️ LM Studio Local API</option>
-            </select>
           </div>
 
           <div className="sys-section">

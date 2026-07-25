@@ -42,7 +42,8 @@ export class AiRouter {
   public async route(
     messages: ChatMessage[],
     systemInstructions?: string,
-    preferredEngine: "auto" | "antigravity" | "ollama" | "lm-studio" = "auto"
+    preferredEngine: "auto" | "antigravity" | "ollama" | "lm-studio" = "auto",
+    exactModelName?: string
   ): Promise<RouterResponse> {
     const latestPrompt = messages[messages.length - 1]?.content || "";
     let failoverOccurred = false;
@@ -51,7 +52,7 @@ export class AiRouter {
     // 1. If preferred is antigravity or auto, try Antigravity Local Bridge first (100% Free)
     if (preferredEngine === "auto" || preferredEngine === "antigravity") {
       try {
-        const res = await this.antigravity.execute(latestPrompt, systemInstructions);
+        const res = await this.antigravity.execute(latestPrompt, systemInstructions, exactModelName);
         return {
           content: res.content,
           engine: res.engine,
@@ -62,16 +63,18 @@ export class AiRouter {
         failoverOccurred = true;
         failoverReason = `Antigravity local bridge failed (${(err as Error).message}). Auto-switching to Ollama...`;
         console.warn("[AiRouter] " + failoverReason);
-        if (preferredEngine === "antigravity") {
-          // Even if explicitly requested antigravity, user requested: "if credits run out then it can just dynamically switch to local models without any problems"
-        }
       }
     }
 
     // 2. Try Ollama (Local open source model)
     if (preferredEngine === "auto" || preferredEngine === "ollama" || failoverOccurred) {
       try {
-        const res = await this.callOpenAiCompatible(this.ollamaUrl, this.ollamaModel, messages, systemInstructions);
+        const res = await this.callOpenAiCompatible(
+          this.ollamaUrl,
+          exactModelName || this.ollamaModel,
+          messages,
+          systemInstructions
+        );
         return {
           content: res,
           engine: "ollama",
@@ -88,7 +91,12 @@ export class AiRouter {
 
     // 3. Try LM Studio (Local open source model)
     try {
-      const res = await this.callOpenAiCompatible(this.lmStudioUrl, this.lmStudioModel, messages, systemInstructions);
+      const res = await this.callOpenAiCompatible(
+        this.lmStudioUrl,
+        exactModelName || this.lmStudioModel,
+        messages,
+        systemInstructions
+      );
       return {
         content: res,
         engine: "lm-studio",

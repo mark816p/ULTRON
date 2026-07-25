@@ -60,7 +60,6 @@ class AutonomousTaskManager {
       timestamp: new Date().toLocaleTimeString(),
     };
     this.tasks.unshift(newTask);
-    if (this.tasks.length > 25) this.tasks.pop();
     return newTask;
   }
 
