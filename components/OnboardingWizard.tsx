@@ -16,6 +16,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
 
   const [selectedEngine, setSelectedEngine] = useState("auto");
   const [selectedModel, setSelectedModel] = useState("gemini-2.5-pro");
+  const [selectedLocalModel, setSelectedLocalModel] = useState("llama3:8b");
   const [customModel, setCustomModel] = useState("");
   const [selectedVoice, setSelectedVoice] = useState<VoiceProfile>("jarvis");
 
@@ -28,6 +29,8 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
       ]).then(([sys, mods]) => {
         setSysInfo(sys);
         setModelsData(mods);
+        if (mods?.ollamaModels?.[0]) setSelectedLocalModel(mods.ollamaModels[0]);
+        else if (mods?.lmStudioModels?.[0]) setSelectedLocalModel(mods.lmStudioModels[0]);
         setLoading(false);
       });
     }
@@ -40,19 +43,19 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
     localStorage.setItem("ultron_onboarded", "true");
     localStorage.setItem("ultron_engine", selectedEngine);
     localStorage.setItem("ultron_model", finalModel);
+    localStorage.setItem("ultron_local_model", selectedLocalModel);
     localStorage.setItem("ultron_voice_profile", selectedVoice);
     onClose(selectedEngine, finalModel, selectedVoice);
   };
 
-  const getAvailableModelsForEngine = () => {
-    if (!modelsData) return ["gemini-2.5-pro", "gemini-1.5-pro", "llama3:8b", "qwen2.5:14b"];
-    if (selectedEngine === "antigravity") return modelsData.antigravityModels || ["gemini-2.5-pro"];
-    if (selectedEngine === "ollama") return modelsData.ollamaModels || ["llama3:8b"];
-    if (selectedEngine === "lm-studio") return modelsData.lmStudioModels || ["local-model"];
+  const getAntigravityModels = () => {
+    return modelsData?.antigravityModels || ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-1.5-pro", "claude-3.7-sonnet"];
+  };
+
+  const getLocalModels = () => {
     return [
-      ...(modelsData.antigravityModels || []),
-      ...(modelsData.ollamaModels || []),
-      ...(modelsData.lmStudioModels || []),
+      ...(modelsData?.ollamaModels || ["llama3:8b", "qwen2.5:14b", "mistral:7b"]),
+      ...(modelsData?.lmStudioModels || ["local-model"]),
     ];
   };
 
@@ -113,7 +116,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
               <div className="step-content">
                 <h3 className="step-title">🌐 SELECT YOUR AI MIND & BACKEND</h3>
                 <p className="step-desc">
-                  You have full control over your AI mind. Choose any engine and exact model name below. You can change this at any time from the System tab!
+                  Choose your primary cloud bridge AND your pre-installed local on-device model for offline failover!
                 </p>
 
                 <div className="engine-options">
@@ -184,7 +187,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
 
                 <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,170,48,0.4)" }}>
                   <label style={{ fontSize: "11px", fontWeight: "bold", color: "#ffaa30", display: "block", marginBottom: "6px" }}>
-                    🎯 EXACT AI MODEL SELECTION:
+                    🎯 PRIMARY ANTIGRAVITY CLOUD MODEL:
                   </label>
                   <select
                     value={selectedModel}
@@ -192,7 +195,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                     className="model-select-large"
                     style={{ marginBottom: "8px" }}
                   >
-                    {getAvailableModelsForEngine().map((mod: string, i: number) => (
+                    {getAntigravityModels().map((mod: string, i: number) => (
                       <option key={i} value={mod}>
                         {mod}
                       </option>
@@ -202,10 +205,27 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                     type="text"
                     value={customModel}
                     onChange={(e) => setCustomModel(e.target.value)}
-                    placeholder="Or type any custom model tag (e.g., llama3:8b, gemini-2.5-pro, local-model)..."
+                    placeholder="Or type custom cloud tag (e.g., gemini-2.5-pro)..."
                     className="chat-input"
                     style={{ width: "100%", fontSize: "11px" }}
                   />
+                </div>
+
+                <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(0,229,255,0.4)" }}>
+                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#00e5ff", display: "block", marginBottom: "6px" }}>
+                    🖥️ PRE-INSTALLED LOCAL MODEL (OLLAMA / LM STUDIO ON THIS DEVICE):
+                  </label>
+                  <select
+                    value={selectedLocalModel}
+                    onChange={(e) => setSelectedLocalModel(e.target.value)}
+                    className="model-select-large"
+                  >
+                    {getLocalModels().map((mod: string, i: number) => (
+                      <option key={i} value={mod}>
+                        {mod} (On-Device)
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(0,255,102,0.4)" }}>
@@ -213,24 +233,21 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                     🗣️ AI VOICE PERSONA (WITH TELEMETRY CHIRPS):
                   </label>
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                    {(["jarvis", "friday", "edith", "off"] as const).map((v) => (
+                    {(["jarvis", "friday", "edith"] as const).map((v) => (
                       <button
                         key={v}
                         type="button"
                         onClick={() => {
                           setSelectedVoice(v);
                           voiceEngine?.setProfile(v);
-                          if (v !== "off") {
-                            voiceEngine?.speak(`Greetings. I am ${v.toUpperCase()}, your automated AI assistant.`);
-                          }
+                          voiceEngine?.speak(`Greetings. I am ${v.toUpperCase()}, your automated AI assistant.`);
                         }}
                         className={`hud-tab-btn ${selectedVoice === v ? "active" : ""}`}
-                        style={{ flex: 1, textAlign: "center", padding: "6px" }}
+                        style={{ flex: 1, textAlign: "center", padding: "8px", fontWeight: "bold" }}
                       >
                         {v === "jarvis" && "👔 J.A.R.V.I.S."}
                         {v === "friday" && "👩‍🦰 F.R.I.D.A.Y."}
                         {v === "edith" && "👓 E.D.I.T.H."}
-                        {v === "off" && "🔇 MUTE"}
                       </button>
                     ))}
                   </div>

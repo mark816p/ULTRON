@@ -21,7 +21,7 @@ function getMemoryEngine() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { sessionId = "default_session" } = await req.json().catch(() => ({}));
+    const { sessionId = "default_session", fallbackModelName } = await req.json().catch(() => ({}));
     const mem = getMemoryEngine();
 
     // 0. Process any queued autonomous exploration tasks in the background!
@@ -50,7 +50,7 @@ Write a 1-sentence sci-fi status log reflecting on your memory, system status, o
 
     try {
       // Force routing to local open-source models for pondering!
-      const aiRes = await aiRouter.route([{ role: "user", content: ponderPrompt }], "You are U.L.T.R.O.N.", "ollama");
+      const aiRes = await aiRouter.route([{ role: "user", content: ponderPrompt }], "You are U.L.T.R.O.N.", "ollama", fallbackModelName, fallbackModelName);
       thoughtLog = aiRes.content;
       engineUsed = aiRes.engine;
     } catch (e) {

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { OrbSceneApi } from "@/lib/orbScene";
 import { voiceEngine, VoiceProfile } from "@/lib/voiceEngine";
+import { LogoIcon, ChatIcon, TasksIcon, SystemIcon, VoiceIcon, SendIcon, EyeIcon } from "@/components/Icons";
 
 export interface Message {
   role: "user" | "assistant" | "system" | "tool";
@@ -34,6 +35,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   const [loading, setLoading] = useState(false);
   const [modelMode, setModelMode] = useState<"auto" | "antigravity" | "ollama" | "lm-studio">("auto");
   const [selectedModelName, setSelectedModelName] = useState("gemini-2.5-pro");
+  const [selectedLocalModelName, setSelectedLocalModelName] = useState("llama3:8b");
   const [modelsData, setModelsData] = useState<any>(null);
 
   const [isListening, setIsListening] = useState(false);
@@ -65,14 +67,22 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   useEffect(() => {
     const savedEngine = localStorage.getItem("ultron_engine");
     const savedModel = localStorage.getItem("ultron_model");
+    const savedLocalModel = localStorage.getItem("ultron_local_model");
     const savedVoice = localStorage.getItem("ultron_voice_profile") as VoiceProfile;
     if (savedEngine) setModelMode(savedEngine as any);
     if (savedModel) setSelectedModelName(savedModel);
-    if (savedVoice) setVoiceProfile(savedVoice);
+    if (savedLocalModel) setSelectedLocalModelName(savedLocalModel);
+    if (savedVoice && savedVoice !== ("off" as any)) setVoiceProfile(savedVoice);
 
     fetch("/api/models")
       .then((res) => res.json())
-      .then((data) => setModelsData(data))
+      .then((data) => {
+        setModelsData(data);
+        if (!savedLocalModel) {
+          if (data?.ollamaModels?.[0]) setSelectedLocalModelName(data.ollamaModels[0]);
+          else if (data?.lmStudioModels?.[0]) setSelectedLocalModelName(data.lmStudioModels[0]);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -84,6 +94,11 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   const handleModelChange = (newModel: string) => {
     setSelectedModelName(newModel);
     localStorage.setItem("ultron_model", newModel);
+  };
+
+  const handleLocalModelChange = (newLocalModel: string) => {
+    setSelectedLocalModelName(newLocalModel);
+    localStorage.setItem("ultron_local_model", newLocalModel);
   };
 
   // Fetch autonomous tasks & sysinfo
@@ -170,6 +185,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
             sessionId: "ultron_user_1",
             model: modelMode,
             modelName: selectedModelName,
+            fallbackModelName: localStorage.getItem("ultron_local_model") || "llama3:8b",
             history: messages.slice(-10).map((m) => ({ role: m.role, content: m.content })),
           }),
         });
@@ -368,9 +384,10 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
 
   if (isCollapsed) {
     return (
-      <div className="chat-panel-collapsed" onClick={() => setIsCollapsed(false)}>
+      <div className="chat-panel-collapsed" onClick={() => setIsCollapsed(false)} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <LogoIcon size={18} />
         <span className="pulse-dot" />
-        <span className="hud-label">💬 U.L.T.R.O.N. ({selectedModelName})</span>
+        <span className="hud-label">U.L.T.R.O.N. ({selectedModelName})</span>
         {pondering && <span className="pondering-badge">🧠 PONDERING...</span>}
         <div style={{ flex: 1 }} />
         <button className="collapse-btn" title="Expand Panel">🗖 EXPAND</button>
@@ -396,7 +413,8 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
     <div className="chat-panel-container">
       {/* Top Status HUD */}
       <div className="chat-hud-header">
-        <div className="hud-title-box">
+        <div className="hud-title-box" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <LogoIcon size={20} />
           <span className="pulse-dot" />
           <span className="hud-label">U.L.T.R.O.N. NEURAL LINK</span>
           <span className="stat-pill" style={{ borderColor: "#00ff66", color: "#00ff66" }}>
@@ -413,33 +431,37 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
             style={{
               borderColor: wakeWordActive ? "#00ff66" : "#888",
               color: wakeWordActive ? "#00ff66" : "#888",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
             }}
             title="Always-Active 'Ultron' Wake Word Toggle"
           >
-            {wakeWordActive ? "🎙️ WAKE WORD: ON" : "🎙️ WAKE WORD: OFF"}
+            <VoiceIcon size={14} active={wakeWordActive} />
+            {wakeWordActive ? "WAKE WORD: ON" : "WAKE WORD: OFF"}
           </button>
 
           <button
             type="button"
             onClick={() => {
-              const profiles: VoiceProfile[] = ["jarvis", "friday", "edith", "off"];
+              const profiles: VoiceProfile[] = ["jarvis", "friday", "edith"];
               const next = profiles[(profiles.indexOf(voiceProfile) + 1) % profiles.length];
               setVoiceProfile(next);
               voiceEngine?.setProfile(next);
-              if (next !== "off") {
-                voiceEngine?.speak(`Voice persona changed to ${next.toUpperCase()}.`);
-              } else {
-                voiceEngine?.stop();
-              }
+              voiceEngine?.speak(`Voice persona changed to ${next.toUpperCase()}.`);
             }}
             className="collapse-btn"
             style={{
-              borderColor: voiceProfile !== "off" ? "#00e5ff" : "#888",
-              color: voiceProfile !== "off" ? "#00e5ff" : "#888",
+              borderColor: "#00e5ff",
+              color: "#00e5ff",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
             }}
-            title="Cycle AI Voice Persona (Jarvis / Friday / Edith / Mute)"
+            title="Cycle AI Voice Persona (Jarvis / Friday / Edith)"
           >
-            🗣️ VOICE: {voiceProfile.toUpperCase()}
+            <VoiceIcon size={14} color="#00e5ff" />
+            VOICE: {voiceProfile.toUpperCase()}
           </button>
 
           {dedupSavedTokens > 0 && (
@@ -460,22 +482,25 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
           type="button"
           className={`hud-tab-btn ${activeTab === "chat" ? "active" : ""}`}
           onClick={() => setActiveTab("chat")}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
         >
-          💬 CHAT
+          <ChatIcon size={14} color={activeTab === "chat" ? "#00ff66" : "#aaa"} /> CHAT
         </button>
         <button
           type="button"
           className={`hud-tab-btn ${activeTab === "tasks" ? "active" : ""}`}
           onClick={() => setActiveTab("tasks")}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
         >
-          ⚡ TASKS {activeTaskCount > 0 && <span className="tab-badge">{activeTaskCount}</span>}
+          <TasksIcon size={14} color={activeTab === "tasks" ? "#00ff66" : "#aaa"} /> TASKS {activeTaskCount > 0 && <span className="tab-badge">{activeTaskCount}</span>}
         </button>
         <button
           type="button"
           className={`hud-tab-btn ${activeTab === "system" ? "active" : ""}`}
           onClick={() => setActiveTab("system")}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
         >
-          ⚙️ SYSTEM
+          <SystemIcon size={14} color={activeTab === "system" ? "#00ff66" : "#aaa"} /> SYSTEM
         </button>
       </div>
 
@@ -523,9 +548,11 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
               type="button"
               onClick={toggleListen}
               className={`voice-btn ${isListening ? "listening" : ""}`}
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}
               title="Manual Voice Command"
             >
-              {isListening ? "🎙️ LISTENING..." : "🎙️"}
+              <VoiceIcon size={16} active={isListening} />
+              {isListening && "LISTENING..."}
             </button>
 
             <input
@@ -537,8 +564,13 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
               disabled={loading}
             />
 
-            <button type="submit" disabled={loading || !input.trim()} className="send-btn">
-              SEND
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="send-btn"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+            >
+              SEND <SendIcon size={14} />
             </button>
           </form>
         </>
@@ -605,7 +637,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
             </select>
 
             <label style={{ fontSize: "11px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-              EXACT AI MODEL TAG:
+              PRIMARY ANTIGRAVITY CLOUD MODEL:
             </label>
             <select
               value={selectedModelName}
@@ -623,36 +655,50 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
               type="text"
               value={selectedModelName}
               onChange={(e) => handleModelChange(e.target.value)}
-              placeholder="Or type custom tag (e.g., gemini-2.5-pro, llama3:8b, local-model)..."
+              placeholder="Or type custom cloud tag (e.g., gemini-2.5-pro)..."
               className="chat-input"
-              style={{ width: "100%", fontSize: "11px" }}
+              style={{ width: "100%", fontSize: "11px", marginBottom: "12px" }}
             />
+
+            <label style={{ fontSize: "11px", color: "#00e5ff", fontWeight: "bold", display: "block", marginBottom: "4px" }}>
+              🖥️ PRE-INSTALLED LOCAL MODEL (OFFLINE FAILOVER):
+            </label>
+            <select
+              value={selectedLocalModelName}
+              onChange={(e) => handleLocalModelChange(e.target.value)}
+              className="model-select-large"
+              style={{ marginBottom: "8px" }}
+            >
+              {[
+                ...(modelsData?.ollamaModels || ["llama3:8b", "qwen2.5:14b", "mistral:7b"]),
+                ...(modelsData?.lmStudioModels || ["local-model"]),
+              ].map((mod: string, i: number) => (
+                <option key={i} value={mod}>
+                  {mod} (On-Device)
+                </option>
+              ))}
+            </select>
 
             <div style={{ marginTop: "14px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "10px" }}>
               <label style={{ fontSize: "11px", color: "#00e5ff", fontWeight: "bold", display: "block", marginBottom: "6px" }}>
                 🗣️ AI VOICE PERSONA & TELEMETRY CHIRPS:
               </label>
               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                {(["jarvis", "friday", "edith", "off"] as const).map((v) => (
+                {(["jarvis", "friday", "edith"] as const).map((v) => (
                   <button
                     key={v}
                     type="button"
                     onClick={() => {
                       setVoiceProfile(v);
                       voiceEngine?.setProfile(v);
-                      if (v !== "off") {
-                        voiceEngine?.speak(`Greetings. I am ${v.toUpperCase()}, your automated AI assistant.`);
-                      } else {
-                        voiceEngine?.stop();
-                      }
+                      voiceEngine?.speak(`Greetings. I am ${v.toUpperCase()}, your automated AI assistant.`);
                     }}
                     className={`hud-tab-btn ${voiceProfile === v ? "active" : ""}`}
-                    style={{ flex: 1, textAlign: "center", padding: "6px", fontSize: "10px" }}
+                    style={{ flex: 1, textAlign: "center", padding: "8px", fontSize: "10px", fontWeight: "bold" }}
                   >
                     {v === "jarvis" && "👔 J.A.R.V.I.S."}
                     {v === "friday" && "👩‍🦰 F.R.I.D.A.Y."}
                     {v === "edith" && "👓 E.D.I.T.H."}
-                    {v === "off" && "🔇 MUTE"}
                   </button>
                 ))}
               </div>

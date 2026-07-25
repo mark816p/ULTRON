@@ -43,7 +43,8 @@ export class AiRouter {
     messages: ChatMessage[],
     systemInstructions?: string,
     preferredEngine: "auto" | "antigravity" | "ollama" | "lm-studio" = "auto",
-    exactModelName?: string
+    exactModelName?: string,
+    fallbackModelName?: string
   ): Promise<RouterResponse> {
     const latestPrompt = messages[messages.length - 1]?.content || "";
     let failoverOccurred = false;
@@ -71,7 +72,7 @@ export class AiRouter {
       try {
         const res = await this.callOpenAiCompatible(
           this.ollamaUrl,
-          exactModelName || this.ollamaModel,
+          fallbackModelName || (preferredEngine === "ollama" ? exactModelName : undefined) || this.ollamaModel,
           messages,
           systemInstructions
         );
@@ -93,7 +94,7 @@ export class AiRouter {
     try {
       const res = await this.callOpenAiCompatible(
         this.lmStudioUrl,
-        exactModelName || this.lmStudioModel,
+        fallbackModelName || (preferredEngine === "lm-studio" ? exactModelName : undefined) || this.lmStudioModel,
         messages,
         systemInstructions
       );
