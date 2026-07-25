@@ -13,6 +13,8 @@ export interface OrbSceneApi {
   zoomIn(): void;
   zoomOut(): void;
   resetView(): void;
+  setAIState(state: "idle" | "thinking" | "speaking" | "pondering"): void;
+  setThoughtWords(words: string[]): void;
   dispose(): void;
 }
 
@@ -698,31 +700,79 @@ export function createOrbScene(container: HTMLElement): OrbSceneApi {
   let rafId = 0;
   let disposed = false;
 
+  let aiState: "idle" | "thinking" | "speaking" | "pondering" = "idle";
+  let speedMultiplier = 1.0;
+  let targetColorHex = 0xffaa30;
+
+  function setAIState(state: "idle" | "thinking" | "speaking" | "pondering") {
+    aiState = state;
+    if (state === "idle") {
+      speedMultiplier = 1.0;
+      targetColorHex = 0xffaa30; // Amber
+    } else if (state === "thinking" || state === "pondering") {
+      speedMultiplier = 3.4;
+      targetColorHex = 0x00e5ff; // Teal / Cyan
+    } else if (state === "speaking") {
+      speedMultiplier = 1.8;
+      targetColorHex = 0x00ff66; // Emerald Green
+    }
+  }
+
+  function setThoughtWords(words: string[]) {
+    if (!words || words.length === 0) return;
+    const allTextSprites = [
+      ...textOuter.children,
+      ...textInner.children,
+      ...textAmbient.children,
+    ];
+    // Pick 50 random sprites and dynamically morph their texture to real-time thought keywords!
+    for (let i = 0; i < 50; i++) {
+      const sp = allTextSprites[Math.floor(Math.random() * allTextSprites.length)] as THREE.Sprite;
+      if (!sp || !sp.material) continue;
+      const word = words[i % words.length]!;
+      const newSprite = makeTextSprite(word, 0.05 + Math.random() * 0.03);
+      if (sp.material.map) sp.material.map.dispose();
+      sp.material.dispose();
+      sp.material = newSprite.material;
+      sp.scale.copy(newSprite.scale);
+    }
+  }
+
   function animate() {
     if (disposed) return;
     rafId = requestAnimationFrame(animate);
     const t = clock.getElapsedTime();
 
     // Outer shell rotation
-    outerShell.rotation.y += 0.0015;
+    outerShell.rotation.y += 0.0015 * speedMultiplier;
     outerShell.rotation.x = Math.sin(t * 0.08) * 0.05;
 
     // Panel group follows shell but with slight offset
-    panelGroup.rotation.y += 0.0018;
+    panelGroup.rotation.y += 0.0018 * speedMultiplier;
     panelGroup.rotation.x = Math.sin(t * 0.08 + 0.5) * 0.04;
 
     // Secondary shell counter-rotates slowly
-    shell2.rotation.y -= 0.001;
+    shell2.rotation.y -= 0.001 * speedMultiplier;
     shell2.rotation.z = Math.sin(t * 0.12) * 0.03;
 
     // Inner core — opposite, faster
-    innerCore.rotation.y -= 0.005;
-    innerCore.rotation.z += 0.002;
+    innerCore.rotation.y -= 0.005 * speedMultiplier;
+    innerCore.rotation.z += 0.002 * speedMultiplier;
     innerCore.rotation.x = Math.cos(t * 0.1) * 0.08;
 
     // Innermost wireframe
-    icoWire.rotation.x += 0.008;
-    icoWire.rotation.y += 0.012;
+    icoWire.rotation.x += 0.008 * speedMultiplier;
+    icoWire.rotation.y += 0.012 * speedMultiplier;
+
+    // Liveliness breathing animation on entire orb Group
+    const breath = 1.0 + Math.sin(t * 2.0) * 0.02;
+    orbGroup.scale.set(breath, breath, breath);
+
+    // Smooth color morphing toward AI state theme
+    const targetColor = new THREE.Color(targetColorHex);
+    coreSphereMat.color.lerp(targetColor, 0.05);
+    glowSphereMat.color.lerp(targetColor, 0.05);
+    icoWireMat.color.lerp(targetColor, 0.05);
 
     // Core pulse — dramatic surges but mostly transparent
     const wave1 = Math.sin(t * 1.2);
@@ -802,8 +852,14 @@ export function createOrbScene(container: HTMLElement): OrbSceneApi {
       });
     }
 
-    // Bloom pulse
-    bloom.strength = 1.6 + Math.sin(t * 0.8) * 0.3;
+    // Bloom pulse reactive to AI state
+    if (aiState === "speaking") {
+      bloom.strength = 1.9 + Math.sin(t * 14) * 0.6;
+    } else if (aiState === "thinking" || aiState === "pondering") {
+      bloom.strength = 2.4 + Math.sin(t * 6) * 0.4;
+    } else {
+      bloom.strength = 1.6 + Math.sin(t * 0.8) * 0.3;
+    }
 
     // Update chromatic aberration time
     chromaticPass.uniforms.uTime.value = t;
@@ -853,6 +909,8 @@ export function createOrbScene(container: HTMLElement): OrbSceneApi {
     zoomIn: () => zoomBy(0.65),
     zoomOut: () => zoomBy(1.55),
     resetView,
+    setAIState,
+    setThoughtWords,
     dispose,
   };
 }

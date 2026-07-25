@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createOrbScene, type OrbSceneApi } from "@/lib/orbScene";
 import { HandTracker, type TrackerStatus } from "@/lib/handTracker";
+import ChatPanel from "./ChatPanel";
 
 type CameraState = "off" | "starting" | "on" | "error";
 
@@ -10,6 +11,7 @@ const MODE_LABEL: Record<TrackerStatus["mode"], string> = {
   idle: "STANDBY",
   spin: "SPIN",
   zoom: "ZOOM",
+  swipe: "SWIPE",
 };
 
 export default function JarvisOrb() {
@@ -122,7 +124,7 @@ export default function JarvisOrb() {
         </div>
         {cameraOn ? (
           <div>
-            <span className="key">PINCH + MOVE</span> spin&nbsp;&nbsp;
+            <span className="key">PINCH / SWIPE</span> spin&nbsp;&nbsp;
             <span className="key">PINCH BOTH HANDS ± SPREAD</span> zoom
           </div>
         ) : (
@@ -136,13 +138,13 @@ export default function JarvisOrb() {
 
       <div className="hud hud-controls">
         <div className={`camera-panel${cameraOn ? " visible" : ""}`}>
-          {/* Mirrored preview so it behaves like a mirror */}
-          <video ref={videoRef} muted playsInline className="camera-video" />
-          <canvas ref={overlayRef} width={208} height={156} className="camera-overlay" />
-          <div className="camera-status">
+          {/* Camera feed is kept 100% invisible on UI per user directive while processing in background */}
+          <video ref={videoRef} muted playsInline className="camera-video" style={{ display: "none" }} />
+          <canvas ref={overlayRef} width={208} height={156} className="camera-overlay" style={{ display: "none" }} />
+          <div className="camera-status" style={{ borderTop: "none" }}>
             {status.hands > 0
-              ? `${status.hands} HAND${status.hands > 1 ? "S" : ""} · ${MODE_LABEL[status.mode]}`
-              : "SHOW HANDS"}
+              ? `👋 ${status.hands} HAND${status.hands > 1 ? "S" : ""} DETECTED · MODE: ${MODE_LABEL[status.mode]}`
+              : "✋ GESTURE SENSOR ONLINE (INVISIBLE FEED)"}
           </div>
         </div>
 
@@ -156,7 +158,7 @@ export default function JarvisOrb() {
             onClick={toggleGestures}
             disabled={camera === "starting"}
           >
-            {camera === "starting" ? "INITIALIZING…" : cameraOn ? "GESTURES ON" : "GESTURES OFF"}
+            {camera === "starting" ? "INITIALIZING…" : cameraOn ? "🟢 GESTURES ON" : "⚪ GESTURES OFF"}
           </button>
         </div>
         <div className="hud-row">
@@ -171,6 +173,10 @@ export default function JarvisOrb() {
           </button>
         </div>
       </div>
+
+      {/* Futuristic Chat & Cognitive Control Panel */}
+      <ChatPanel sceneRef={sceneRef} cameraState={camera} onToggleGestures={toggleGestures} />
     </>
   );
 }
+
