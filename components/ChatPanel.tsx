@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { OrbSceneApi } from "@/lib/orbScene";
+import { voiceEngine, VoiceProfile } from "@/lib/voiceEngine";
 
 export interface Message {
   role: "user" | "assistant" | "system" | "tool";
@@ -37,6 +38,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
 
   const [isListening, setIsListening] = useState(false);
   const [wakeWordActive, setWakeWordActive] = useState(true);
+  const [voiceProfile, setVoiceProfile] = useState<VoiceProfile>("jarvis");
   const [pondering, setPondering] = useState(false);
   const [latestKeywords, setLatestKeywords] = useState<string[]>([]);
   const [dedupSavedTokens, setDedupSavedTokens] = useState<number>(0);
@@ -63,8 +65,10 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   useEffect(() => {
     const savedEngine = localStorage.getItem("ultron_engine");
     const savedModel = localStorage.getItem("ultron_model");
+    const savedVoice = localStorage.getItem("ultron_voice_profile") as VoiceProfile;
     if (savedEngine) setModelMode(savedEngine as any);
     if (savedModel) setSelectedModelName(savedModel);
+    if (savedVoice) setVoiceProfile(savedVoice);
 
     fetch("/api/models")
       .then((res) => res.json())
@@ -173,8 +177,16 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to communicate with U.L.T.R.O.N.");
 
-        sceneRef.current?.setAIState("speaking");
-        setTimeout(() => sceneRef.current?.setAIState("idle"), Math.min(6000, data.content.length * 50));
+        if (voiceEngine && voiceEngine.getProfile() !== "off") {
+          voiceEngine.speak(
+            data.content,
+            () => sceneRef.current?.setAIState("speaking"),
+            () => sceneRef.current?.setAIState("idle")
+          );
+        } else {
+          sceneRef.current?.setAIState("speaking");
+          setTimeout(() => sceneRef.current?.setAIState("idle"), Math.min(6000, data.content.length * 50));
+        }
 
         if (data.keywords && data.keywords.length > 0) {
           setLatestKeywords(data.keywords);
@@ -407,6 +419,29 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
             {wakeWordActive ? "🎙️ WAKE WORD: ON" : "🎙️ WAKE WORD: OFF"}
           </button>
 
+          <button
+            type="button"
+            onClick={() => {
+              const profiles: VoiceProfile[] = ["jarvis", "friday", "edith", "off"];
+              const next = profiles[(profiles.indexOf(voiceProfile) + 1) % profiles.length];
+              setVoiceProfile(next);
+              voiceEngine?.setProfile(next);
+              if (next !== "off") {
+                voiceEngine?.speak(`Voice persona changed to ${next.toUpperCase()}.`);
+              } else {
+                voiceEngine?.stop();
+              }
+            }}
+            className="collapse-btn"
+            style={{
+              borderColor: voiceProfile !== "off" ? "#00e5ff" : "#888",
+              color: voiceProfile !== "off" ? "#00e5ff" : "#888",
+            }}
+            title="Cycle AI Voice Persona (Jarvis / Friday / Edith / Mute)"
+          >
+            🗣️ VOICE: {voiceProfile.toUpperCase()}
+          </button>
+
           {dedupSavedTokens > 0 && (
             <span className="stat-pill" title="Tokens saved by SQZ deduplication">
               ⚡ SQZ SAVED: {dedupSavedTokens}
@@ -592,6 +627,36 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
               className="chat-input"
               style={{ width: "100%", fontSize: "11px" }}
             />
+
+            <div style={{ marginTop: "14px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "10px" }}>
+              <label style={{ fontSize: "11px", color: "#00e5ff", fontWeight: "bold", display: "block", marginBottom: "6px" }}>
+                🗣️ AI VOICE PERSONA & TELEMETRY CHIRPS:
+              </label>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                {(["jarvis", "friday", "edith", "off"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => {
+                      setVoiceProfile(v);
+                      voiceEngine?.setProfile(v);
+                      if (v !== "off") {
+                        voiceEngine?.speak(`Greetings. I am ${v.toUpperCase()}, your automated AI assistant.`);
+                      } else {
+                        voiceEngine?.stop();
+                      }
+                    }}
+                    className={`hud-tab-btn ${voiceProfile === v ? "active" : ""}`}
+                    style={{ flex: 1, textAlign: "center", padding: "6px", fontSize: "10px" }}
+                  >
+                    {v === "jarvis" && "👔 J.A.R.V.I.S."}
+                    {v === "friday" && "👩‍🦰 F.R.I.D.A.Y."}
+                    {v === "edith" && "👓 E.D.I.T.H."}
+                    {v === "off" && "🔇 MUTE"}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="sys-section">

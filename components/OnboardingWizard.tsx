@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { voiceEngine, VoiceProfile } from "@/lib/voiceEngine";
 
 interface OnboardingWizardProps {
   isOpen: boolean;
-  onClose: (selectedEngine: string, selectedModel?: string) => void;
+  onClose: (selectedEngine: string, selectedModel?: string, selectedVoice?: string) => void;
 }
 
 export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardProps) {
@@ -16,6 +17,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
   const [selectedEngine, setSelectedEngine] = useState("auto");
   const [selectedModel, setSelectedModel] = useState("gemini-2.5-pro");
   const [customModel, setCustomModel] = useState("");
+  const [selectedVoice, setSelectedVoice] = useState<VoiceProfile>("jarvis");
 
   useEffect(() => {
     if (isOpen) {
@@ -38,7 +40,8 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
     localStorage.setItem("ultron_onboarded", "true");
     localStorage.setItem("ultron_engine", selectedEngine);
     localStorage.setItem("ultron_model", finalModel);
-    onClose(selectedEngine, finalModel);
+    localStorage.setItem("ultron_voice_profile", selectedVoice);
+    onClose(selectedEngine, finalModel, selectedVoice);
   };
 
   const getAvailableModelsForEngine = () => {
@@ -203,6 +206,34 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                     className="chat-input"
                     style={{ width: "100%", fontSize: "11px" }}
                   />
+                </div>
+
+                <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(0,255,102,0.4)" }}>
+                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#00ff66", display: "block", marginBottom: "6px" }}>
+                    🗣️ AI VOICE PERSONA (WITH TELEMETRY CHIRPS):
+                  </label>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    {(["jarvis", "friday", "edith", "off"] as const).map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => {
+                          setSelectedVoice(v);
+                          voiceEngine?.setProfile(v);
+                          if (v !== "off") {
+                            voiceEngine?.speak(`Greetings. I am ${v.toUpperCase()}, your automated AI assistant.`);
+                          }
+                        }}
+                        className={`hud-tab-btn ${selectedVoice === v ? "active" : ""}`}
+                        style={{ flex: 1, textAlign: "center", padding: "6px" }}
+                      >
+                        {v === "jarvis" && "👔 J.A.R.V.I.S."}
+                        {v === "friday" && "👩‍🦰 F.R.I.D.A.Y."}
+                        {v === "edith" && "👓 E.D.I.T.H."}
+                        {v === "off" && "🔇 MUTE"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
