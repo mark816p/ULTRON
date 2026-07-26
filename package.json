@@ -1,6 +1,6 @@
 {
   "name": "ultron-orb-ui",
-  "version": "36.0.0",
+  "version": "36.1.0",
   "private": true,
   "main": "main.js",
   "scripts": {

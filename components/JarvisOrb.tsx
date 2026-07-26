@@ -10,9 +10,15 @@ type CameraState = "off" | "starting" | "on" | "error";
 
 const MODE_LABEL: Record<TrackerStatus["mode"], string> = {
   idle: "STANDBY",
-  spin: "SPIN",
-  zoom: "ZOOM",
-  swipe: "SWIPE",
+  spin: "PRECISION PINCH",
+  zoom: "ZOOM SCALING",
+  swipe: "AIR SWIPE",
+  fist: "POWER GRAB",
+  point: "LASER POINT (RESET)",
+  victory: "SYSTEM PULSE",
+  thumbs_up: "ZOOM IN",
+  thumbs_down: "ZOOM OUT",
+  open_palm: "AIR BRAKE",
 };
 
 export default function JarvisOrb() {
@@ -68,6 +74,19 @@ export default function JarvisOrb() {
       onRotate: (dt, dp) => sceneRef.current?.rotateBy(dt, dp),
       onZoom: (factor) => sceneRef.current?.zoomBy(factor),
       onStatus: setStatus,
+      onGestureAction: (action) => {
+        if (!sceneRef.current) return;
+        if (action === "reset") {
+          sceneRef.current.resetView?.();
+        } else if (action === "zoomIn") {
+          sceneRef.current.zoomIn?.();
+        } else if (action === "zoomOut") {
+          sceneRef.current.zoomOut?.();
+        } else if (action === "pulse") {
+          sceneRef.current.setAIState?.("thinking");
+          setTimeout(() => sceneRef.current?.setAIState?.("idle"), 2500);
+        }
+      },
     });
     trackerRef.current = tracker;
 
