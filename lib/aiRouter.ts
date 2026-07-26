@@ -83,31 +83,40 @@ export class AiRouter {
           failoverReason: failoverOccurred ? failoverReason : undefined,
         };
       } catch (ollamaErr) {
-        const msg = `Ollama connection failed (${(ollamaErr as Error).message}). Auto-switching to LM Studio...`;
+        const msg = `Ollama connection failed (${(ollamaErr as Error).message}).`;
         console.warn("[AiRouter] " + msg);
         failoverOccurred = true;
         failoverReason = failoverReason ? `${failoverReason} -> ${msg}` : msg;
+        // If the user explicitly chose Ollama and it failed, don't silently try LM Studio
+        if (preferredEngine === "ollama") {
+          throw new Error(`Ollama is unreachable. Is Ollama running? Error: ${(ollamaErr as Error).message}`);
+        }
       }
     }
 
-    // 3. Try LM Studio (Local open source model)
-    try {
-      const res = await this.callOpenAiCompatible(
-        this.lmStudioUrl,
-        fallbackModelName || (preferredEngine === "lm-studio" ? exactModelName : undefined) || this.lmStudioModel,
-        messages,
-        systemInstructions
-      );
-      return {
-        content: res,
-        engine: "lm-studio",
-        failoverOccurred,
-        failoverReason: failoverOccurred ? failoverReason : undefined,
-      };
-    } catch (lmErr) {
-      console.error("[AiRouter] All inference engines failed (Antigravity, Ollama, and LM Studio).", lmErr);
-      throw new Error(`All local AI engines unreachable. Last error from LM Studio: ${(lmErr as Error).message}`);
+    // 3. Try LM Studio (Local open source model) — only in auto or explicit lm-studio mode
+    if (preferredEngine === "auto" || preferredEngine === "lm-studio") {
+      try {
+        const res = await this.callOpenAiCompatible(
+          this.lmStudioUrl,
+          fallbackModelName || (preferredEngine === "lm-studio" ? exactModelName : undefined) || this.lmStudioModel,
+          messages,
+          systemInstructions
+        );
+        return {
+          content: res,
+          engine: "lm-studio",
+          failoverOccurred,
+          failoverReason: failoverOccurred ? failoverReason : undefined,
+        };
+      } catch (lmErr) {
+        const engineLabel = preferredEngine === "lm-studio" ? "LM Studio" : "Ollama + LM Studio";
+        console.error(`[AiRouter] All inference engines failed (Antigravity, ${engineLabel}).`, lmErr);
+        throw new Error(`All local AI engines unreachable. Last error from ${engineLabel}: ${(lmErr as Error).message}`);
+      }
     }
+
+    throw new Error("All configured AI engines are unreachable. Check your local AI server is running.");
   }
 
   private async callOpenAiCompatible(

@@ -1,6 +1,6 @@
 {
   "name": "ultron-orb-ui",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "app": "electron .",
-    "build:installer": "npm run build && electron-builder --win"
+    "build:installer": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win"
   },
   "build": {
     "appId": "com.antigravity.ultron",
@@ -22,6 +22,7 @@
         "repo": "ultron-autonomous-orb"
       }
     ],
+    "artifactName": "ULTRON-Setup.exe",
     "files": [
       ".next/**/*",
       "public/**/*",
@@ -30,8 +31,24 @@
       "node_modules/**/*"
     ],
     "win": {
-      "target": "nsis",
+      "target": [
+        "nsis"
+      ],
       "icon": "public/favicon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "public/favicon.ico",
+      "artifactName": "ULTRON-Setup.dmg"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "public/favicon.ico",
+      "artifactName": "ULTRON-Setup.AppImage"
     },
     "nsis": {
       "oneClick": false,
@@ -61,6 +78,7 @@
     "@types/react-dom": "^19",
     "@types/three": "^0.185.0",
     "concurrently": "^10.0.4",
+    "cross-env": "^10.1.0",
     "electron": "^43.2.0",
     "electron-builder": "^26.15.3",
     "typescript": "^5",

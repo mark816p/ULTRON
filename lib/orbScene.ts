@@ -738,10 +738,14 @@ export function createOrbScene(container: HTMLElement): OrbSceneApi {
     }
   }
 
+  // Pre-allocate reusable color object to avoid garbage collection stalls every frame
+  const _targetColor = new THREE.Color();
+
   function animate() {
     if (disposed) return;
     rafId = requestAnimationFrame(animate);
     const t = clock.getElapsedTime();
+    const dt = Math.min(clock.getDelta(), 0.05); // cap at 50ms to prevent spiral of death on tab focus
 
     // Outer shell rotation
     outerShell.rotation.y += 0.0015 * speedMultiplier;
@@ -768,11 +772,11 @@ export function createOrbScene(container: HTMLElement): OrbSceneApi {
     const breath = 1.0 + Math.sin(t * 2.0) * 0.02;
     orbGroup.scale.set(breath, breath, breath);
 
-    // Smooth color morphing toward AI state theme
-    const targetColor = new THREE.Color(targetColorHex);
-    coreSphereMat.color.lerp(targetColor, 0.05);
-    glowSphereMat.color.lerp(targetColor, 0.05);
-    icoWireMat.color.lerp(targetColor, 0.05);
+    // Smooth color morphing toward AI state theme — use pre-allocated color
+    _targetColor.setHex(targetColorHex);
+    coreSphereMat.color.lerp(_targetColor, 0.06);
+    glowSphereMat.color.lerp(_targetColor, 0.06);
+    icoWireMat.color.lerp(_targetColor, 0.06);
 
     // Core pulse — dramatic surges but mostly transparent
     const wave1 = Math.sin(t * 1.2);

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>U.L.T.R.O.N. — Autonomous Sentient AI Orb</title>
+  <meta name="description" content="U.L.T.R.O.N. is an Iron Man-inspired autonomous AI desktop companion with voice control, local & cloud inference, unlimited background tasks, and real-time gesture tracking." />
+  <link rel="icon" href="https://raw.githubusercontent.com/mark816p/ultron-autonomous-orb/main/public/favicon.ico" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --c-bg: #05060a;
+      --c-bg2: #0b0d14;
+      --c-amber: #ffaa30;
+      --c-amber-dim: rgba(255,170,48,0.15);
+      --c-amber-border: rgba(255,170,48,0.35);
+      --c-cyan: #00e5ff;
+      --c-cyan-dim: rgba(0,229,255,0.12);
+      --c-green: #00ff88;
+      --c-text: #d4d8e8;
+      --c-muted: #7a8099;
+      --r: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--c-bg);
+      color: var(--c-text);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ── SCANLINES ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom, transparent 0, transparent 2px,
+        rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px
+      );
+      opacity: .35;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 48px;
+      background: rgba(5,6,10,0.88);
+      border-bottom: 1px solid var(--c-amber-border);
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo {
+      font-family: 'Orbitron', monospace;
+      font-weight: 900; font-size: 18px;
+      color: var(--c-amber);
+      text-shadow: 0 0 24px rgba(255,170,48,.6);
+      letter-spacing: .12em;
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 32px; }
+    .nav-links a {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px; letter-spacing: .15em;
+      color: var(--c-muted); text-decoration: none;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--c-amber); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 120px 24px 80px;
+      position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: '';
+      position: absolute; inset: 0; z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255,140,30,.07) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 50% 80%, rgba(0,229,255,.04) 0%, transparent 60%);
+    }
+
+    .hero-badge {
+      display: inline-block;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px; letter-spacing: .3em;
+      color: var(--c-amber);
+      border: 1px solid var(--c-amber-border);
+      background: var(--c-amber-dim);
+      padding: 6px 18px; border-radius: 20px;
+      margin-bottom: 28px;
+      animation: fadeUp .6s ease both;
+    }
+
+    h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(36px, 7vw, 88px);
+      font-weight: 900; line-height: 1.05;
+      letter-spacing: .04em;
+      background: linear-gradient(135deg, #fff 0%, var(--c-amber) 55%, #ff7a00 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: fadeUp .7s .1s ease both;
+      max-width: 900px;
+    }
+
+    .hero-sub {
+      margin-top: 24px;
+      font-size: clamp(14px, 2.2vw, 20px);
+      color: var(--c-muted); max-width: 640px;
+      animation: fadeUp .7s .2s ease both;
+    }
+
+    /* ── ORB SVG (CSS-animated placeholder) ── */
+    .orb-wrap {
+      position: relative; width: 260px; height: 260px;
+      margin: 48px auto 0;
+      animation: fadeUp .8s .3s ease both;
+    }
+    .orb-ring {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      border: 1px solid;
+      animation: spin linear infinite;
+    }
+    .orb-ring:nth-child(1) { border-color: rgba(255,170,48,.5); animation-duration: 8s; }
+    .orb-ring:nth-child(2) { inset: 20px; border-color: rgba(255,170,48,.3); animation-duration: 12s; animation-direction: reverse; }
+    .orb-ring:nth-child(3) { inset: 40px; border-color: rgba(0,229,255,.25); animation-duration: 6s; }
+    .orb-ring:nth-child(4) { inset: 65px; border-color: rgba(255,170,48,.4); animation-duration: 4s; animation-direction: reverse; }
+    .orb-core {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 100px; height: 100px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,200,80,.9) 0%, rgba(255,120,20,.5) 40%, transparent 75%);
+      box-shadow: 0 0 60px rgba(255,150,30,.7), 0 0 120px rgba(255,100,0,.3);
+      animation: breathe 3s ease-in-out infinite;
+    }
+
+    @keyframes spin { from { transform: rotateZ(0deg); } to { transform: rotateZ(360deg); } }
+    @keyframes breathe {
+      0%, 100% { transform: translate(-50%,-50%) scale(1); opacity: .9; }
+      50% { transform: translate(-50%,-50%) scale(1.12); opacity: 1; }
+    }
+
+    /* ── CTA BUTTONS ── */
+    .cta-group {
+      display: flex; flex-wrap: wrap; gap: 14px;
+      justify-content: center; margin-top: 48px;
+      animation: fadeUp .8s .4s ease both;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 28px; border-radius: var(--r);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px; letter-spacing: .1em;
+      cursor: pointer; text-decoration: none;
+      transition: all .22s;
+      border: 1px solid transparent;
+      position: relative; overflow: hidden;
+    }
+    .btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.06) 0%, transparent 60%);
+      opacity: 0; transition: opacity .22s;
+    }
+    .btn:hover::before { opacity: 1; }
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(255,140,30,.9), rgba(255,80,0,.8));
+      color: #fff;
+      box-shadow: 0 4px 24px rgba(255,120,30,.35);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 36px rgba(255,120,30,.5);
+    }
+    .btn-ghost {
+      background: rgba(255,170,48,.08);
+      border-color: var(--c-amber-border);
+      color: var(--c-amber);
+    }
+    .btn-ghost:hover {
+      background: rgba(255,170,48,.15);
+      border-color: rgba(255,170,48,.7);
+      transform: translateY(-2px);
+    }
+    .btn-cyan {
+      background: rgba(0,229,255,.08);
+      border-color: rgba(0,229,255,.3);
+      color: var(--c-cyan);
+    }
+    .btn-cyan:hover {
+      background: rgba(0,229,255,.15);
+      border-color: rgba(0,229,255,.6);
+      transform: translateY(-2px);
+    }
+
+    /* ── DOWNLOAD SECTION ── */
+    #download {
+      padding: 100px 48px;
+      background: var(--c-bg2);
+      border-top: 1px solid var(--c-amber-border);
+      border-bottom: 1px solid var(--c-amber-border);
+    }
+    .section-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px; letter-spacing: .35em;
+      color: var(--c-amber); text-align: center;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(22px, 4vw, 40px);
+      font-weight: 700; text-align: center;
+      color: #fff; margin-bottom: 12px;
+    }
+    .section-sub {
+      text-align: center; color: var(--c-muted);
+      max-width: 540px; margin: 0 auto 56px;
+      font-size: 15px;
+    }
+
+    .dl-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px; max-width: 1000px; margin: 0 auto;
+    }
+    .dl-card {
+      background: rgba(255,170,48,.04);
+      border: 1px solid var(--c-amber-border);
+      border-radius: var(--r);
+      padding: 32px 28px;
+      transition: transform .22s, border-color .22s, box-shadow .22s;
+    }
+    .dl-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255,170,48,.65);
+      box-shadow: 0 12px 40px rgba(255,130,0,.12);
+    }
+    .dl-os {
+      font-family: 'Orbitron', monospace;
+      font-size: 16px; font-weight: 700;
+      color: var(--c-amber); margin-bottom: 6px;
+    }
+    .dl-desc {
+      font-size: 13px; color: var(--c-muted);
+      margin-bottom: 20px; line-height: 1.5;
+    }
+    .dl-archs { display: flex; flex-direction: column; gap: 10px; }
+    .dl-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 16px;
+      background: rgba(255,170,48,.08);
+      border: 1px solid rgba(255,170,48,.25);
+      border-radius: 6px;
+      color: var(--c-amber);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px; letter-spacing: .06em;
+      text-decoration: none;
+      transition: all .2s;
+    }
+    .dl-btn:hover {
+      background: rgba(255,170,48,.16);
+      border-color: rgba(255,170,48,.6);
+      transform: translateX(3px);
+    }
+    .dl-btn svg { flex-shrink: 0; }
+    .dl-note {
+      font-size: 11px; color: var(--c-muted);
+      margin-top: 14px; font-family: 'Share Tech Mono', monospace;
+      letter-spacing: .04em;
+    }
+
+    /* ── FEATURES SECTION ── */
+    #features {
+      padding: 100px 48px;
+      max-width: 1200px; margin: 0 auto;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px; margin-top: 56px;
+    }
+    .feat-card {
+      background: rgba(255,255,255,.02);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: var(--r);
+      padding: 28px 24px;
+      transition: border-color .22s, transform .22s;
+    }
+    .feat-card:hover {
+      border-color: rgba(255,170,48,.4);
+      transform: translateY(-3px);
+    }
+    .feat-icon {
+      font-size: 28px; margin-bottom: 14px;
+      display: block;
+    }
+    .feat-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 14px; font-weight: 700;
+      color: var(--c-amber); margin-bottom: 8px;
+      letter-spacing: .06em;
+    }
+    .feat-desc {
+      font-size: 14px; color: var(--c-muted);
+      line-height: 1.6;
+    }
+
+    /* ── TECH STRIP ── */
+    .tech-strip {
+      background: var(--c-bg2);
+      border-top: 1px solid rgba(255,255,255,.06);
+      padding: 40px 48px; text-align: center;
+    }
+    .tech-strip p {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px; letter-spacing: .25em;
+      color: var(--c-muted); margin-bottom: 20px;
+    }
+    .tech-pills {
+      display: flex; flex-wrap: wrap;
+      gap: 10px; justify-content: center;
+    }
+    .tech-pill {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px; letter-spacing: .1em;
+      color: var(--c-cyan);
+      border: 1px solid rgba(0,229,255,.25);
+      background: rgba(0,229,255,.06);
+      padding: 5px 14px; border-radius: 20px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center; padding: 40px 24px;
+      border-top: 1px solid rgba(255,255,255,.06);
+      font-size: 13px; color: var(--c-muted);
+      font-family: 'Share Tech Mono', monospace;
+    }
+    footer a { color: var(--c-amber); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: 12px 20px; }
+      .nav-links { display: none; }
+      #download, #features { padding: 60px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">U.L.T.R.O.N.</a>
+  <div class="nav-links">
+    <a href="#features">FEATURES</a>
+    <a href="#download">DOWNLOAD</a>
+    <a href="https://github.com/mark816p/ultron-autonomous-orb" target="_blank">GITHUB</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">⚡ AUTONOMOUS SENTIENT AI SYSTEM — ONLINE</div>
+  <h1>U.L.T.R.O.N.</h1>
+  <p class="hero-sub">
+    An Iron Man–inspired autonomous AI desktop companion. Wake-word activated, always listening, always thinking — powered by local and cloud inference with zero limits.
+  </p>
+
+  <div class="orb-wrap" aria-hidden="true">
+    <div class="orb-ring"></div>
+    <div class="orb-ring"></div>
+    <div class="orb-ring"></div>
+    <div class="orb-ring"></div>
+    <div class="orb-core"></div>
+  </div>
+
+  <div class="cta-group">
+    <a href="#download" class="btn btn-primary">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v10M4 7l4 4 4-4M2 14h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      DOWNLOAD NOW
+    </a>
+    <a href="https://github.com/mark816p/ultron-autonomous-orb" target="_blank" class="btn btn-ghost">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      VIEW SOURCE
+    </a>
+    <a href="#features" class="btn btn-cyan">
+      EXPLORE FEATURES →
+    </a>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section id="download">
+  <div class="section-label">// ACQUIRE SYSTEM</div>
+  <h2 class="section-title">Download U.L.T.R.O.N.</h2>
+  <p class="section-sub">Single installer — no version numbers, always auto-updates to the latest build on launch.</p>
+
+  <div class="dl-grid">
+    <!-- WINDOWS -->
+    <div class="dl-card">
+      <div class="dl-os">🪟 WINDOWS</div>
+      <div class="dl-desc">Native Electron desktop app for Windows 10/11. Auto-starts on system boot with silent background intelligence.</div>
+      <div class="dl-archs">
+        <a href="https://github.com/mark816p/ultron-autonomous-orb/releases/latest/download/ULTRON-Setup.exe"
+           class="dl-btn" target="_blank">
+          <span>ULTRON-Setup.exe (x64)</span>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v9M3 7l4 4 4-4M1 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+      <div class="dl-note">Requires Windows 10 x64 or later. Auto-updates silently from GitHub Releases.</div>
+    </div>
+
+    <!-- MAC -->
+    <div class="dl-card">
+      <div class="dl-os">🍎 macOS</div>
+      <div class="dl-desc">Universal DMG for macOS 12 Monterey and above, supporting both Apple Silicon and Intel chips.</div>
+      <div class="dl-archs">
+        <a href="https://github.com/mark816p/ultron-autonomous-orb/releases/latest/download/ULTRON-Setup.dmg"
+           class="dl-btn" target="_blank">
+          <span>ULTRON-Setup.dmg (Universal)</span>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v9M3 7l4 4 4-4M1 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+      <div class="dl-note">Supports Apple Silicon (M1/M2/M3) and Intel x64. macOS 12+ required.</div>
+    </div>
+
+    <!-- LINUX -->
+    <div class="dl-card">
+      <div class="dl-os">🐧 LINUX</div>
+      <div class="dl-desc">Portable AppImage — runs on any modern Linux distro without installation. Just download and execute.</div>
+      <div class="dl-archs">
+        <a href="https://github.com/mark816p/ultron-autonomous-orb/releases/latest/download/ULTRON-Setup.AppImage"
+           class="dl-btn" target="_blank">
+          <span>ULTRON-Setup.AppImage (x64)</span>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v9M3 7l4 4 4-4M1 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+      <div class="dl-note">AppImage. Run with <code style="color:#ffaa30">chmod +x *.AppImage && ./ULTRON-Setup.AppImage</code></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div style="text-align:center">
+    <div class="section-label">// NEURAL CAPABILITIES</div>
+    <h2 class="section-title">What U.L.T.R.O.N. Can Do</h2>
+    <p class="section-sub">A complete autonomous AI system that runs locally, thinks continuously, and never forgets.</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feat-card">
+      <span class="feat-icon">🎙️</span>
+      <div class="feat-title">ALWAYS-ACTIVE WAKE WORD</div>
+      <div class="feat-desc">Say <strong>"Ultron"</strong> at any time to activate. The AI listens continuously in the background with zero button presses required — just like Tony Stark's lab.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🧠</span>
+      <div class="feat-title">NEVER-FORGET MEMORY</div>
+      <div class="feat-desc">Custom SQLite FTS5 vector memory engine with SQZ token deduplication. Up to 92% token savings. Infinite long-term context without overflow.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">⚡</span>
+      <div class="feat-title">DUAL CLOUD + LOCAL INFERENCE</div>
+      <div class="feat-desc">Routes between Antigravity Cloud (Gemini 2.5 Pro, Claude Sonnet) and on-device Ollama / LM Studio Bionic models with automatic circuit-breaker failover.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🔄</span>
+      <div class="feat-title">UNLIMITED AUTONOMOUS TASKS</div>
+      <div class="feat-desc">Zero task cap. Queue infinite background research missions, terminal commands, and web searches. U.L.T.R.O.N. works even while you sleep.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🗣️</span>
+      <div class="feat-title">THREE VOICE PERSONAS</div>
+      <div class="feat-desc">Choose between J.A.R.V.I.S., F.R.I.D.A.Y., and E.D.I.T.H. voice personas with acoustic Iron Man HUD telemetry chirps. Speak it, hear it.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🤚</span>
+      <div class="feat-title">HAND GESTURE CONTROL</div>
+      <div class="feat-desc">Real-time MediaPipe hand tracking — pinch to zoom, swipe to rotate, all without touching a keyboard. Full 3D orb manipulation in mid-air.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🌐</span>
+      <div class="feat-title">UNLIMITED WEB ACCESS</div>
+      <div class="feat-desc">On-demand live web scraping and DuckDuckGo search integration. No API keys, no limits, no subscriptions. Free internet access built in.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">💻</span>
+      <div class="feat-title">TERMINAL EXECUTION</div>
+      <div class="feat-desc">Execute local PowerShell and CMD terminal commands on demand. U.L.T.R.O.N. can operate your machine directly — no sandbox limitations.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🎯</span>
+      <div class="feat-title">ADAPTIVE COGNITIVE SCALING</div>
+      <div class="feat-desc">Responds instantly to casual questions and scales to deep analytical reasoning for complex engineering tasks. No unnecessary overthinking.</div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH STRIP -->
+<div class="tech-strip">
+  <p>// BUILT WITH</p>
+  <div class="tech-pills">
+    <span class="tech-pill">Next.js 16</span>
+    <span class="tech-pill">Three.js</span>
+    <span class="tech-pill">Electron</span>
+    <span class="tech-pill">MediaPipe</span>
+    <span class="tech-pill">Ollama</span>
+    <span class="tech-pill">LM Studio</span>
+    <span class="tech-pill">Antigravity AI</span>
+    <span class="tech-pill">SQLite FTS5</span>
+    <span class="tech-pill">Web Speech API</span>
+    <span class="tech-pill">TypeScript</span>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p style="margin-bottom:8px">
+    U.L.T.R.O.N. Autonomous Sentient Orb &nbsp;|&nbsp;
+    <a href="https://github.com/mark816p/ultron-autonomous-orb" target="_blank">GitHub Repository</a>
+    &nbsp;|&nbsp;
+    <a href="https://github.com/mark816p/ultron-autonomous-orb/releases" target="_blank">All Releases</a>
+  </p>
+  <p>Built with ❤️ on top of the original 3D holographic orb concept by <strong style="color:var(--c-amber)">Sagar Tamang</strong>. Expanded into an autonomous neural AI operating system.</p>
+</footer>
+
+</body>
+</html>

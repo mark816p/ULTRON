@@ -262,25 +262,31 @@ body {
 .chat-hud-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 10px 14px;
+  align-items: flex-start;
+  padding: 8px 12px;
   background: rgba(255, 170, 48, 0.12);
   border-bottom: 1px solid rgba(255, 170, 48, 0.35);
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 0;
 }
 
 .hud-title-box {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .pulse-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #00ff66;
-  box-shadow: 0 0 10px #00ff66;
+  box-shadow: 0 0 8px #00ff66;
   animation: pulse-glow 1.5s infinite;
+  flex-shrink: 0;
 }
 
 @keyframes pulse-glow {
@@ -289,27 +295,33 @@ body {
 }
 
 .hud-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: bold;
   color: #ffaa30;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.1em;
   text-shadow: 0 0 8px rgba(255, 170, 48, 0.8);
+  white-space: nowrap;
 }
 
 .pondering-badge {
-  font-size: 10px;
+  font-size: 9px;
   background: rgba(0, 229, 255, 0.2);
   color: #00e5ff;
   border: 1px solid #00e5ff;
-  padding: 2px 6px;
-  border-radius: 12px;
+  padding: 2px 5px;
+  border-radius: 10px;
   animation: pulse-glow 2s infinite;
+  white-space: nowrap;
 }
 
 .hud-stats {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex: 1;
+  min-width: 0;
 }
 
 .stat-pill {
@@ -580,10 +592,13 @@ body {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 170, 48, 0.4);
   color: #ffaa30;
-  font-size: 10px;
-  padding: 2px 6px;
+  font-size: 9px;
+  padding: 2px 5px;
   border-radius: 3px;
   cursor: pointer;
+  white-space: nowrap;
+  font-family: "Courier New", monospace;
+  letter-spacing: 0.05em;
 }
 
 /* ═══════════════════════════════════════════════
