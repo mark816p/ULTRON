@@ -8,13 +8,18 @@
     "build": "next build",
     "start": "next start",
     "app": "electron .",
-    "build:installer": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win"
+    "build:installer": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --publish=never",
+    "build:installer:publish": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --publish=always"
   },
   "build": {
     "appId": "com.antigravity.ultron",
     "productName": "ULTRON",
-    "asar": false,
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/@mediapipe/**/*"
+    ],
     "npmRebuild": false,
+    "compression": "maximum",
     "publish": [
       {
         "provider": "github",
@@ -23,16 +28,48 @@
       }
     ],
     "artifactName": "ULTRON-Setup.exe",
+    "extraMetadata": {
+      "version": "35.0.0"
+    },
     "files": [
       ".next/**/*",
+      "!.next/cache/**/*",
       "public/**/*",
       "package.json",
       "main.js",
-      "node_modules/**/*"
+      "node_modules/**/*",
+      "!node_modules/**/{test,tests,__tests__,spec,specs,fixtures,coverage,e2e}/**/*",
+      "!node_modules/**/{example,examples,demo,demos,sample,samples}/**/*",
+      "!node_modules/**/{benchmark,benchmarks,perf}/**/*",
+      "!node_modules/**/{doc,docs,documentation,website,www,gh-pages}/**/*",
+      "!node_modules/**/*.{md,markdown,txt,rst,log}",
+      "!node_modules/**/*.map",
+      "!node_modules/**/*.{ts,tsx,flow}",
+      "!node_modules/**/tsconfig*.json",
+      "!node_modules/**/.eslintrc*",
+      "!node_modules/**/.prettierrc*",
+      "!node_modules/**/jest.config.*",
+      "!node_modules/**/rollup.config.*",
+      "!node_modules/**/webpack.config.*",
+      "!node_modules/**/.nyc_output/**/*",
+      "!node_modules/**/CHANGELOG*",
+      "!node_modules/**/HISTORY*",
+      "!node_modules/**/AUTHORS*",
+      "!node_modules/**/CONTRIBUTING*",
+      "!node_modules/**/SECURITY*",
+      "!node_modules/@img/sharp-libvips-linux*/**/*",
+      "!node_modules/@img/sharp-linux*/**/*",
+      "!node_modules/@img/sharp-linuxmusl*/**/*",
+      "!node_modules/@img/sharp-darwin*/**/*",
+      "!node_modules/@next/swc-linux*/**/*",
+      "!node_modules/@next/swc-darwin*/**/*"
     ],
     "win": {
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
       ],
       "icon": "public/favicon.ico"
     },
@@ -57,7 +94,9 @@
       "createStartMenuShortcut": true,
       "deleteAppDataOnUninstall": false,
       "guid": "4A9D38C2-817B-4F29-875D-32A29C5B2A1E",
-      "shortcutName": "U.L.T.R.O.N."
+      "shortcutName": "U.L.T.R.O.N.",
+      "installerSidebar": null,
+      "uninstallerSidebar": null
     },
     "directories": {
       "output": "dist"
