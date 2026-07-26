@@ -14,7 +14,7 @@ export interface ToolResult {
 export class UltronTools {
   private gowaUrl: string;
 
-  constructor(gowaBaseUrl = "http://localhost:3001") {
+  constructor(gowaBaseUrl = "http://127.0.0.1:3001") {
     this.gowaUrl = gowaBaseUrl;
   }
 

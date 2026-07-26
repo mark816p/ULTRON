@@ -93,6 +93,10 @@ export default function JarvisOrb() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target as HTMLElement)?.isContentEditable) {
+        return;
+      }
       if (e.key === "u" || e.key === "U") {
         setHideUI((prev) => !prev);
         return;

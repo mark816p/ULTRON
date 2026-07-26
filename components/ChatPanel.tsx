@@ -419,15 +419,12 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   const activeTaskCount = tasks.filter((t) => t.status === "active" || t.status === "queued").length;
 
   const getAvailableModels = () => {
-    if (!modelsData) return ["gemini-2.5-pro", "gemini-1.5-pro", "llama3:8b", "qwen2.5:14b"];
-    if (modelMode === "antigravity") return modelsData.antigravityModels || ["gemini-2.5-pro"];
+    const defaultCloud = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-pro-exp-02-05", "gemini-2.0-flash-001", "claude-3.7-sonnet"];
+    if (!modelsData) return defaultCloud;
+    if (modelMode === "antigravity" || modelMode === "auto") return modelsData.antigravityModels || defaultCloud;
     if (modelMode === "ollama") return modelsData.ollamaModels || ["llama3:8b"];
     if (modelMode === "lm-studio") return modelsData.lmStudioModels || ["local-model"];
-    return [
-      ...(modelsData.antigravityModels || []),
-      ...(modelsData.ollamaModels || []),
-      ...(modelsData.lmStudioModels || []),
-    ];
+    return modelsData.antigravityModels || defaultCloud;
   };
 
   return (
@@ -681,22 +678,21 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
               value={selectedModelName}
               onChange={(e) => handleModelChange(e.target.value)}
               className="model-select-large"
-              style={{ marginBottom: "8px" }}
+              style={{ marginBottom: "12px" }}
             >
-              {getAvailableModels().map((mod: string, i: number) => (
+              {(modelsData?.antigravityModels || [
+                "gemini-2.5-pro",
+                "gemini-2.5-flash",
+                "gemini-2.5-flash-lite",
+                "gemini-2.0-pro-exp-02-05",
+                "gemini-2.0-flash-001",
+                "claude-3.7-sonnet",
+              ]).map((mod: string, i: number) => (
                 <option key={i} value={mod}>
                   {mod}
                 </option>
               ))}
             </select>
-            <input
-              type="text"
-              value={selectedModelName}
-              onChange={(e) => handleModelChange(e.target.value)}
-              placeholder="Or type custom cloud tag (e.g., gemini-2.5-pro)..."
-              className="chat-input"
-              style={{ width: "100%", fontSize: "11px", marginBottom: "12px" }}
-            />
 
             <label style={{ fontSize: "11px", color: "#00e5ff", fontWeight: "bold", display: "block", marginBottom: "4px" }}>
               🖥️ PRE-INSTALLED LOCAL MODEL (OFFLINE FAILOVER):

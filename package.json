@@ -2,10 +2,37 @@
   "name": "ultron-orb-ui",
   "version": "1.0.0",
   "private": true,
+  "main": "main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "app": "electron .",
+    "build:installer": "npm run build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.antigravity.ultron",
+    "productName": "ULTRON",
+    "files": [
+      ".next/**/*",
+      "public/**/*",
+      "package.json",
+      "main.js",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "directories": {
+      "output": "dist"
+    }
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.35",
@@ -20,6 +47,10 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.185.0",
-    "typescript": "^5"
+    "concurrently": "^10.0.4",
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "^5",
+    "wait-on": "^9.1.0"
   }
 }

@@ -30,9 +30,9 @@ export class AiRouter {
 
   constructor(options: RouterOptions = {}) {
     this.antigravity = new AntigravityBridge(options.antigravityTimeoutMs || 8000);
-    this.ollamaUrl = options.ollamaBaseUrl || process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1/chat/completions";
+    this.ollamaUrl = options.ollamaBaseUrl || process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434/v1/chat/completions";
     this.ollamaModel = options.ollamaModel || process.env.OLLAMA_MODEL || "llama3";
-    this.lmStudioUrl = options.lmStudioBaseUrl || process.env.LM_STUDIO_BASE_URL || "http://localhost:1234/v1/chat/completions";
+    this.lmStudioUrl = options.lmStudioBaseUrl || process.env.LM_STUDIO_BASE_URL || "http://127.0.0.1:1234/v1/chat/completions";
     this.lmStudioModel = options.lmStudioModel || process.env.LM_STUDIO_MODEL || "local-model";
   }
 

@@ -49,7 +49,14 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
   };
 
   const getAntigravityModels = () => {
-    return modelsData?.antigravityModels || ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-1.5-pro", "claude-3.7-sonnet"];
+    return modelsData?.antigravityModels || [
+      "gemini-2.5-pro",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-2.0-pro-exp-02-05",
+      "gemini-2.0-flash-001",
+      "claude-3.7-sonnet",
+    ];
   };
 
   const getLocalModels = () => {
@@ -66,6 +73,15 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
           <span className="pulse-dot" />
           <span className="hud-label">U.L.T.R.O.N. INITIALIZATION PROTOCOL</span>
           <span className="step-badge">STEP {step} OF 3</span>
+          <button
+            type="button"
+            onClick={handleFinish}
+            className="collapse-btn"
+            style={{ marginLeft: "10px", borderColor: "#fff", color: "#fff", fontWeight: "bold" }}
+            title="Exit / Skip Onboarding"
+          >
+            ✕ EXIT
+          </button>
         </div>
 
         {loading ? (
@@ -163,7 +179,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                     <div>
                       <div className="engine-name">🦙 Ollama Local Server</div>
                       <div className="engine-info">
-                        Strict 100% offline inference via localhost:11434 (Llama 3, Qwen, Mistral, DeepSeek).
+                        Strict 100% offline inference via on-device AI service (Llama 3, Qwen, Mistral, DeepSeek).
                       </div>
                     </div>
                   </label>
@@ -179,21 +195,20 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                     <div>
                       <div className="engine-name">🖥️ LM Studio Bionic Local API</div>
                       <div className="engine-info">
-                        Connects directly to LM Studio Bionic OpenAI-compatible server on localhost:1234.
+                        Connects directly to on-device LM Studio Bionic OpenAI-compatible neural service.
                       </div>
                     </div>
                   </label>
                 </div>
 
-                <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,170,48,0.4)" }}>
-                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#ffaa30", display: "block", marginBottom: "6px" }}>
+                <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.25)" }}>
+                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#fff", display: "block", marginBottom: "8px" }}>
                     🎯 PRIMARY ANTIGRAVITY CLOUD MODEL:
                   </label>
                   <select
                     value={selectedModel}
                     onChange={(e) => setSelectedModel(e.target.value)}
                     className="model-select-large"
-                    style={{ marginBottom: "8px" }}
                   >
                     {getAntigravityModels().map((mod: string, i: number) => (
                       <option key={i} value={mod}>
@@ -201,18 +216,10 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                       </option>
                     ))}
                   </select>
-                  <input
-                    type="text"
-                    value={customModel}
-                    onChange={(e) => setCustomModel(e.target.value)}
-                    placeholder="Or type custom cloud tag (e.g., gemini-2.5-pro)..."
-                    className="chat-input"
-                    style={{ width: "100%", fontSize: "11px" }}
-                  />
                 </div>
 
-                <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(0,229,255,0.4)" }}>
-                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#00e5ff", display: "block", marginBottom: "6px" }}>
+                <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.25)" }}>
+                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#fff", display: "block", marginBottom: "8px" }}>
                     🖥️ PRE-INSTALLED LOCAL MODEL (OLLAMA / LM STUDIO ON THIS DEVICE):
                   </label>
                   <select
@@ -228,8 +235,8 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                   </select>
                 </div>
 
-                <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(0,255,102,0.4)" }}>
-                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#00ff66", display: "block", marginBottom: "6px" }}>
+                <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.25)" }}>
+                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#fff", display: "block", marginBottom: "8px" }}>
                     🗣️ AI VOICE PERSONA (WITH TELEMETRY CHIRPS):
                   </label>
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>

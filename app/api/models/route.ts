@@ -1,13 +1,39 @@
 import { NextResponse } from "next/server";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 export async function GET() {
-  const antigravityModels = [
+  let antigravityModels = [
     "gemini-2.5-pro",
     "gemini-2.5-flash",
-    "gemini-1.5-pro",
-    "gemini-1.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-pro-exp-02-05",
+    "gemini-2.0-flash-001",
     "claude-3.7-sonnet",
   ];
+
+  // Auto-detect current Antigravity models dynamically
+  try {
+    const { stdout } = await execAsync("agy --list-models", { timeout: 2000 });
+    if (stdout && stdout.trim()) {
+      const parsed = stdout.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith("#") && !line.startsWith("===") && !line.includes("1.5"));
+      if (parsed.length > 0) {
+        antigravityModels = Array.from(new Set([...parsed, ...antigravityModels]));
+      }
+    }
+  } catch (e) {
+    try {
+      const { stdout } = await execAsync("agy models list", { timeout: 2000 });
+      if (stdout && stdout.trim()) {
+        const parsed = stdout.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith("#") && !line.startsWith("===") && !line.includes("1.5"));
+        if (parsed.length > 0) {
+          antigravityModels = Array.from(new Set([...parsed, ...antigravityModels]));
+        }
+      }
+    } catch (err) {}
+  }
 
   let ollamaModels: string[] = ["llama3:8b", "qwen2.5:14b", "mistral:7b", "deepseek-r1:8b", "gemma2:9b"];
   let lmStudioModels: string[] = ["local-model", "qwen2.5-coder", "llama-3.1-8b-instruct"];
