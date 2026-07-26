@@ -24,10 +24,23 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
   const [apiKey, setApiKey] = useState<string>("");
   const [apiBaseUrl, setApiBaseUrl] = useState<string>("");
   const [selectedVoice, setSelectedVoice] = useState<VoiceProfile>("jarvis");
+  const [activeBrains, setActiveBrains] = useState<string[]>(["antigravity", "ollama"]);
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (isOpen) {
       setLoading(true);
+      const savedBrains = localStorage.getItem("ultron_active_brains");
+      if (savedBrains) {
+        try {
+          const parsed = JSON.parse(savedBrains);
+          if (Array.isArray(parsed) && parsed.length > 0) setActiveBrains(parsed);
+        } catch (e) {}
+      }
+      const savedKeys = localStorage.getItem("ultron_api_keys");
+      if (savedKeys) {
+        try { setApiKeys(JSON.parse(savedKeys)); } catch (e) {}
+      }
       Promise.all([
         fetch("/api/sysinfo").then((res) => res.json()).catch(() => null),
         fetch("/api/models").then((res) => res.json()).catch(() => null),
@@ -55,6 +68,8 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
     localStorage.setItem("ultron_api_key", apiKey);
     localStorage.setItem("ultron_api_base_url", apiBaseUrl);
     localStorage.setItem("ultron_voice_profile", selectedVoice);
+    localStorage.setItem("ultron_active_brains", JSON.stringify(activeBrains));
+    localStorage.setItem("ultron_api_keys", JSON.stringify(apiKeys));
     onClose(selectedEngine, finalModel, selectedVoice);
   };
 
@@ -163,183 +178,158 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                   </select>
                 </div>
 
-                {/* SECTION 1: ONLINE ENGINE */}
-                <div style={{ background: "rgba(0, 255, 102, 0.05)", border: "1px solid rgba(0, 255, 102, 0.3)", padding: "12px", borderRadius: "6px", marginBottom: "14px" }}>
-                  <div style={{ fontSize: "11px", color: "#00ff66", fontWeight: "bold", marginBottom: "8px" }}>
-                    1️⃣ ONLINE ENGINE (CLOUD INFERENCE)
-                  </div>
-                  <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
-                    <button
-                      type="button"
-                      onClick={() => setOnlineMode("antigravity")}
-                      className={`hud-tab-btn ${onlineMode === "antigravity" && selectedEngine !== "api-key" ? "active" : ""}`}
-                      style={{ flex: 1, padding: "8px", fontSize: "11px", fontWeight: "bold" }}
-                    >
-                      🌐 Antigravity (Free)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOnlineMode("api-key");
-                        if (selectedEngine === "antigravity") setSelectedEngine("api-key");
-                      }}
-                      className={`hud-tab-btn ${onlineMode === "api-key" || selectedEngine === "api-key" ? "active" : ""}`}
-                      style={{ flex: 1, padding: "8px", fontSize: "11px", fontWeight: "bold" }}
-                    >
-                      🔑 API Key Provider
-                    </button>
-                  </div>
-
-                  {(onlineMode === "api-key" || selectedEngine === "api-key") ? (
-                    <>
-                      <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-                        CLOUD PROVIDER:
-                      </label>
-                      <select
-                        value={apiProvider}
-                        onChange={(e) => {
-                          const prov = e.target.value;
-                          setApiProvider(prov);
-                          if (modelsData) {
-                            const list =
-                              prov === "openrouter" ? modelsData.openRouterModels :
-                              prov === "openai" ? modelsData.openAiModels :
-                              prov === "gemini" ? modelsData.geminiApiModels :
-                              prov === "anthropic" ? modelsData.anthropicModels :
-                              prov === "deepseek" ? modelsData.deepSeekModels :
-                              prov === "groq" ? modelsData.groqModels :
-                              prov === "mistral" ? modelsData.mistralModels :
-                              prov === "xai" ? modelsData.xAiModels : [];
-                            if (list && list[0]) setSelectedModel(list[0]);
-                          }
-                        }}
-                        className="model-select-large"
-                        style={{ marginBottom: "10px", fontSize: "12px" }}
+                {/* DYNAMIC MULTI-BRAIN TICK MATRIX */}
+                <div style={{ background: "rgba(0, 255, 102, 0.05)", border: "1px solid rgba(0, 255, 102, 0.3)", padding: "12px", borderRadius: "6px", marginBottom: "14px", maxHeight: "400px", overflowY: "auto" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                    <div style={{ fontSize: "11px", color: "#00ff66", fontWeight: "bold" }}>
+                      🧠 TICK ACTIVE AI BRAINS ({activeBrains.length} SELECTED)
+                    </div>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveBrains(["antigravity", "gemini", "anthropic", "openai", "openrouter", "deepseek", "groq", "mistral", "xai", "ollama", "lm-studio"])}
+                        style={{ background: "rgba(0, 255, 102, 0.2)", border: "1px solid #00ff66", color: "#00ff66", fontSize: "10px", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
                       >
-                        <option value="openrouter">OpenRouter (Multi-Model Router)</option>
-                        <option value="gemini">Google Gemini Native API</option>
-                        <option value="openai">OpenAI Official API</option>
-                        <option value="anthropic">Anthropic Claude Official API</option>
-                        <option value="deepseek">DeepSeek Native API</option>
-                        <option value="groq">Groq Ultra-Fast LPU API</option>
-                        <option value="mistral">Mistral AI Official API</option>
-                        <option value="xai">xAI Grok API</option>
-                        <option value="custom">Custom OpenAI-Compatible Endpoint</option>
-                      </select>
-
-                      <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-                        API KEY ({apiProvider.toUpperCase()}):
-                      </label>
-                      <input
-                        type="password"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        placeholder={`Paste your ${apiProvider.toUpperCase()} API Key...`}
-                        className="chat-input"
-                        style={{ marginBottom: "10px", width: "100%", padding: "8px", fontSize: "12px" }}
-                      />
-
-                      {apiProvider === "custom" && (
-                        <>
-                          <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-                            CUSTOM BASE URL:
-                          </label>
-                          <input
-                            type="text"
-                            value={apiBaseUrl}
-                            onChange={(e) => setApiBaseUrl(e.target.value)}
-                            placeholder="https://your-api.com/v1/chat/completions"
-                            className="chat-input"
-                            style={{ marginBottom: "10px", width: "100%", padding: "8px", fontSize: "12px" }}
-                          />
-                        </>
-                      )}
-
-                      <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-                        MODEL NAME:
-                      </label>
-                      <select
-                        value={selectedModel}
-                        onChange={(e) => setSelectedModel(e.target.value)}
-                        className="model-select-large"
-                        style={{ marginBottom: "4px", fontSize: "12px" }}
+                        ⚡ Select All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveBrains(["antigravity", "ollama"])}
+                        style={{ background: "rgba(255, 255, 255, 0.1)", border: "1px solid #666", color: "#ccc", fontSize: "10px", padding: "4px 8px", borderRadius: "4px", cursor: "pointer" }}
                       >
-                        {(
-                          apiProvider === "openrouter" ? (modelsData?.openRouterModels || ["openrouter/auto", "anthropic/claude-3.7-sonnet", "openai/gpt-4o"]) :
-                          apiProvider === "openai" ? (modelsData?.openAiModels || ["gpt-4o", "gpt-4o-mini", "o1", "o3-mini"]) :
-                          apiProvider === "gemini" ? (modelsData?.geminiApiModels || ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-pro-exp-02-05"]) :
-                          apiProvider === "anthropic" ? (modelsData?.anthropicModels || ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022"]) :
-                          apiProvider === "deepseek" ? (modelsData?.deepSeekModels || ["deepseek-r1", "deepseek-chat"]) :
-                          apiProvider === "groq" ? (modelsData?.groqModels || ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b"]) :
-                          apiProvider === "mistral" ? (modelsData?.mistralModels || ["mistral-large-latest", "codestral-latest"]) :
-                          apiProvider === "xai" ? (modelsData?.xAiModels || ["grok-2-1212", "grok-beta"]) : ["custom-model"]
-                        ).map((mod: string, i: number) => (
-                          <option key={i} value={mod}>
-                            {mod}
-                          </option>
-                        ))}
-                      </select>
-                    </>
-                  ) : (
-                    <>
-                      <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-                        ANTIGRAVITY MODEL (100% FREE BRIDGE):
+                        🔄 Reset Default
+                      </button>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: "11px", color: "#ccc", marginBottom: "12px", lineHeight: "1.4" }}>
+                    U.L.T.R.O.N. dynamically cascades inference across all ticked brains in priority order. If one rate limits or goes offline, it automatically fails over to the next ticked brain!
+                  </p>
+
+                  <div style={{ fontSize: "10px", color: "#00e5ff", fontWeight: "bold", marginBottom: "6px" }}>
+                    1️⃣ CLOUD APIs & FREE BRIDGE (ONLINE & PROXY):
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginBottom: "14px" }}>
+                    {[
+                      { id: "antigravity", label: "🤖 Antigravity Bridge (Free)" },
+                      { id: "openrouter", label: "🌐 OpenRouter API" },
+                      { id: "gemini", label: "🔮 Google Gemini API" },
+                      { id: "openai", label: "🧠 OpenAI GPT-4o API" },
+                      { id: "anthropic", label: "🎭 Anthropic Claude API" },
+                      { id: "deepseek", label: "🐳 DeepSeek API" },
+                      { id: "groq", label: "⚡ Groq LPU API" },
+                      { id: "mistral", label: "🌪️ Mistral AI API" },
+                      { id: "xai", label: "✖️ xAI Grok API" },
+                    ].map((brain) => (
+                      <label key={brain.id} style={{ display: "flex", alignItems: "center", gap: "6px", background: activeBrains.includes(brain.id) ? "rgba(0, 255, 102, 0.15)" : "rgba(255,255,255,0.05)", border: `1px solid ${activeBrains.includes(brain.id) ? "#00ff66" : "rgba(255,255,255,0.15)"}`, padding: "8px", borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: activeBrains.includes(brain.id) ? "bold" : "normal", color: activeBrains.includes(brain.id) ? "#00ff66" : "#ccc" }}>
+                        <input
+                          type="checkbox"
+                          checked={activeBrains.includes(brain.id)}
+                          onChange={() => {
+                            if (activeBrains.includes(brain.id)) {
+                              if (activeBrains.length > 1) setActiveBrains(activeBrains.filter(b => b !== brain.id));
+                            } else {
+                              setActiveBrains([...activeBrains, brain.id]);
+                            }
+                          }}
+                          style={{ accentColor: "#00ff66", cursor: "pointer", width: "14px", height: "14px" }}
+                        />
+                        <span>{brain.label}</span>
                       </label>
-                      <select
-                        value={selectedModel}
-                        onChange={(e) => setSelectedModel(e.target.value)}
-                        className="model-select-large"
-                        style={{ marginBottom: "4px", fontSize: "12px" }}
-                      >
-                        {getAntigravityModels().map((mod: string, i: number) => (
-                          <option key={i} value={mod}>
-                            {mod}
-                          </option>
-                        ))}
-                      </select>
-                    </>
-                  )}
-                </div>
-
-                {/* SECTION 2: LOCAL ENGINE */}
-                <div style={{ background: "rgba(0, 229, 255, 0.05)", border: "1px solid rgba(0, 229, 255, 0.3)", padding: "12px", borderRadius: "6px", marginBottom: "14px" }}>
-                  <div style={{ fontSize: "11px", color: "#00e5ff", fontWeight: "bold", marginBottom: "8px" }}>
-                    2️⃣ LOCAL ENGINE (OFFLINE ON-DEVICE FAILOVER)
-                  </div>
-                  <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
-                    <button
-                      type="button"
-                      onClick={() => setLocalMode("ollama")}
-                      className={`hud-tab-btn ${localMode === "ollama" ? "active" : ""}`}
-                      style={{ flex: 1, padding: "8px", fontSize: "11px", fontWeight: "bold" }}
-                    >
-                      🦙 Ollama
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLocalMode("lm-studio")}
-                      className={`hud-tab-btn ${localMode === "lm-studio" ? "active" : ""}`}
-                      style={{ flex: 1, padding: "8px", fontSize: "11px", fontWeight: "bold" }}
-                    >
-                      🖥️ LM Studio Bionic
-                    </button>
-                  </div>
-
-                  <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-                    SELECT LOCAL MODEL ({localMode.toUpperCase()}):
-                  </label>
-                  <select
-                    value={selectedLocalModel}
-                    onChange={(e) => setSelectedLocalModel(e.target.value)}
-                    className="model-select-large"
-                    style={{ marginBottom: "4px", fontSize: "12px" }}
-                  >
-                    {(localMode === "lm-studio" ? (modelsData?.lmStudioModels || ["local-model"]) : (modelsData?.ollamaModels || ["llama3:8b", "qwen2.5:14b", "mistral:7b"])).map((mod: string, i: number) => (
-                      <option key={i} value={mod}>
-                        {mod} (On-Device)
-                      </option>
                     ))}
-                  </select>
+                  </div>
+
+                  <div style={{ fontSize: "10px", color: "#00e5ff", fontWeight: "bold", marginBottom: "6px" }}>
+                    2️⃣ LOCAL BIONIC HARDWARE ENGINES (OFFLINE FAILOVER):
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginBottom: "14px" }}>
+                    {[
+                      { id: "ollama", label: "🦙 Ollama Hardware Engine" },
+                      { id: "lm-studio", label: "🧪 LM Studio Bionic Engine" },
+                    ].map((brain) => (
+                      <label key={brain.id} style={{ display: "flex", alignItems: "center", gap: "6px", background: activeBrains.includes(brain.id) ? "rgba(0, 229, 255, 0.15)" : "rgba(255,255,255,0.05)", border: `1px solid ${activeBrains.includes(brain.id) ? "#00e5ff" : "rgba(255,255,255,0.15)"}`, padding: "8px", borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: activeBrains.includes(brain.id) ? "bold" : "normal", color: activeBrains.includes(brain.id) ? "#00e5ff" : "#ccc" }}>
+                        <input
+                          type="checkbox"
+                          checked={activeBrains.includes(brain.id)}
+                          onChange={() => {
+                            if (activeBrains.includes(brain.id)) {
+                              if (activeBrains.length > 1) setActiveBrains(activeBrains.filter(b => b !== brain.id));
+                            } else {
+                              setActiveBrains([...activeBrains, brain.id]);
+                            }
+                          }}
+                          style={{ accentColor: "#00e5ff", cursor: "pointer", width: "14px", height: "14px" }}
+                        />
+                        <span>{brain.label}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* CONFIGURATION FOR TICKED CLOUD APIs & LOCAL ENGINES */}
+                  <div style={{ background: "rgba(0,0,0,0.5)", padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.2)" }}>
+                    <div style={{ fontSize: "10px", color: "#ffcc00", fontWeight: "bold", marginBottom: "8px" }}>
+                      ⚙️ CONFIGURATION FOR TICKED BRAINS:
+                    </div>
+
+                    {activeBrains.some(b => ["openrouter", "gemini", "openai", "anthropic", "deepseek", "groq", "mistral", "xai"].includes(b)) && (
+                      <div style={{ marginBottom: "10px" }}>
+                        {activeBrains.filter(b => ["openrouter", "gemini", "openai", "anthropic", "deepseek", "groq", "mistral", "xai"].includes(b)).map(prov => (
+                          <div key={prov} style={{ marginBottom: "8px" }}>
+                            <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "2px" }}>
+                              🔑 {prov.toUpperCase()} API KEY:
+                            </label>
+                            <input
+                              type="password"
+                              value={apiKeys[prov] || ""}
+                              onChange={(e) => {
+                                const newKeys = { ...apiKeys, [prov]: e.target.value };
+                                setApiKeys(newKeys);
+                                if (prov === apiProvider) setApiKey(e.target.value);
+                              }}
+                              placeholder={`Paste your ${prov.toUpperCase()} API Key here...`}
+                              className="chat-input"
+                              style={{ width: "100%", padding: "6px", fontSize: "11px" }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {activeBrains.includes("ollama") && (
+                      <div style={{ marginBottom: "8px" }}>
+                        <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "2px" }}>
+                          🦙 OLLAMA ON-DEVICE MODEL:
+                        </label>
+                        <select
+                          value={selectedLocalModel}
+                          onChange={(e) => setSelectedLocalModel(e.target.value)}
+                          className="model-select-large"
+                          style={{ width: "100%", padding: "6px", fontSize: "11px" }}
+                        >
+                          {(modelsData?.ollamaModels || ["llama3:8b", "qwen2.5:14b", "mistral:7b"]).map((mod: string, i: number) => (
+                            <option key={i} value={mod}>{mod} (Local Ollama)</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {activeBrains.includes("lm-studio") && (
+                      <div style={{ marginBottom: "8px" }}>
+                        <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "2px" }}>
+                          🧪 LM STUDIO BIONIC MODEL:
+                        </label>
+                        <select
+                          value={selectedLocalModel}
+                          onChange={(e) => setSelectedLocalModel(e.target.value)}
+                          className="model-select-large"
+                          style={{ width: "100%", padding: "6px", fontSize: "11px" }}
+                        >
+                          {(modelsData?.lmStudioModels || ["local-model"]).map((mod: string, i: number) => (
+                            <option key={i} value={mod}>{mod} (LM Studio Bionic)</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.25)" }}>

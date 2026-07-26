@@ -55,6 +55,10 @@ export async function POST(req: NextRequest) {
       apiProvider,
       apiKey,
       apiBaseUrl,
+      activeBrains,
+      apiKeys,
+      ollamaModel,
+      lmStudioModel,
     } = body;
 
     if (!message) {
@@ -80,7 +84,7 @@ export async function POST(req: NextRequest) {
       dedupStats = prepared.dedupStats;
     }
 
-    const routeOptions = { onlineMode, localMode, apiProvider, apiKey, apiBaseUrl };
+    const routeOptions = { onlineMode, localMode, apiProvider, apiKey, apiBaseUrl, activeBrains, apiKeys, ollamaModel, lmStudioModel };
 
     // 3. Route to AI Engine (Antigravity ↔ Cloud API ↔ Ollama ↔ LM Studio failover)
     let aiRes = await aiRouter.route(recentMsgs as any, systemPrompt, model, modelName, fallbackModelName, routeOptions);
@@ -98,20 +102,21 @@ export async function POST(req: NextRequest) {
         if (toolName === "search_web") args.query = parts[0]?.replace(/^["']|["']$/g, "");
         if (toolName === "whatsapp_send") {
           args.to = parts[0]?.replace(/^["']|["']$/g, "");
-          args.message = parts.slice(1).join(",").replace(/^["']|["']$/g, "");
+          args.message = parts[1]?.replace(/^["']|["']$/g, "");
         }
       }
 
-      console.log(`[Ultron API] Executing tool: ${toolName} with args:`, args);
+      console.log(`[Ultron Tool Execution] Running ${toolName} with args:`, args);
       const toolResult = await ultronTools.executeTool(toolName, args);
 
-      const toolFeedbackMsg = `Tool ${toolName} executed. Result: ${JSON.stringify(toolResult.data || toolResult.error)}`;
-      if (mem) await mem.remember(sessionId, "tool", toolFeedbackMsg);
+      // Feed tool output back to AI Router for final synthesis
+      const followUpMsgs = [
+        ...recentMsgs,
+        { role: "assistant", content: aiRes.content },
+        { role: "tool", content: `[TOOL_RESULT: ${toolName}] ${JSON.stringify(toolResult.data || toolResult.error)}` }
+      ];
 
-      // Second LLM call with tool results
-      recentMsgs.push({ role: "assistant", content: aiRes.content });
-      recentMsgs.push({ role: "tool", content: toolFeedbackMsg });
-      aiRes = await aiRouter.route(recentMsgs as any, systemPrompt, model, modelName, fallbackModelName, routeOptions);
+      aiRes = await aiRouter.route(followUpMsgs as any, systemPrompt, model, modelName, fallbackModelName, routeOptions);
     }
 
     // 5. Remember final AI response
@@ -128,6 +133,7 @@ export async function POST(req: NextRequest) {
       thoughts: aiRes.thoughts || [],
       failoverOccurred: aiRes.failoverOccurred,
       failoverReason: aiRes.failoverReason,
+      executedBrain: aiRes.executedBrain,
       keywords,
       dedupStats,
     });

@@ -11,6 +11,7 @@ export interface Message {
   engine?: string;
   failoverOccurred?: boolean;
   failoverReason?: string;
+  executedBrain?: string;
   dedupStats?: any;
   timestamp?: string;
 }
@@ -41,6 +42,8 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   const [apiProvider, setApiProvider] = useState<string>("openrouter");
   const [apiKey, setApiKey] = useState<string>("");
   const [apiBaseUrl, setApiBaseUrl] = useState<string>("");
+  const [activeBrains, setActiveBrains] = useState<string[]>(["antigravity", "ollama"]);
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
   const [modelsData, setModelsData] = useState<any>(null);
 
   const [isListening, setIsListening] = useState(false);
@@ -80,6 +83,8 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
     const savedApiProvider = localStorage.getItem("ultron_api_provider");
     const savedApiKey = localStorage.getItem("ultron_api_key");
     const savedApiBaseUrl = localStorage.getItem("ultron_api_base_url");
+    const savedBrains = localStorage.getItem("ultron_active_brains");
+    const savedKeys = localStorage.getItem("ultron_api_keys");
     if (savedEngine) setModelMode(savedEngine as any);
     if (savedModel) setSelectedModelName(savedModel);
     if (savedLocalModel) setSelectedLocalModelName(savedLocalModel);
@@ -89,6 +94,15 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
     if (savedApiProvider) setApiProvider(savedApiProvider);
     if (savedApiKey) setApiKey(savedApiKey);
     if (savedApiBaseUrl) setApiBaseUrl(savedApiBaseUrl);
+    if (savedBrains) {
+      try {
+        const parsed = JSON.parse(savedBrains);
+        if (Array.isArray(parsed) && parsed.length > 0) setActiveBrains(parsed);
+      } catch (e) {}
+    }
+    if (savedKeys) {
+      try { setApiKeys(JSON.parse(savedKeys)); } catch (e) {}
+    }
 
     fetch("/api/models")
       .then((res) => res.json())
@@ -247,6 +261,10 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
             apiProvider,
             apiKey,
             apiBaseUrl,
+            activeBrains,
+            apiKeys,
+            ollamaModel: selectedLocalModelName,
+            lmStudioModel: selectedLocalModelName,
             history: messages.slice(-10).map((m) => ({ role: m.role, content: m.content })),
           }),
         });
@@ -281,6 +299,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
           engine: data.engine,
           failoverOccurred: data.failoverOccurred,
           failoverReason: data.failoverReason,
+          executedBrain: data.executedBrain,
           dedupStats: data.dedupStats,
           timestamp: new Date().toLocaleTimeString(),
         };
@@ -498,6 +517,9 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
           <span className="stat-pill" style={{ borderColor: "#00ff66", color: "#00ff66" }}>
             🧠 {selectedModelName}
           </span>
+          <span className="stat-pill" style={{ borderColor: "#00e5ff", color: "#00e5ff" }} title={`Active Brains: ${activeBrains.join(", ")}`}>
+            ⚡ MULTI-BRAIN: {activeBrains.length} ACTIVE
+          </span>
           {pondering && <span className="pondering-badge">🧠 PONDERING...</span>}
         </div>
 
@@ -517,6 +539,32 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
           >
             <VoiceIcon size={14} active={wakeWordActive} />
             {wakeWordActive ? "WAKE WORD: ON" : "WAKE WORD: OFF"}
+          </button>
+          <button
+            type="button"
+            onClick={onToggleGestures}
+            className="collapse-btn"
+            style={{
+              borderColor: cameraState === "gesture" ? "#00ff66" : "#888",
+              color: cameraState === "gesture" ? "#00ff66" : "#888",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+            title="Hand & Head Gesture Tracking Toggle"
+          >
+            <EyeIcon size={14} color={cameraState === "gesture" ? "#00ff66" : "#888"} />
+            {cameraState === "gesture" ? "GESTURES: ACTIVE" : "GESTURES: OFF"}
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenBenchmark}
+            className="collapse-btn"
+            style={{ borderColor: "#ffcc00", color: "#ffcc00", fontWeight: "bold" }}
+            title="Run U.L.T.R.O.N. Hardware & Bionic Performance Benchmark"
+          >
+            ⚡ BENCHMARK
           </button>
 
           <button
@@ -579,7 +627,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
           onClick={() => setActiveTab("chat")}
           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
         >
-          <ChatIcon size={14} color={activeTab === "chat" ? "#00ff66" : "#aaa"} /> CHAT
+          <ChatIcon size={14} color={activeTab === "chat" ? "#00e5ff" : "#aaa"} /> NEURAL LINK
         </button>
         <button
           type="button"
@@ -587,7 +635,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
           onClick={() => setActiveTab("tasks")}
           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
         >
-          <TasksIcon size={14} color={activeTab === "tasks" ? "#00ff66" : "#aaa"} /> TASKS {activeTaskCount > 0 && <span className="tab-badge">{activeTaskCount}</span>}
+          <TasksIcon size={14} color={activeTab === "tasks" ? "#ffcc00" : "#aaa"} /> AUTONOMOUS TASKS ({activeTaskCount})
         </button>
         <button
           type="button"
@@ -618,7 +666,11 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
                 <div className="msg-header">
                   <span className="msg-sender">{msg.role.toUpperCase()}</span>
                   <span className="msg-time">{msg.timestamp}</span>
-                  {msg.engine && <span className="msg-engine-badge">{msg.engine}</span>}
+                  {msg.engine && (
+                    <span className="msg-engine-badge">
+                      {msg.executedBrain ? `${msg.engine.toUpperCase()} [${msg.executedBrain.toUpperCase()}]` : msg.engine}
+                    </span>
+                  )}
                 </div>
                 <div className="msg-content">{msg.content}</div>
                 {msg.failoverOccurred && (

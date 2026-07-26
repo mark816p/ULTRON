@@ -19,6 +19,7 @@ export interface RouterResponse {
   thoughts?: string[];
   failoverOccurred: boolean;
   failoverReason?: string;
+  executedBrain?: string;
 }
 
 export interface RouteOptions {
@@ -27,6 +28,10 @@ export interface RouteOptions {
   apiProvider?: string;
   apiKey?: string;
   apiBaseUrl?: string;
+  activeBrains?: string[];
+  apiKeys?: Record<string, string>;
+  ollamaModel?: string;
+  lmStudioModel?: string;
 }
 
 export class AiRouter {
@@ -62,6 +67,89 @@ export class AiRouter {
     const onlineMode = options.onlineMode || (preferredEngine === "api-key" ? "api-key" : "antigravity");
     const localMode = options.localMode || (preferredEngine === "lm-studio" ? "lm-studio" : "ollama");
 
+    // 0. Dynamic Multi-Brain Checkbox Queue Architecture
+    if (options.activeBrains && options.activeBrains.length > 0) {
+      let failoverLog: string[] = [];
+      for (const brain of options.activeBrains) {
+        try {
+          if (brain === "antigravity") {
+            const res = await this.antigravity.execute(latestPrompt, systemInstructions, exactModelName);
+            return {
+              content: res.content,
+              engine: res.engine,
+              thoughts: res.thoughts,
+              failoverOccurred: failoverLog.length > 0,
+              failoverReason: failoverLog.length > 0 ? failoverLog.join(" -> ") : undefined,
+              executedBrain: "antigravity",
+            };
+          } else if (brain === "ollama") {
+            const res = await this.callOpenAiCompatible(
+              this.ollamaUrl,
+              options.ollamaModel || fallbackModelName || this.ollamaModel,
+              messages,
+              systemInstructions
+            );
+            return {
+              content: res,
+              engine: "ollama",
+              failoverOccurred: failoverLog.length > 0,
+              failoverReason: failoverLog.length > 0 ? failoverLog.join(" -> ") : undefined,
+              executedBrain: "ollama",
+            };
+          } else if (brain === "lm-studio") {
+            const res = await this.callOpenAiCompatible(
+              this.lmStudioUrl,
+              options.lmStudioModel || fallbackModelName || this.lmStudioModel,
+              messages,
+              systemInstructions
+            );
+            return {
+              content: res,
+              engine: "lm-studio",
+              failoverOccurred: failoverLog.length > 0,
+              failoverReason: failoverLog.length > 0 ? failoverLog.join(" -> ") : undefined,
+              executedBrain: "lm-studio",
+            };
+          } else {
+            // Cloud API provider (openrouter, gemini, openai, anthropic, deepseek, groq, mistral, xai, custom)
+            const key = options.apiKeys?.[brain] || (brain === options.apiProvider ? options.apiKey : "") || "";
+            let targetModel = exactModelName;
+            if (!targetModel || targetModel === "auto") {
+              if (brain === "openrouter") targetModel = "openrouter/auto";
+              else if (brain === "gemini") targetModel = "gemini-2.5-pro";
+              else if (brain === "openai") targetModel = "gpt-4o";
+              else if (brain === "anthropic") targetModel = "claude-3-7-sonnet-20250219";
+              else if (brain === "deepseek") targetModel = "deepseek-r1";
+              else if (brain === "groq") targetModel = "llama-3.3-70b-versatile";
+              else if (brain === "mistral") targetModel = "mistral-large-latest";
+              else if (brain === "xai") targetModel = "grok-2-1212";
+            }
+            const content = await this.callCloudApi(
+              brain,
+              key,
+              brain === options.apiProvider ? options.apiBaseUrl : undefined,
+              targetModel,
+              messages,
+              systemInstructions
+            );
+            return {
+              content,
+              engine: "api-key",
+              thoughts: [],
+              failoverOccurred: failoverLog.length > 0,
+              failoverReason: failoverLog.length > 0 ? failoverLog.join(" -> ") : undefined,
+              executedBrain: brain,
+            };
+          }
+        } catch (err) {
+          const msg = `[${brain.toUpperCase()} failed: ${(err as Error).message}]`;
+          console.warn("[AiRouter Dynamic Queue] " + msg);
+          failoverLog.push(msg);
+        }
+      }
+      throw new Error(`All active ticked brains [${options.activeBrains.join(", ")}] failed or are unreachable. Failover log: ${failoverLog.join(" -> ")}`);
+    }
+
     // 1. If preferred is auto, antigravity, or api-key, try Online Engine first
     if (preferredEngine === "auto" || preferredEngine === "antigravity" || preferredEngine === "api-key") {
       if (onlineMode === "api-key" || preferredEngine === "api-key") {
@@ -79,6 +167,7 @@ export class AiRouter {
             engine: "api-key",
             thoughts: [],
             failoverOccurred: false,
+            executedBrain: options.apiProvider || "openrouter",
           };
         } catch (apiErr) {
           const msg = `Cloud API (${options.apiProvider || "openrouter"}) failed: ${(apiErr as Error).message}`;
@@ -98,6 +187,7 @@ export class AiRouter {
             engine: res.engine,
             thoughts: res.thoughts,
             failoverOccurred: false,
+            executedBrain: "antigravity",
           };
         } catch (err) {
           const msg = `Antigravity local bridge failed (${(err as Error).message})`;
@@ -126,6 +216,7 @@ export class AiRouter {
             engine: "lm-studio",
             failoverOccurred,
             failoverReason: failoverOccurred ? failoverReason : undefined,
+            executedBrain: "lm-studio",
           };
         } catch (lmErr) {
           const msg = `LM Studio Bionic failed (${(lmErr as Error).message}).`;
@@ -148,6 +239,7 @@ export class AiRouter {
               engine: "ollama",
               failoverOccurred,
               failoverReason: failoverReason + " Auto-switched to Ollama.",
+              executedBrain: "ollama",
             };
           } catch (ollamaErr) {
             throw new Error(`All local AI engines unreachable. Last error: ${(ollamaErr as Error).message}`);
@@ -167,6 +259,7 @@ export class AiRouter {
             engine: "ollama",
             failoverOccurred,
             failoverReason: failoverOccurred ? failoverReason : undefined,
+            executedBrain: "ollama",
           };
         } catch (ollamaErr) {
           const msg = `Ollama connection failed (${(ollamaErr as Error).message}).`;
@@ -189,6 +282,7 @@ export class AiRouter {
               engine: "lm-studio",
               failoverOccurred,
               failoverReason: failoverReason + " Auto-switched to LM Studio Bionic.",
+              executedBrain: "lm-studio",
             };
           } catch (lmErr) {
             throw new Error(`All local AI engines unreachable. Last error: ${(lmErr as Error).message}`);
