@@ -513,7 +513,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         <div className="hud-title-box" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <LogoIcon size={20} />
           <span className="pulse-dot" />
-          <span className="hud-label">U.L.T.R.O.N. NEURAL LINK v38</span>
+          <span className="hud-label">U.L.T.R.O.N. NEURAL LINK v39</span>
           <span className="stat-pill" style={{ borderColor: "#00ff66", color: "#00ff66" }}>
             🧠 {selectedModelName}
           </span>
@@ -720,6 +720,12 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
               SEND <SendIcon size={14} />
             </button>
           </form>
+
+          {/* Bottom App Version Indicator */}
+          <div className="chat-app-footer-version" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 12px 6px", fontSize: "10px", color: "#888d9e", fontFamily: "'JetBrains Mono', monospace", borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(5, 5, 8, 0.7)" }}>
+            <span>SYSTEM STATUS: ONLINE</span>
+            <span style={{ color: "#00f0ff", fontWeight: "bold", background: "rgba(0, 240, 255, 0.12)", border: "1px solid rgba(0, 240, 255, 0.35)", padding: "1px 8px", borderRadius: "10px", letterSpacing: "0.5px" }}>v39</span>
+          </div>
         </>
       )}
 

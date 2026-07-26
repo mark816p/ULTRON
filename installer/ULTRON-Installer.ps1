@@ -35,9 +35,9 @@ try {
 # Fallback default versions if API returns empty
 if ($releases.Count -eq 0) {
     $releases = @(
-        [PSCustomObject]@{ TagName = "v38.0.0"; Name = "v38.0.0 (Latest Release - High-Precision 3D Vision)"; Prerelease = $false },
-        [PSCustomObject]@{ TagName = "v36.1.0"; Name = "v36.1.0 (Previous Stable)"; Prerelease = $false },
-        [PSCustomObject]@{ TagName = "v36.0.0"; Name = "v36.0.0 (Base Release)"; Prerelease = $false }
+        [PSCustomObject]@{ TagName = "v39.0.0"; Name = "v39.0.0 (Latest Release - High-Precision 3D Vision)"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v38.0.0"; Name = "v38.0.0 (Stable Release)"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v36.1.0"; Name = "v36.1.0 (Base Release)"; Prerelease = $false }
     )
 }
 
@@ -166,7 +166,7 @@ try {
 } catch {
     Write-Host " [!] Standard asset download failed. Attempting fallback bundle..." -ForegroundColor Yellow
     # Fallback to current release tag asset
-    $fallbackUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/v36.1.0/ULTRON-Setup.exe"
+    $fallbackUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/v39.0.0/ULTRON-Setup.exe"
     try {
         (New-Object System.Net.WebClient).DownloadFile($fallbackUrl, $targetFile)
         Write-Host " [✓] Fallback download successful!" -ForegroundColor Green
