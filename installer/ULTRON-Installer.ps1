@@ -35,9 +35,9 @@ try {
 # Fallback default versions if API returns empty
 if ($releases.Count -eq 0) {
     $releases = @(
-        [PSCustomObject]@{ TagName = "v36.1.0"; Name = "v36.1.0 (Latest Release - High-Precision 3D Vision)"; Prerelease = $false },
-        [PSCustomObject]@{ TagName = "v36.0.0"; Name = "v36.0.0 (Base Release)"; Prerelease = $false },
-        [PSCustomObject]@{ TagName = "v35.0.0"; Name = "v35.0.0 (Legacy Release)"; Prerelease = $false }
+        [PSCustomObject]@{ TagName = "v38.0.0"; Name = "v38.0.0 (Latest Release - High-Precision 3D Vision)"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v36.1.0"; Name = "v36.1.0 (Previous Stable)"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v36.0.0"; Name = "v36.0.0 (Base Release)"; Prerelease = $false }
     )
 }
 
