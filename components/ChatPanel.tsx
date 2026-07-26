@@ -494,7 +494,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         <div className="hud-title-box" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <LogoIcon size={20} />
           <span className="pulse-dot" />
-          <span className="hud-label">U.L.T.R.O.N. NEURAL LINK v34</span>
+          <span className="hud-label">U.L.T.R.O.N. NEURAL LINK v35</span>
           <span className="stat-pill" style={{ borderColor: "#00ff66", color: "#00ff66" }}>
             🧠 {selectedModelName}
           </span>
