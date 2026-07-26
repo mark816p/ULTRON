@@ -672,6 +672,7 @@ export function createOrbScene(container: HTMLElement): OrbSceneApi {
     offsetScratch.setFromSpherical(sphericalScratch);
     camera.position.copy(controls.target).add(offsetScratch);
     camera.lookAt(controls.target);
+    controls.update();
   }
 
   function zoomBy(factor: number) {
@@ -683,6 +684,7 @@ export function createOrbScene(container: HTMLElement): OrbSceneApi {
     );
     offsetScratch.setLength(dist);
     camera.position.copy(controls.target).add(offsetScratch);
+    controls.update();
   }
 
   function resetView() {

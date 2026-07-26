@@ -18,6 +18,11 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
   const [selectedModel, setSelectedModel] = useState("gemini-2.5-pro");
   const [selectedLocalModel, setSelectedLocalModel] = useState("llama3:8b");
   const [customModel, setCustomModel] = useState("");
+  const [onlineMode, setOnlineMode] = useState<"antigravity" | "api-key">("antigravity");
+  const [localMode, setLocalMode] = useState<"ollama" | "lm-studio">("ollama");
+  const [apiProvider, setApiProvider] = useState<string>("openrouter");
+  const [apiKey, setApiKey] = useState<string>("");
+  const [apiBaseUrl, setApiBaseUrl] = useState<string>("");
   const [selectedVoice, setSelectedVoice] = useState<VoiceProfile>("jarvis");
 
   useEffect(() => {
@@ -44,6 +49,11 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
     localStorage.setItem("ultron_engine", selectedEngine);
     localStorage.setItem("ultron_model", finalModel);
     localStorage.setItem("ultron_local_model", selectedLocalModel);
+    localStorage.setItem("ultron_online_mode", onlineMode);
+    localStorage.setItem("ultron_local_mode", localMode);
+    localStorage.setItem("ultron_api_provider", apiProvider);
+    localStorage.setItem("ultron_api_key", apiKey);
+    localStorage.setItem("ultron_api_base_url", apiBaseUrl);
     localStorage.setItem("ultron_voice_profile", selectedVoice);
     onClose(selectedEngine, finalModel, selectedVoice);
   };
@@ -135,99 +145,196 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                   Choose your primary cloud bridge AND your pre-installed local on-device model for offline failover!
                 </p>
 
-                <div className="engine-options">
-                  <label className={`engine-card ${selectedEngine === "auto" ? "selected" : ""}`}>
-                    <input
-                      type="radio"
-                      name="engine"
-                      value="auto"
-                      checked={selectedEngine === "auto"}
-                      onChange={() => setSelectedEngine("auto")}
-                    />
-                    <div>
-                      <div className="engine-name">🔄 Auto Circuit-Breaker (Recommended)</div>
-                      <div className="engine-info">
-                        Dynamically attempts Antigravity Google Gemini models first, falling back to local Ollama or LM Studio Bionic.
-                      </div>
-                    </div>
-                  </label>
-
-                  <label className={`engine-card ${selectedEngine === "antigravity" ? "selected" : ""}`}>
-                    <input
-                      type="radio"
-                      name="engine"
-                      value="antigravity"
-                      checked={selectedEngine === "antigravity"}
-                      onChange={() => setSelectedEngine("antigravity")}
-                    />
-                    <div>
-                      <div className="engine-name">🌐 Antigravity Google Gemini Bridge</div>
-                      <div className="engine-info">
-                        Direct 100% Free local stdio bridge to Google Gemini 2.5 Pro / Flash without API keys.
-                      </div>
-                    </div>
-                  </label>
-
-                  <label className={`engine-card ${selectedEngine === "ollama" ? "selected" : ""}`}>
-                    <input
-                      type="radio"
-                      name="engine"
-                      value="ollama"
-                      checked={selectedEngine === "ollama"}
-                      onChange={() => setSelectedEngine("ollama")}
-                    />
-                    <div>
-                      <div className="engine-name">🦙 Ollama Local Server</div>
-                      <div className="engine-info">
-                        Strict 100% offline inference via on-device AI service (Llama 3, Qwen, Mistral, DeepSeek).
-                      </div>
-                    </div>
-                  </label>
-
-                  <label className={`engine-card ${selectedEngine === "lm-studio" ? "selected" : ""}`}>
-                    <input
-                      type="radio"
-                      name="engine"
-                      value="lm-studio"
-                      checked={selectedEngine === "lm-studio"}
-                      onChange={() => setSelectedEngine("lm-studio")}
-                    />
-                    <div>
-                      <div className="engine-name">🖥️ LM Studio Bionic Local API</div>
-                      <div className="engine-info">
-                        Connects directly to on-device LM Studio Bionic OpenAI-compatible neural service.
-                      </div>
-                    </div>
-                  </label>
-                </div>
-
-                <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.25)" }}>
-                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#fff", display: "block", marginBottom: "8px" }}>
-                    🎯 PRIMARY ANTIGRAVITY CLOUD MODEL:
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#00ff66", display: "block", marginBottom: "6px" }}>
+                    ⚡ ROUTING STRATEGY (DUO MODE):
                   </label>
                   <select
-                    value={selectedModel}
-                    onChange={(e) => setSelectedModel(e.target.value)}
+                    value={selectedEngine}
+                    onChange={(e) => setSelectedEngine(e.target.value)}
                     className="model-select-large"
+                    style={{ border: "1px solid #00ff66" }}
                   >
-                    {getAntigravityModels().map((mod: string, i: number) => (
-                      <option key={i} value={mod}>
-                        {mod}
-                      </option>
-                    ))}
+                    <option value="auto">🔄 Auto Duo Mode (Try Online 1st ➔ Fallback to Local)</option>
+                    <option value="antigravity">🌐 Strict Antigravity Free Bridge Only</option>
+                    <option value="api-key">🔑 Strict Cloud API Key Only</option>
+                    <option value="ollama">🦙 Strict Ollama Local Only</option>
+                    <option value="lm-studio">🖥️ Strict LM Studio Bionic Only</option>
                   </select>
                 </div>
 
-                <div style={{ marginTop: "14px", background: "rgba(0,0,0,0.6)", padding: "12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.25)" }}>
-                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#fff", display: "block", marginBottom: "8px" }}>
-                    🖥️ PRE-INSTALLED LOCAL MODEL (OLLAMA / LM STUDIO ON THIS DEVICE):
+                {/* SECTION 1: ONLINE ENGINE */}
+                <div style={{ background: "rgba(0, 255, 102, 0.05)", border: "1px solid rgba(0, 255, 102, 0.3)", padding: "12px", borderRadius: "6px", marginBottom: "14px" }}>
+                  <div style={{ fontSize: "11px", color: "#00ff66", fontWeight: "bold", marginBottom: "8px" }}>
+                    1️⃣ ONLINE ENGINE (CLOUD INFERENCE)
+                  </div>
+                  <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setOnlineMode("antigravity")}
+                      className={`hud-tab-btn ${onlineMode === "antigravity" && selectedEngine !== "api-key" ? "active" : ""}`}
+                      style={{ flex: 1, padding: "8px", fontSize: "11px", fontWeight: "bold" }}
+                    >
+                      🌐 Antigravity (Free)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOnlineMode("api-key");
+                        if (selectedEngine === "antigravity") setSelectedEngine("api-key");
+                      }}
+                      className={`hud-tab-btn ${onlineMode === "api-key" || selectedEngine === "api-key" ? "active" : ""}`}
+                      style={{ flex: 1, padding: "8px", fontSize: "11px", fontWeight: "bold" }}
+                    >
+                      🔑 API Key Provider
+                    </button>
+                  </div>
+
+                  {(onlineMode === "api-key" || selectedEngine === "api-key") ? (
+                    <>
+                      <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "4px" }}>
+                        CLOUD PROVIDER:
+                      </label>
+                      <select
+                        value={apiProvider}
+                        onChange={(e) => {
+                          const prov = e.target.value;
+                          setApiProvider(prov);
+                          if (modelsData) {
+                            const list =
+                              prov === "openrouter" ? modelsData.openRouterModels :
+                              prov === "openai" ? modelsData.openAiModels :
+                              prov === "gemini" ? modelsData.geminiApiModels :
+                              prov === "anthropic" ? modelsData.anthropicModels :
+                              prov === "deepseek" ? modelsData.deepSeekModels :
+                              prov === "groq" ? modelsData.groqModels :
+                              prov === "mistral" ? modelsData.mistralModels :
+                              prov === "xai" ? modelsData.xAiModels : [];
+                            if (list && list[0]) setSelectedModel(list[0]);
+                          }
+                        }}
+                        className="model-select-large"
+                        style={{ marginBottom: "10px", fontSize: "12px" }}
+                      >
+                        <option value="openrouter">OpenRouter (Multi-Model Router)</option>
+                        <option value="gemini">Google Gemini Native API</option>
+                        <option value="openai">OpenAI Official API</option>
+                        <option value="anthropic">Anthropic Claude Official API</option>
+                        <option value="deepseek">DeepSeek Native API</option>
+                        <option value="groq">Groq Ultra-Fast LPU API</option>
+                        <option value="mistral">Mistral AI Official API</option>
+                        <option value="xai">xAI Grok API</option>
+                        <option value="custom">Custom OpenAI-Compatible Endpoint</option>
+                      </select>
+
+                      <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "4px" }}>
+                        API KEY ({apiProvider.toUpperCase()}):
+                      </label>
+                      <input
+                        type="password"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder={`Paste your ${apiProvider.toUpperCase()} API Key...`}
+                        className="chat-input"
+                        style={{ marginBottom: "10px", width: "100%", padding: "8px", fontSize: "12px" }}
+                      />
+
+                      {apiProvider === "custom" && (
+                        <>
+                          <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "4px" }}>
+                            CUSTOM BASE URL:
+                          </label>
+                          <input
+                            type="text"
+                            value={apiBaseUrl}
+                            onChange={(e) => setApiBaseUrl(e.target.value)}
+                            placeholder="https://your-api.com/v1/chat/completions"
+                            className="chat-input"
+                            style={{ marginBottom: "10px", width: "100%", padding: "8px", fontSize: "12px" }}
+                          />
+                        </>
+                      )}
+
+                      <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "4px" }}>
+                        MODEL NAME:
+                      </label>
+                      <select
+                        value={selectedModel}
+                        onChange={(e) => setSelectedModel(e.target.value)}
+                        className="model-select-large"
+                        style={{ marginBottom: "4px", fontSize: "12px" }}
+                      >
+                        {(
+                          apiProvider === "openrouter" ? (modelsData?.openRouterModels || ["openrouter/auto", "anthropic/claude-3.7-sonnet", "openai/gpt-4o"]) :
+                          apiProvider === "openai" ? (modelsData?.openAiModels || ["gpt-4o", "gpt-4o-mini", "o1", "o3-mini"]) :
+                          apiProvider === "gemini" ? (modelsData?.geminiApiModels || ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-pro-exp-02-05"]) :
+                          apiProvider === "anthropic" ? (modelsData?.anthropicModels || ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022"]) :
+                          apiProvider === "deepseek" ? (modelsData?.deepSeekModels || ["deepseek-r1", "deepseek-chat"]) :
+                          apiProvider === "groq" ? (modelsData?.groqModels || ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b"]) :
+                          apiProvider === "mistral" ? (modelsData?.mistralModels || ["mistral-large-latest", "codestral-latest"]) :
+                          apiProvider === "xai" ? (modelsData?.xAiModels || ["grok-2-1212", "grok-beta"]) : ["custom-model"]
+                        ).map((mod: string, i: number) => (
+                          <option key={i} value={mod}>
+                            {mod}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  ) : (
+                    <>
+                      <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "4px" }}>
+                        ANTIGRAVITY MODEL (100% FREE BRIDGE):
+                      </label>
+                      <select
+                        value={selectedModel}
+                        onChange={(e) => setSelectedModel(e.target.value)}
+                        className="model-select-large"
+                        style={{ marginBottom: "4px", fontSize: "12px" }}
+                      >
+                        {getAntigravityModels().map((mod: string, i: number) => (
+                          <option key={i} value={mod}>
+                            {mod}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  )}
+                </div>
+
+                {/* SECTION 2: LOCAL ENGINE */}
+                <div style={{ background: "rgba(0, 229, 255, 0.05)", border: "1px solid rgba(0, 229, 255, 0.3)", padding: "12px", borderRadius: "6px", marginBottom: "14px" }}>
+                  <div style={{ fontSize: "11px", color: "#00e5ff", fontWeight: "bold", marginBottom: "8px" }}>
+                    2️⃣ LOCAL ENGINE (OFFLINE ON-DEVICE FAILOVER)
+                  </div>
+                  <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setLocalMode("ollama")}
+                      className={`hud-tab-btn ${localMode === "ollama" ? "active" : ""}`}
+                      style={{ flex: 1, padding: "8px", fontSize: "11px", fontWeight: "bold" }}
+                    >
+                      🦙 Ollama
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLocalMode("lm-studio")}
+                      className={`hud-tab-btn ${localMode === "lm-studio" ? "active" : ""}`}
+                      style={{ flex: 1, padding: "8px", fontSize: "11px", fontWeight: "bold" }}
+                    >
+                      🖥️ LM Studio Bionic
+                    </button>
+                  </div>
+
+                  <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "4px" }}>
+                    SELECT LOCAL MODEL ({localMode.toUpperCase()}):
                   </label>
                   <select
                     value={selectedLocalModel}
                     onChange={(e) => setSelectedLocalModel(e.target.value)}
                     className="model-select-large"
+                    style={{ marginBottom: "4px", fontSize: "12px" }}
                   >
-                    {getLocalModels().map((mod: string, i: number) => (
+                    {(localMode === "lm-studio" ? (modelsData?.lmStudioModels || ["local-model"]) : (modelsData?.ollamaModels || ["llama3:8b", "qwen2.5:14b", "mistral:7b"])).map((mod: string, i: number) => (
                       <option key={i} value={mod}>
                         {mod} (On-Device)
                       </option>

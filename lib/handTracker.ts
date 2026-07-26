@@ -16,13 +16,13 @@ const INDEX_TIP = 8;
 const MIDDLE_MCP = 9;
 
 // Pinch hysteresis: thumb–index distance relative to hand size
-const PINCH_ON = 0.40;
-const PINCH_OFF = 0.55;
+const PINCH_ON = 0.48;
+const PINCH_OFF = 0.62;
 
 // How strongly hand movement rotates the orb (radians per normalized unit)
-const ROTATE_SPEED = 6.0;
+const ROTATE_SPEED = 8.5;
 // Smoothing factor for grab-point tracking (0..1, higher = snappier)
-const SMOOTHING = 0.5;
+const SMOOTHING = 0.65;
 
 export type GestureMode = "idle" | "spin" | "zoom" | "swipe";
 
@@ -86,7 +86,7 @@ export class HandTracker {
 
     const fileset = await FilesetResolver.forVisionTasks(WASM_CDN);
     const options = {
-      baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" as const },
+      baseOptions: { modelAssetPath: MODEL_URL, delegate: "CPU" as const },
       runningMode: "VIDEO" as const,
       numHands: 2,
       minHandDetectionConfidence: 0.5,
@@ -98,7 +98,7 @@ export class HandTracker {
     } catch {
       this.landmarker = await HandLandmarker.createFromOptions(fileset, {
         ...options,
-        baseOptions: { ...options.baseOptions, delegate: "CPU" as const },
+        baseOptions: { ...options.baseOptions, delegate: "GPU" as const },
       });
     }
 

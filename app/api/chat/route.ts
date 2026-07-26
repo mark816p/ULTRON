@@ -43,7 +43,19 @@ If you use a tool, wait for the tool output in the next turn before answering th
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { message, sessionId = "default_session", model = "auto", modelName, fallbackModelName, history = [] } = body;
+    const {
+      message,
+      sessionId = "default_session",
+      model = "auto",
+      modelName,
+      fallbackModelName,
+      history = [],
+      onlineMode,
+      localMode,
+      apiProvider,
+      apiKey,
+      apiBaseUrl,
+    } = body;
 
     if (!message) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
@@ -68,8 +80,10 @@ export async function POST(req: NextRequest) {
       dedupStats = prepared.dedupStats;
     }
 
-    // 3. Route to AI Engine (Antigravity ↔ Ollama ↔ LM Studio failover)
-    let aiRes = await aiRouter.route(recentMsgs as any, systemPrompt, model, modelName, fallbackModelName);
+    const routeOptions = { onlineMode, localMode, apiProvider, apiKey, apiBaseUrl };
+
+    // 3. Route to AI Engine (Antigravity ↔ Cloud API ↔ Ollama ↔ LM Studio failover)
+    let aiRes = await aiRouter.route(recentMsgs as any, systemPrompt, model, modelName, fallbackModelName, routeOptions);
 
     // 4. Check for Tool Invocation in AI Response
     const toolMatch = aiRes.content.match(/\[TOOL:\s*([a-zA-Z0-9_]+)\((.*?)\)\]/);
@@ -97,7 +111,7 @@ export async function POST(req: NextRequest) {
       // Second LLM call with tool results
       recentMsgs.push({ role: "assistant", content: aiRes.content });
       recentMsgs.push({ role: "tool", content: toolFeedbackMsg });
-      aiRes = await aiRouter.route(recentMsgs as any, systemPrompt, model, modelName, fallbackModelName);
+      aiRes = await aiRouter.route(recentMsgs as any, systemPrompt, model, modelName, fallbackModelName, routeOptions);
     }
 
     // 5. Remember final AI response

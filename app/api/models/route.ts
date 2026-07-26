@@ -94,10 +94,85 @@ export async function GET() {
     }
   } catch (e) {}
 
+  const openRouterModels = [
+    "openrouter/auto",
+    "anthropic/claude-3.7-sonnet",
+    "anthropic/claude-3.5-sonnet",
+    "openai/gpt-4o",
+    "openai/o3-mini",
+    "google/gemini-2.5-pro",
+    "google/gemini-2.5-flash",
+    "deepseek/deepseek-r1",
+    "deepseek/deepseek-chat",
+    "meta-llama/llama-3.3-70b-instruct",
+    "qwen/qwen-2.5-72b-instruct",
+    "mistralai/mistral-large",
+    "x-ai/grok-2-1212",
+  ];
+
+  const openAiModels = [
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4.5-preview",
+    "o1",
+    "o1-mini",
+    "o3-mini",
+  ];
+
+  const geminiApiModels = [
+    "gemini-2.5-pro",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-pro-exp-02-05",
+    "gemini-2.0-flash-001",
+    "gemini-1.5-pro",
+  ];
+
+  const anthropicModels = [
+    "claude-3-7-sonnet-20250219",
+    "claude-3-5-sonnet-20241022",
+    "claude-3-5-haiku-20241022",
+    "claude-3-opus-20240229",
+  ];
+
+  const deepSeekModels = [
+    "deepseek-chat",
+    "deepseek-reasoner",
+  ];
+
+  const groqModels = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
+    "deepseek-r1-distill-llama-70b",
+  ];
+
+  const mistralModels = [
+    "mistral-large-latest",
+    "mistral-small-latest",
+    "codestral-latest",
+    "open-mixtral-8x22b",
+  ];
+
+  const xaiModels = [
+    "grok-2-1212",
+    "grok-2-vision-1212",
+    "grok-beta",
+  ];
+
   return NextResponse.json({
     antigravityModels,
     ollamaModels,
     lmStudioModels,
+    openRouterModels,
+    openAiModels,
+    geminiApiModels,
+    anthropicModels,
+    deepSeekModels,
+    groqModels,
+    mistralModels,
+    xaiModels,
   });
 }
 

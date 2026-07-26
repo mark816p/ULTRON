@@ -179,14 +179,30 @@ export default function JarvisOrb() {
                 muted
                 playsInline
                 className="camera-video"
-                style={{ display: showWebcamFeed ? "block" : "none" }}
+                style={{
+                  position: showWebcamFeed ? "relative" : "absolute",
+                  width: showWebcamFeed ? "208px" : "1px",
+                  height: showWebcamFeed ? "156px" : "1px",
+                  opacity: showWebcamFeed ? 1 : 0.01,
+                  pointerEvents: showWebcamFeed ? "auto" : "none",
+                  overflow: "hidden",
+                  zIndex: showWebcamFeed ? 10 : -1,
+                }}
               />
               <canvas
                 ref={overlayRef}
                 width={208}
                 height={156}
                 className="camera-overlay"
-                style={{ display: showWebcamFeed ? "block" : "none" }}
+                style={{
+                  position: showWebcamFeed ? "absolute" : "absolute",
+                  width: showWebcamFeed ? "208px" : "1px",
+                  height: showWebcamFeed ? "156px" : "1px",
+                  opacity: showWebcamFeed ? 1 : 0.01,
+                  pointerEvents: "none",
+                  overflow: "hidden",
+                  zIndex: showWebcamFeed ? 11 : -1,
+                }}
               />
               <div className="camera-status" style={{ borderTop: showWebcamFeed ? "1px solid rgba(255,170,48,0.4)" : "none" }}>
                 {status.hands > 0

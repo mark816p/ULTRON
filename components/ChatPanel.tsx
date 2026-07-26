@@ -33,9 +33,14 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [modelMode, setModelMode] = useState<"auto" | "antigravity" | "ollama" | "lm-studio">("auto");
+  const [modelMode, setModelMode] = useState<"auto" | "antigravity" | "api-key" | "ollama" | "lm-studio">("auto");
   const [selectedModelName, setSelectedModelName] = useState("gemini-2.5-pro");
   const [selectedLocalModelName, setSelectedLocalModelName] = useState("llama3:8b");
+  const [onlineMode, setOnlineMode] = useState<"antigravity" | "api-key">("antigravity");
+  const [localMode, setLocalMode] = useState<"ollama" | "lm-studio">("ollama");
+  const [apiProvider, setApiProvider] = useState<string>("openrouter");
+  const [apiKey, setApiKey] = useState<string>("");
+  const [apiBaseUrl, setApiBaseUrl] = useState<string>("");
   const [modelsData, setModelsData] = useState<any>(null);
 
   const [isListening, setIsListening] = useState(false);
@@ -70,10 +75,20 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
     const savedModel = localStorage.getItem("ultron_model");
     const savedLocalModel = localStorage.getItem("ultron_local_model");
     const savedVoice = localStorage.getItem("ultron_voice_profile") as VoiceProfile;
+    const savedOnlineMode = localStorage.getItem("ultron_online_mode");
+    const savedLocalMode = localStorage.getItem("ultron_local_mode");
+    const savedApiProvider = localStorage.getItem("ultron_api_provider");
+    const savedApiKey = localStorage.getItem("ultron_api_key");
+    const savedApiBaseUrl = localStorage.getItem("ultron_api_base_url");
     if (savedEngine) setModelMode(savedEngine as any);
     if (savedModel) setSelectedModelName(savedModel);
     if (savedLocalModel) setSelectedLocalModelName(savedLocalModel);
     if (savedVoice && savedVoice !== ("off" as any)) setVoiceProfile(savedVoice);
+    if (savedOnlineMode) setOnlineMode(savedOnlineMode as any);
+    if (savedLocalMode) setLocalMode(savedLocalMode as any);
+    if (savedApiProvider) setApiProvider(savedApiProvider);
+    if (savedApiKey) setApiKey(savedApiKey);
+    if (savedApiBaseUrl) setApiBaseUrl(savedApiBaseUrl);
 
     fetch("/api/models")
       .then((res) => res.json())
@@ -87,9 +102,49 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
       .catch(() => {});
   }, []);
 
-  const handleEngineChange = (newEngine: "auto" | "antigravity" | "ollama" | "lm-studio") => {
+  const handleEngineChange = (newEngine: "auto" | "antigravity" | "api-key" | "ollama" | "lm-studio") => {
     setModelMode(newEngine);
     localStorage.setItem("ultron_engine", newEngine);
+  };
+
+  const handleOnlineModeChange = (val: "antigravity" | "api-key") => {
+    setOnlineMode(val);
+    localStorage.setItem("ultron_online_mode", val);
+  };
+
+  const handleLocalModeChange = (val: "ollama" | "lm-studio") => {
+    setLocalMode(val);
+    localStorage.setItem("ultron_local_mode", val);
+  };
+
+  const handleApiProviderChange = (provider: string) => {
+    setApiProvider(provider);
+    localStorage.setItem("ultron_api_provider", provider);
+    if (modelsData) {
+      const list =
+        provider === "openrouter" ? modelsData.openRouterModels :
+        provider === "openai" ? modelsData.openAiModels :
+        provider === "gemini" ? modelsData.geminiApiModels :
+        provider === "anthropic" ? modelsData.anthropicModels :
+        provider === "deepseek" ? modelsData.deepSeekModels :
+        provider === "groq" ? modelsData.groqModels :
+        provider === "mistral" ? modelsData.mistralModels :
+        provider === "xai" ? modelsData.xAiModels : [];
+      if (list && list[0]) {
+        setSelectedModelName(list[0]);
+        localStorage.setItem("ultron_model", list[0]);
+      }
+    }
+  };
+
+  const handleApiKeyChange = (key: string) => {
+    setApiKey(key);
+    localStorage.setItem("ultron_api_key", key);
+  };
+
+  const handleApiBaseUrlChange = (url: string) => {
+    setApiBaseUrl(url);
+    localStorage.setItem("ultron_api_base_url", url);
   };
 
   const handleModelChange = (newModel: string) => {
@@ -187,6 +242,11 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
             model: modelMode,
             modelName: selectedModelName,
             fallbackModelName: localStorage.getItem("ultron_local_model") || "llama3:8b",
+            onlineMode,
+            localMode,
+            apiProvider,
+            apiKey,
+            apiBaseUrl,
             history: messages.slice(-10).map((m) => ({ role: m.role, content: m.content })),
           }),
         });
@@ -259,7 +319,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         setLoading(false);
       }
     },
-    [input, loading, messages, modelMode, selectedModelName, sceneRef]
+    [input, loading, messages, modelMode, selectedModelName, onlineMode, localMode, apiProvider, apiKey, apiBaseUrl, sceneRef]
   );
 
   // Always-active Wake Word ("Ultron") continuous recognition
@@ -434,7 +494,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         <div className="hud-title-box" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <LogoIcon size={20} />
           <span className="pulse-dot" />
-          <span className="hud-label">U.L.T.R.O.N. NEURAL LINK</span>
+          <span className="hud-label">U.L.T.R.O.N. NEURAL LINK v34</span>
           <span className="stat-pill" style={{ borderColor: "#00ff66", color: "#00ff66" }}>
             🧠 {selectedModelName}
           </span>
@@ -652,66 +712,196 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
       {activeTab === "system" && (
         <div className="system-area">
           <div className="sys-section">
-            <div className="sys-header">🌐 CHANGE AI MIND AT ANY TIME</div>
+            <div className="sys-header">🌐 CHANGE AI MIND & DUO MODE AT ANY TIME</div>
             <p className="sys-desc">
-              Select your backend engine and specific AI model below. Changes take effect immediately without repeating onboarding.
+              Configure your Duo Mode failover and API keys below. Changes take effect immediately without repeating onboarding.
             </p>
             <label style={{ fontSize: "11px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-              PRIMARY ROUTING ENGINE:
+              ⚡ ROUTING STRATEGY (DUO MODE):
             </label>
             <select
               value={modelMode}
               onChange={(e) => handleEngineChange(e.target.value as any)}
               className="model-select-large"
-              style={{ marginBottom: "10px" }}
+              style={{ marginBottom: "12px", border: "1px solid #00ff66" }}
             >
-              <option value="auto">🔄 Auto Circuit-Breaker (Antigravity ↔ Local)</option>
-              <option value="antigravity">🌐 Antigravity Google Gemini Bridge</option>
-              <option value="ollama">🦙 Ollama Local Offline</option>
-              <option value="lm-studio">🖥️ LM Studio Bionic Local API</option>
+              <option value="auto">🔄 Auto Duo Mode (Try Online 1st ➔ Fallback to Local)</option>
+              <option value="antigravity">🌐 Strict Antigravity Free Bridge Only</option>
+              <option value="api-key">🔑 Strict Cloud API Key Only</option>
+              <option value="ollama">🦙 Strict Ollama Local Only</option>
+              <option value="lm-studio">🖥️ Strict LM Studio Bionic Only</option>
             </select>
 
-            <label style={{ fontSize: "11px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-              PRIMARY ANTIGRAVITY CLOUD MODEL:
-            </label>
-            <select
-              value={selectedModelName}
-              onChange={(e) => handleModelChange(e.target.value)}
-              className="model-select-large"
-              style={{ marginBottom: "12px" }}
-            >
-              {(modelsData?.antigravityModels || [
-                "gemini-2.5-pro",
-                "gemini-2.5-flash",
-                "gemini-2.5-flash-lite",
-                "gemini-2.0-pro-exp-02-05",
-                "gemini-2.0-flash-001",
-                "claude-3.7-sonnet",
-              ]).map((mod: string, i: number) => (
-                <option key={i} value={mod}>
-                  {mod}
-                </option>
-              ))}
-            </select>
+            {/* SECTION 1: ONLINE ENGINE */}
+            <div style={{ background: "rgba(0, 255, 102, 0.05)", border: "1px solid rgba(0, 255, 102, 0.3)", padding: "10px", borderRadius: "6px", marginBottom: "12px" }}>
+              <div style={{ fontSize: "11px", color: "#00ff66", fontWeight: "bold", marginBottom: "8px" }}>
+                1️⃣ ONLINE ENGINE (CLOUD INFERENCE)
+              </div>
+              <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => handleOnlineModeChange("antigravity")}
+                  className={`hud-tab-btn ${onlineMode === "antigravity" && modelMode !== "api-key" ? "active" : ""}`}
+                  style={{ flex: 1, padding: "6px", fontSize: "10px", fontWeight: "bold" }}
+                >
+                  🌐 Antigravity (Free)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleOnlineModeChange("api-key");
+                    if (modelMode === "antigravity") handleEngineChange("api-key");
+                  }}
+                  className={`hud-tab-btn ${onlineMode === "api-key" || modelMode === "api-key" ? "active" : ""}`}
+                  style={{ flex: 1, padding: "6px", fontSize: "10px", fontWeight: "bold" }}
+                >
+                  🔑 API Key Provider
+                </button>
+              </div>
 
-            <label style={{ fontSize: "11px", color: "#00e5ff", fontWeight: "bold", display: "block", marginBottom: "4px" }}>
-              🖥️ PRE-INSTALLED LOCAL MODEL (OFFLINE FAILOVER):
-            </label>
-            <select
-              value={selectedLocalModelName}
-              onChange={(e) => handleLocalModelChange(e.target.value)}
-              className="model-select-large"
-              style={{ marginBottom: "8px" }}
-            >
-              {[
-                ...(modelsData?.ollamaModels || ["llama3:8b", "qwen2.5:14b", "mistral:7b"]),
-                ...(modelsData?.lmStudioModels || ["local-model"]),
-              ].map((mod: string, i: number) => (
-                <option key={i} value={mod}>
-                  {mod} (On-Device)
-                </option>
-              ))}
-            </select>
+              {(onlineMode === "api-key" || modelMode === "api-key") ? (
+                <>
+                  <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "3px" }}>
+                    CLOUD PROVIDER:
+                  </label>
+                  <select
+                    value={apiProvider}
+                    onChange={(e) => handleApiProviderChange(e.target.value)}
+                    className="model-select-large"
+                    style={{ marginBottom: "8px", fontSize: "12px" }}
+                  >
+                    <option value="openrouter">OpenRouter (Multi-Model Router)</option>
+                    <option value="gemini">Google Gemini Native API</option>
+                    <option value="openai">OpenAI Official API</option>
+                    <option value="anthropic">Anthropic Claude Official API</option>
+                    <option value="deepseek">DeepSeek Native API</option>
+                    <option value="groq">Groq Ultra-Fast LPU API</option>
+                    <option value="mistral">Mistral AI Official API</option>
+                    <option value="xai">xAI Grok API</option>
+                    <option value="custom">Custom OpenAI-Compatible Endpoint</option>
+                  </select>
+
+                  <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "3px" }}>
+                    API KEY ({apiProvider.toUpperCase()}):
+                  </label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => handleApiKeyChange(e.target.value)}
+                    placeholder={`Paste your ${apiProvider.toUpperCase()} API Key...`}
+                    className="chat-input"
+                    style={{ marginBottom: "8px", width: "100%", padding: "6px", fontSize: "12px" }}
+                  />
+
+                  {apiProvider === "custom" && (
+                    <>
+                      <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "3px" }}>
+                        CUSTOM BASE URL:
+                      </label>
+                      <input
+                        type="text"
+                        value={apiBaseUrl}
+                        onChange={(e) => handleApiBaseUrlChange(e.target.value)}
+                        placeholder="https://your-api.com/v1/chat/completions"
+                        className="chat-input"
+                        style={{ marginBottom: "8px", width: "100%", padding: "6px", fontSize: "12px" }}
+                      />
+                    </>
+                  )}
+
+                  <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "3px" }}>
+                    MODEL NAME:
+                  </label>
+                  <select
+                    value={selectedModelName}
+                    onChange={(e) => handleModelChange(e.target.value)}
+                    className="model-select-large"
+                    style={{ marginBottom: "4px", fontSize: "12px" }}
+                  >
+                    {(
+                      apiProvider === "openrouter" ? (modelsData?.openRouterModels || ["openrouter/auto", "anthropic/claude-3.7-sonnet", "openai/gpt-4o"]) :
+                      apiProvider === "openai" ? (modelsData?.openAiModels || ["gpt-4o", "gpt-4o-mini", "o1", "o3-mini"]) :
+                      apiProvider === "gemini" ? (modelsData?.geminiApiModels || ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-pro-exp-02-05"]) :
+                      apiProvider === "anthropic" ? (modelsData?.anthropicModels || ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022"]) :
+                      apiProvider === "deepseek" ? (modelsData?.deepSeekModels || ["deepseek-r1", "deepseek-chat"]) :
+                      apiProvider === "groq" ? (modelsData?.groqModels || ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b"]) :
+                      apiProvider === "mistral" ? (modelsData?.mistralModels || ["mistral-large-latest", "codestral-latest"]) :
+                      apiProvider === "xai" ? (modelsData?.xAiModels || ["grok-2-1212", "grok-beta"]) : ["custom-model"]
+                    ).map((mod: string, i: number) => (
+                      <option key={i} value={mod}>
+                        {mod}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : (
+                <>
+                  <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "3px" }}>
+                    ANTIGRAVITY MODEL (100% FREE BRIDGE):
+                  </label>
+                  <select
+                    value={selectedModelName}
+                    onChange={(e) => handleModelChange(e.target.value)}
+                    className="model-select-large"
+                    style={{ marginBottom: "4px", fontSize: "12px" }}
+                  >
+                    {(modelsData?.antigravityModels || [
+                      "gemini-2.5-pro",
+                      "gemini-2.5-flash",
+                      "gemini-2.5-flash-lite",
+                      "gemini-2.0-pro-exp-02-05",
+                      "gemini-2.0-flash-001",
+                      "claude-3.7-sonnet",
+                    ]).map((mod: string, i: number) => (
+                      <option key={i} value={mod}>
+                        {mod}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+            </div>
+
+            {/* SECTION 2: LOCAL ENGINE */}
+            <div style={{ background: "rgba(0, 229, 255, 0.05)", border: "1px solid rgba(0, 229, 255, 0.3)", padding: "10px", borderRadius: "6px", marginBottom: "12px" }}>
+              <div style={{ fontSize: "11px", color: "#00e5ff", fontWeight: "bold", marginBottom: "8px" }}>
+                2️⃣ LOCAL ENGINE (OFFLINE ON-DEVICE FAILOVER)
+              </div>
+              <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => handleLocalModeChange("ollama")}
+                  className={`hud-tab-btn ${localMode === "ollama" ? "active" : ""}`}
+                  style={{ flex: 1, padding: "6px", fontSize: "10px", fontWeight: "bold" }}
+                >
+                  🦙 Ollama
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleLocalModeChange("lm-studio")}
+                  className={`hud-tab-btn ${localMode === "lm-studio" ? "active" : ""}`}
+                  style={{ flex: 1, padding: "6px", fontSize: "10px", fontWeight: "bold" }}
+                >
+                  🖥️ LM Studio Bionic
+                </button>
+              </div>
+
+              <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "3px" }}>
+                SELECT LOCAL MODEL ({localMode.toUpperCase()}):
+              </label>
+              <select
+                value={selectedLocalModelName}
+                onChange={(e) => handleLocalModelChange(e.target.value)}
+                className="model-select-large"
+                style={{ marginBottom: "4px", fontSize: "12px" }}
+              >
+                {(localMode === "lm-studio" ? (modelsData?.lmStudioModels || ["local-model"]) : (modelsData?.ollamaModels || ["llama3:8b", "qwen2.5:14b", "mistral:7b"])).map((mod: string, i: number) => (
+                  <option key={i} value={mod}>
+                    {mod} (On-Device)
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div style={{ marginTop: "14px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "10px" }}>
               <label style={{ fontSize: "11px", color: "#00e5ff", fontWeight: "bold", display: "block", marginBottom: "6px" }}>
