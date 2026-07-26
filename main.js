@@ -1,37 +1,50 @@
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
 const http = require('http');
+const { autoUpdater } = require('electron-updater');
 
 let mainWindow;
-let nextProcess;
-const PORT = 7777; // Dedicated app port (avoids localhost:3000 collision)
+const PORT = 7777;
 
-function startNextJs() {
-  return new Promise((resolve) => {
+// Configure autoUpdater for background auto-updating
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+async function startNextServer() {
+  return new Promise((resolve, reject) => {
+    // Check if server is already active on port 7777
     http.get(`http://127.0.0.1:${PORT}`, () => {
       resolve();
-    }).on('error', () => {
-      const nextCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-      nextProcess = spawn(nextCmd, ['next', 'start', '-p', String(PORT)], {
-        cwd: __dirname,
-        env: { ...process.env, PORT: String(PORT) },
-        stdio: 'inherit'
-      });
+    }).on('error', async () => {
+      try {
+        const next = require('next');
+        const dev = false;
+        const nextApp = next({ dev, dir: __dirname });
+        await nextApp.prepare();
+        const handle = nextApp.getRequestHandler();
 
-      const checkInterval = setInterval(() => {
-        http.get(`http://127.0.0.1:${PORT}`, () => {
-          clearInterval(checkInterval);
+        const server = http.createServer((req, res) => {
+          handle(req, res);
+        });
+
+        server.listen(PORT, '127.0.0.1', () => {
+          console.log(`[U.L.T.R.O.N.] Internal Neural Bridge active on http://127.0.0.1:${PORT}`);
           resolve();
-        }).on('error', () => {});
-      }, 500);
+        });
+
+        server.on('error', (err) => {
+          console.error('[U.L.T.R.O.N.] Server listen error:', err);
+          reject(err);
+        });
+      } catch (err) {
+        console.error('[U.L.T.R.O.N.] Failed to initialize Next.js engine:', err);
+        reject(err);
+      }
     });
   });
 }
 
 async function createWindow() {
-  await startNextJs();
-
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 920,
@@ -39,13 +52,12 @@ async function createWindow() {
     icon: path.join(__dirname, 'public/favicon.ico'),
     backgroundColor: '#0c0c0c',
     autoHideMenuBar: true,
+    show: false, // Show once loaded to prevent white flash
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
     }
   });
-
-  mainWindow.loadURL(`http://127.0.0.1:${PORT}`);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -55,12 +67,30 @@ async function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  try {
+    await startNextServer();
+    await mainWindow.loadURL(`http://127.0.0.1:${PORT}`);
+    mainWindow.show();
+  } catch (e) {
+    console.error("Failed to load U.L.T.R.O.N. UI:", e);
+    // If server fails for any reason, display emergency diagnostic HUD instead of failing silently
+    const errHtml = `data:text/html;charset=utf-8,<html><body style="background:#0c0c0c;color:#e6e6e6;font-family:sans-serif;padding:50px;text-align:center;"><h2 style="color:#ffffff;">U.L.T.R.O.N. Neural Bridge Diagnostics</h2><p style="color:#aaaaaa;">Server initialization on port ${PORT} encountered an issue.</p><p style="background:#1a1a1a;padding:15px;border-radius:6px;display:inline-block;color:#ff4444;">${e.message || e}</p></body></html>`;
+    await mainWindow.loadURL(errHtml);
+    mainWindow.show();
+  }
+
+  // Check for background updates silently
+  try {
+    autoUpdater.checkForUpdatesAndNotify();
+  } catch (e) {
+    console.log("Auto-updater offline or unreachable:", e.message);
+  }
 }
 
 app.on('ready', createWindow);
 
 app.on('window-all-closed', () => {
-  if (nextProcess) nextProcess.kill();
   if (process.platform !== 'darwin') {
     app.quit();
   }

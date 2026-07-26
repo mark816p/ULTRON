@@ -7,6 +7,9 @@
 
 # production
 /build
+/dist
+*.exe
+*.blockmap
 
 # misc
 .DS_Store
