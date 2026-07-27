@@ -514,115 +514,45 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
 
   return (
     <div className="chat-panel-container">
-      {/* Top Status HUD */}
-      <div className="chat-hud-header">
-        <div className="hud-title-box" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <LogoIcon size={20} />
-          <span className="pulse-dot" />
-          <span className="hud-label">U.L.T.R.O.N. NEURAL LINK v45</span>
-          <span className="stat-pill">
-            🧠 {selectedModelName}
-          </span>
-          <span className="stat-pill" title={`Active Brains: ${activeBrains.join(", ")}`}>
-            ⚡ MULTI-BRAIN: {activeBrains.length} ACTIVE
-          </span>
-          {pondering && <span className="pondering-badge">🧠 PONDERING...</span>}
-        </div>
+      {/* Top Status HUD — clean single row */}
+      <div className="chat-hud-header" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 10px", flexWrap: "nowrap" }}>
+        <LogoIcon size={18} />
+        <span className="pulse-dot" />
+        <span className="hud-label" style={{ fontSize: 11, whiteSpace: "nowrap" }}>U.L.T.R.O.N. v46</span>
+        <span className="stat-pill" style={{ fontSize: 10, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          🧠 {selectedModelName}
+        </span>
+        <span className="stat-pill" style={{ fontSize: 10, whiteSpace: "nowrap" }}>
+          ⚡ {activeBrains.length} BRAIN{activeBrains.length !== 1 ? "S" : ""}
+        </span>
+        {pondering && <span className="pondering-badge" style={{ fontSize: 10 }}>🧠 THINKING...</span>}
+      </div>
 
-        <div className="hud-stats">
-          <button
-            type="button"
-            onClick={() => setWakeWordActive(!wakeWordActive)}
-            className="collapse-btn"
-            style={{
-              borderColor: wakeWordActive ? "#00ff66" : "#888",
-              color: wakeWordActive ? "#00ff66" : "#888",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-            title="Always-Active 'Ultron' Wake Word Toggle"
-          >
-            <VoiceIcon size={14} active={wakeWordActive} />
-            {wakeWordActive ? "WAKE WORD: ON" : "WAKE WORD: OFF"}
-          </button>
-          <button
-            type="button"
-            onClick={onToggleGestures}
-            className="collapse-btn"
-            style={{
-              borderColor: cameraState === "gesture" ? "#00ff66" : "#888",
-              color: cameraState === "gesture" ? "#00ff66" : "#888",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-            title="Hand & Head Gesture Tracking Toggle"
-          >
-            <EyeIcon size={14} color={cameraState === "gesture" ? "#00ff66" : "#888"} />
-            {cameraState === "gesture" ? "GESTURES: ACTIVE" : "GESTURES: OFF"}
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenBenchmark}
-            className="collapse-btn"
-            style={{ borderColor: "#ffcc00", color: "#ffcc00", fontWeight: "bold" }}
-            title="Run U.L.T.R.O.N. Hardware & Bionic Performance Benchmark"
-          >
-            ⚡ BENCHMARK
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              const profiles: VoiceProfile[] = ["jarvis", "friday", "edith"];
-              const next = profiles[(profiles.indexOf(voiceProfile) + 1) % profiles.length];
-              setVoiceProfile(next);
-              voiceEngine?.setProfile(next);
-              voiceEngine?.speak(`Voice persona changed to ${next.toUpperCase()}.`);
-            }}
-            className="collapse-btn"
-            style={{
-              borderColor: "#00e5ff",
-              color: "#00e5ff",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-            title="Cycle AI Voice Persona (Jarvis / Friday / Edith)"
-          >
-            <VoiceIcon size={14} color="#00e5ff" />
-            VOICE: {voiceProfile.toUpperCase()}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSpeakOnTyping(!speakOnTyping)}
-            className="collapse-btn"
-            style={{
-              borderColor: speakOnTyping ? "#00ff66" : "#888",
-              color: speakOnTyping ? "#00ff66" : "#888",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-            title="Toggle whether Ultron speaks aloud when you type in the text prompt box"
-          >
-            <VoiceIcon size={14} active={speakOnTyping} />
-            {speakOnTyping ? "AUTO-SPEAK TYPED: ON" : "AUTO-SPEAK TYPED: OFF"}
-          </button>
-
-          {dedupSavedTokens > 0 && (
-            <span className="stat-pill" title="Tokens saved by SQZ deduplication">
-              ⚡ SQZ SAVED: {dedupSavedTokens}
-            </span>
-          )}
-
-          <button type="button" onClick={() => setIsCollapsed(true)} className="collapse-btn" title="Minimize Panel">
-            🗕 MINIMIZE
-          </button>
-        </div>
+      {/* Compact Controls Strip */}
+      <div style={{ display: "flex", alignItems: "center", gap: "5px", padding: "4px 10px", background: "rgba(0,0,0,0.35)", borderBottom: "1px solid rgba(255,255,255,0.06)", flexWrap: "wrap" }}>
+        <button type="button" onClick={() => setWakeWordActive(!wakeWordActive)} className="collapse-btn"
+          style={{ borderColor: wakeWordActive ? "#00ff66" : "#666", color: wakeWordActive ? "#00ff66" : "#666", fontSize: 10, padding: "2px 8px", display: "flex", alignItems: "center", gap: 3 }}
+          title="Always-Active 'Ultron' Wake Word Toggle">
+          <VoiceIcon size={11} active={wakeWordActive} />{wakeWordActive ? "WAKE WORD: ON" : "WAKE WORD: OFF"}
+        </button>
+        <button type="button" onClick={onToggleGestures} className="collapse-btn"
+          style={{ borderColor: cameraState === "gesture" ? "#00ff66" : "#666", color: cameraState === "gesture" ? "#00ff66" : "#666", fontSize: 10, padding: "2px 8px", display: "flex", alignItems: "center", gap: 3 }}
+          title="Hand Gesture Tracking Toggle">
+          <EyeIcon size={11} color={cameraState === "gesture" ? "#00ff66" : "#666"} />{cameraState === "gesture" ? "GESTURES: ON" : "GESTURES: OFF"}
+        </button>
+        <button type="button" onClick={() => { const profiles: VoiceProfile[] = ["jarvis", "friday", "edith"]; const next = profiles[(profiles.indexOf(voiceProfile) + 1) % profiles.length]; setVoiceProfile(next); voiceEngine?.setProfile(next); }} className="collapse-btn"
+          style={{ borderColor: "#00e5ff", color: "#00e5ff", fontSize: 10, padding: "2px 8px", display: "flex", alignItems: "center", gap: 3 }} title="Cycle Voice Profile">
+          <VoiceIcon size={11} color="#00e5ff" />VOICE: {voiceProfile.toUpperCase()}
+        </button>
+        <button type="button" onClick={() => setSpeakOnTyping(!speakOnTyping)} className="collapse-btn"
+          style={{ borderColor: speakOnTyping ? "#00ff66" : "#666", color: speakOnTyping ? "#00ff66" : "#666", fontSize: 10, padding: "2px 8px" }} title="Auto-speak when typing">
+          {speakOnTyping ? "AUTO-SPEAK: ON" : "AUTO-SPEAK: OFF"}
+        </button>
+        <button type="button" onClick={onOpenBenchmark} className="collapse-btn"
+          style={{ borderColor: "#ffcc00", color: "#ffcc00", fontSize: 10, padding: "2px 8px" }} title="Run Benchmark">⚡ BENCH</button>
+        {dedupSavedTokens > 0 && <span className="stat-pill" style={{ fontSize: 10 }}>⚡ SQZ: {dedupSavedTokens}</span>}
+        <div style={{ flex: 1 }} />
+        <button type="button" onClick={() => setIsCollapsed(true)} className="collapse-btn" style={{ fontSize: 10, padding: "2px 8px", borderColor: "#555", color: "#777" }}>🗕 MIN</button>
       </div>
 
       {/* Tabs Navigation */}
@@ -730,7 +660,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
           {/* Bottom App Version Indicator */}
           <div className="chat-app-footer-version" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 12px 6px", fontSize: "10px", color: "#888", fontFamily: "'JetBrains Mono', monospace", borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(5, 5, 8, 0.7)" }}>
             <span style={{ cursor: "pointer", textDecoration: "underline", opacity: 0.7 }} onClick={() => setIsSettingsOpen(true)} title="Open Settings to configure AI engines">⚙ CONFIG AI ENGINE</span>
-            <span style={{ color: "#e0e0e0", fontWeight: "bold", background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(200, 200, 200, 0.3)", padding: "1px 8px", borderRadius: "10px", letterSpacing: "0.5px" }}>v45</span>
+            <span style={{ color: "#e0e0e0", fontWeight: "bold", background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(200, 200, 200, 0.3)", padding: "1px 8px", borderRadius: "10px", letterSpacing: "0.5px" }}>v46</span>
           </div>
         </>
       )}

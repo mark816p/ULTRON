@@ -147,7 +147,13 @@ export class AiRouter {
           failoverLog.push(msg);
         }
       }
-      throw new Error(`All active ticked brains [${options.activeBrains.join(", ")}] failed or are unreachable. Failover log: ${failoverLog.join(" -> ")}`);
+      // All brains failed — produce a clean, short error message
+      const cleanLog = failoverLog.map(s => {
+        // Strip the giant Windows PATH error spam — keep first sentence only
+        const firstLine = s.split("\n")[0].replace(/\s{2,}/g, " ").slice(0, 120);
+        return firstLine;
+      });
+      throw new Error(`AI routing failed: All active ticked brains [${options.activeBrains.join(", ")}] failed or are unreachable. Failover log: ${cleanLog.join(" -> ")}`);
     }
 
     // 1. If preferred is auto, antigravity, or api-key, try Online Engine first

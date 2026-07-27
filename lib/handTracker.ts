@@ -41,9 +41,9 @@ const MAX_SMOOTHING = 0.88;
 
 // Minimum intentional zoom delta — user must spread/pinch hands at least this much
 // before zoom is triggered. Prevents accidental zoom from small positional variance.
-const ZOOM_MIN_DELTA_RATIO = 0.04; // 4% change from baseline
+const ZOOM_MIN_DELTA_RATIO = 0.025; // 2.5% change from baseline is enough to signal zoom intent
 // Minimum frames the zoom gesture must sustain before activating
-const ZOOM_SUSTAIN_FRAMES = 4;
+const ZOOM_SUSTAIN_FRAMES = 2;
 // Frames the active pinch state is latched after the thumb leaves view
 const PINCH_LATCH_FRAMES = 18;
 
@@ -109,6 +109,7 @@ export class HandTracker {
   private prevZoomDist: number | null = null;
   private zoomBaselineDist: number | null = null;
   private zoomSustainFrames = 0;
+  private zoomBaselineLatch = 0; // frames to hold baseline before resetting
   private lastStatus: TrackerStatus = { hands: 0, mode: "idle", confidence: 0 };
 
   // Kinetic rotational inertia (angular momentum)
@@ -172,6 +173,7 @@ export class HandTracker {
     this.prevZoomDist = null;
     this.zoomBaselineDist = null;
     this.zoomSustainFrames = 0;
+    this.zoomBaselineLatch = 0;
     this.vx = 0;
     this.vy = 0;
     const ctx = this.overlay.getContext("2d");
@@ -397,6 +399,7 @@ export class HandTracker {
           pinchedGrabs[0].y - pinchedGrabs[1].y,
         );
         this.zoomSustainFrames = 0;
+        this.zoomBaselineLatch = 8; // hold baseline for 8 frames after hands drop
         targetMode = "spin"; // still spin until intent is confirmed
       } else {
         const currentDist = Math.hypot(
@@ -407,6 +410,7 @@ export class HandTracker {
         if (deltaRatio > ZOOM_MIN_DELTA_RATIO) {
           this.zoomSustainFrames++;
         }
+        this.zoomBaselineLatch = 8; // refresh latch while both hands are active
         // Only lock into zoom after sustaining the intent for enough frames
         if (this.zoomSustainFrames >= ZOOM_SUSTAIN_FRAMES) {
           targetMode = "zoom";
@@ -415,9 +419,14 @@ export class HandTracker {
         }
       }
     } else {
-      // Single or no pinching hand — reset zoom state
-      this.zoomBaselineDist = null;
-      this.zoomSustainFrames = 0;
+      // Single or no pinching hand — reset zoom state only after latch expires
+      if (this.zoomBaselineLatch > 0) {
+        this.zoomBaselineLatch--;
+        // Keep baseline alive so user can bring second hand back quickly
+      } else {
+        this.zoomBaselineDist = null;
+        this.zoomSustainFrames = 0;
+      }
 
       if (activePinchHands === 1) {
         const pinchingHandMode = Array.from(this.handStates.values()).find(
@@ -507,7 +516,8 @@ export class HandTracker {
           pinchedGrabs[0].y - pinchedGrabs[1].y,
         );
         if (this.prevZoomDist && d > 1e-4) {
-          const factor = Math.min(1.18, Math.max(0.85, this.prevZoomDist / d));
+          // spread hands = zoom in (factor < 1 means camera moves closer)
+          const factor = Math.min(1.15, Math.max(0.87, this.prevZoomDist / d));
           this.callbacks.onZoom(factor);
         }
         this.prevZoomDist = d;
