@@ -1,6 +1,6 @@
 {
   "name": "ultron-orb-ui",
-  "version": "44.0.0",
+  "version": "45.0.0",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -29,7 +29,7 @@
     ],
     "artifactName": "ULTRON-Setup.exe",
     "extraMetadata": {
-      "version": "44.0.0"
+      "version": "45.0.0"
     },
     "files": [
       ".next/**/*",
@@ -67,7 +67,7 @@
     "win": {
       "target": [
         {
-          "target": "portable",
+          "target": "nsis",
           "arch": ["x64"]
         }
       ],

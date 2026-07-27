@@ -29,7 +29,7 @@ const PINKY_MCP = 17;
 const PINKY_PIP = 18;
 const PINKY_TIP = 20;
 
-// High-precision 3D pinch thresholds relative to palm scale
+// Pinch thresholds relative to palm scale
 const PINCH_ON = 0.22;
 const PINCH_OFF = 0.28;
 
@@ -38,6 +38,14 @@ const ROTATE_SPEED = 9.0;
 // Base smoothing factor for grab-point tracking
 const BASE_SMOOTHING = 0.25;
 const MAX_SMOOTHING = 0.88;
+
+// Minimum intentional zoom delta — user must spread/pinch hands at least this much
+// before zoom is triggered. Prevents accidental zoom from small positional variance.
+const ZOOM_MIN_DELTA_RATIO = 0.04; // 4% change from baseline
+// Minimum frames the zoom gesture must sustain before activating
+const ZOOM_SUSTAIN_FRAMES = 4;
+// Frames the active pinch state is latched after the thumb leaves view
+const PINCH_LATCH_FRAMES = 18;
 
 export type GestureMode =
   | "idle"
@@ -77,6 +85,10 @@ interface HandState {
   grab: Point; // smoothed pinch midpoint, mirrored
   wristX: number;
   confidence: number;
+  /** Frames since the thumb was last visible and confirmed pinched */
+  pinchLatchFrames: number;
+  /** True while the pinch latch is active (thumb gone but recently pinching) */
+  pinchLatched: boolean;
 }
 
 export class HandTracker {
@@ -95,6 +107,8 @@ export class HandTracker {
   private candidateFrames = 0;
   private prevSpinGrab: Point | null = null;
   private prevZoomDist: number | null = null;
+  private zoomBaselineDist: number | null = null;
+  private zoomSustainFrames = 0;
   private lastStatus: TrackerStatus = { hands: 0, mode: "idle", confidence: 0 };
 
   // Kinetic rotational inertia (angular momentum)
@@ -156,6 +170,8 @@ export class HandTracker {
     this.candidateFrames = 0;
     this.prevSpinGrab = null;
     this.prevZoomDist = null;
+    this.zoomBaselineDist = null;
+    this.zoomSustainFrames = 0;
     this.vx = 0;
     this.vy = 0;
     const ctx = this.overlay.getContext("2d");
@@ -228,6 +244,14 @@ export class HandTracker {
       const palmScale = dist3d(lm[WRIST], lm[MIDDLE_MCP]);
       if (palmScale < 1e-6) return;
 
+      // ── THUMB VISIBILITY CHECK ────────────────────────────────────────────
+      // MediaPipe sets landmark visibility/presence < 0.5 when occluded.
+      // We treat the thumb as "in view" if either tip visibility is fine OR
+      // if the hand state is currently latched (was recently pinching).
+      const thumbVisible =
+        (lm[THUMB_TIP].visibility ?? 1) > 0.35 &&
+        (lm[INDEX_TIP].visibility ?? 1) > 0.35;
+
       const pinchDist = dist3d(lm[THUMB_TIP], lm[INDEX_TIP]);
       const pinchRatio = pinchDist / palmScale;
 
@@ -247,15 +271,62 @@ export class HandTracker {
 
       let state = this.handStates.get(label);
       if (!state) {
-        state = { mode: "idle", grab: raw, wristX: 1 - lm[WRIST].x, confidence: 100 };
+        state = {
+          mode: "idle",
+          grab: raw,
+          wristX: 1 - lm[WRIST].x,
+          confidence: 100,
+          pinchLatchFrames: 0,
+          pinchLatched: false,
+        };
         this.handStates.set(label, state);
       }
 
-      // Determine raw gesture mode for this hand
+      // ── PINCH LATCH LOGIC ─────────────────────────────────────────────────
+      // If the hand was pinching and the thumb goes out of frame, continue
+      // treating it as pinched for PINCH_LATCH_FRAMES frames. This prevents
+      // rotation from stopping when the thumb briefly exits the camera edge.
+      let effectivePinched = false;
+      if (thumbVisible) {
+        if (pinchRatio < PINCH_ON) {
+          effectivePinched = true;
+          state.pinchLatchFrames = PINCH_LATCH_FRAMES;
+          state.pinchLatched = true;
+        } else if (pinchRatio < PINCH_OFF && state.pinchLatched) {
+          // Hysteresis — still within latch range
+          effectivePinched = true;
+        } else {
+          // Fully released
+          if (state.pinchLatchFrames > 0) {
+            state.pinchLatchFrames--;
+            effectivePinched = state.pinchLatchFrames > 0;
+          } else {
+            state.pinchLatched = false;
+            effectivePinched = false;
+          }
+        }
+      } else {
+        // Thumb not visible — coast on latch
+        if (state.pinchLatchFrames > 0) {
+          state.pinchLatchFrames--;
+          effectivePinched = true; // keep spinning until latch expires
+        } else {
+          state.pinchLatched = false;
+          effectivePinched = false;
+        }
+      }
+
+      // ── FIST DETECTION ───────────────────────────────────────────────────
+      // Fist = all fingers closed (extCount 0 or 1, not pinching with thumb out)
+      const isFist = extCount === 0 || (extCount <= 1 && !indexExt && !thumbExt);
+
+      // ── DETERMINE HAND MODE ───────────────────────────────────────────────
       let handMode: GestureMode = "idle";
-      if (pinchRatio < PINCH_ON) {
+      if (effectivePinched) {
+        // Pinch (index+thumb) OR the hand was latched
         handMode = "spin";
-      } else if (extCount === 0 || (extCount <= 1 && pinchRatio < PINCH_OFF && !indexExt)) {
+      } else if (isFist) {
+        // Closed fist — also allows spinning
         handMode = "fist";
       } else if (extCount >= 4) {
         handMode = "open_palm";
@@ -264,7 +335,6 @@ export class HandTracker {
       } else if (indexExt && middleExt && !ringExt && !pinkyExt) {
         handMode = "victory";
       } else if (thumbExt && !indexExt && !middleExt && !ringExt && !pinkyExt) {
-        // Check vertical orientation of thumb relative to wrist
         const thumbUp = lm[THUMB_TIP].y < lm[WRIST].y - 0.08;
         const thumbDown = lm[THUMB_TIP].y > lm[WRIST].y + 0.08;
         if (thumbUp) handMode = "thumbs_up";
@@ -274,16 +344,22 @@ export class HandTracker {
       state.mode = handMode;
       detectedModes.push(handMode);
 
-      // Calculate movement delta for adaptive One-Euro style smoothing
-      const speed = Math.hypot(raw.x - state.grab.x, raw.y - state.grab.y);
+      // Adaptive One-Euro style smoothing
+      // Use wrist-center for fist mode (more stable), pinch midpoint for spin
+      let trackPoint: Point = raw;
+      if (isFist || handMode === "fist") {
+        trackPoint = { x: 1 - lm[WRIST].x, y: lm[WRIST].y };
+      }
+
+      const speed = Math.hypot(trackPoint.x - state.grab.x, trackPoint.y - state.grab.y);
       const alpha = Math.min(MAX_SMOOTHING, Math.max(BASE_SMOOTHING, speed * 28));
 
       const prevWristX = state.wristX;
       state.wristX = 1 - lm[WRIST].x;
 
       state.grab = {
-        x: state.grab.x + (raw.x - state.grab.x) * alpha,
-        y: state.grab.y + (raw.y - state.grab.y) * alpha,
+        x: state.grab.x + (trackPoint.x - state.grab.x) * alpha,
+        y: state.grab.y + (trackPoint.y - state.grab.y) * alpha,
       };
 
       if (handMode === "spin" || handMode === "fist") {
@@ -294,28 +370,64 @@ export class HandTracker {
     });
 
     for (const key of this.handStates.keys()) {
-      if (!seen.has(key)) this.handStates.delete(key);
+      if (!seen.has(key)) {
+        // Hand left view — decay latch
+        const s = this.handStates.get(key)!;
+        if (s.pinchLatchFrames > 0) {
+          s.pinchLatchFrames--;
+        } else {
+          this.handStates.delete(key);
+        }
+      }
     }
 
-    // Determine global gesture mode
-    // CRITICAL FIX: Zoom only triggers when BOTH hands are actively pinching (spin/fist mode).
-    // A single pinching hand + any idle/open second hand must NOT trigger zoom.
+    // ── GLOBAL GESTURE RESOLUTION ─────────────────────────────────────────
+    // ZOOM requires BOTH hands actively pinching/fisting AND the distance
+    // delta must exceed a spatial depth threshold (ZOOM_MIN_DELTA_RATIO).
+    // A single pinching hand + idle/open second hand → spin, never zoom.
     const activePinchHands = pinchedGrabs.length;
-    const totalHands = landmarks.length;
 
     let targetMode: GestureMode;
     if (activePinchHands >= 2) {
-      // Both hands are pinching — true zoom gesture
-      targetMode = "zoom";
-    } else if (activePinchHands === 1) {
-      // Only one hand is pinching — spin or fist, regardless of how many hands are in frame
-      const pinchingHandMode = Array.from(this.handStates.values()).find(
-        (s) => s.mode === "spin" || s.mode === "fist"
-      )?.mode;
-      targetMode = pinchingHandMode === "fist" ? "fist" : "spin";
+      // Both hands are active — evaluate zoom intent via spatial depth
+      if (this.zoomBaselineDist === null) {
+        // First frame of dual-pinch — record baseline, don't zoom yet
+        this.zoomBaselineDist = Math.hypot(
+          pinchedGrabs[0].x - pinchedGrabs[1].x,
+          pinchedGrabs[0].y - pinchedGrabs[1].y,
+        );
+        this.zoomSustainFrames = 0;
+        targetMode = "spin"; // still spin until intent is confirmed
+      } else {
+        const currentDist = Math.hypot(
+          pinchedGrabs[0].x - pinchedGrabs[1].x,
+          pinchedGrabs[0].y - pinchedGrabs[1].y,
+        );
+        const deltaRatio = Math.abs(currentDist - this.zoomBaselineDist) / (this.zoomBaselineDist + 1e-6);
+        if (deltaRatio > ZOOM_MIN_DELTA_RATIO) {
+          this.zoomSustainFrames++;
+        }
+        // Only lock into zoom after sustaining the intent for enough frames
+        if (this.zoomSustainFrames >= ZOOM_SUSTAIN_FRAMES) {
+          targetMode = "zoom";
+        } else {
+          targetMode = "spin";
+        }
+      }
     } else {
-      // No pinching hands
-      targetMode = detectedModes[0] || "idle";
+      // Single or no pinching hand — reset zoom state
+      this.zoomBaselineDist = null;
+      this.zoomSustainFrames = 0;
+
+      if (activePinchHands === 1) {
+        const pinchingHandMode = Array.from(this.handStates.values()).find(
+          (s) => s.mode === "spin" || s.mode === "fist"
+        )?.mode;
+        targetMode = pinchingHandMode === "fist" ? "fist" : "spin";
+      } else {
+        // No pinching hands — idle / open_palm / swipe
+        targetMode = detectedModes[0] || "idle";
+      }
     }
 
     // Check fast open palm swipe
@@ -375,10 +487,12 @@ export class HandTracker {
       if (this.prevSpinGrab && grab) {
         const dx = grab.x - this.prevSpinGrab.x;
         const dy = grab.y - this.prevSpinGrab.y;
-        // Deadzone thresholding
-        if (Math.hypot(dx, dy) > 0.0018) {
-          const rotX = dx * ROTATE_SPEED * (mode === "fist" ? 1.25 : 1.0);
-          const rotY = dy * ROTATE_SPEED * (mode === "fist" ? 1.25 : 1.0);
+        // Deadzone thresholding — fist is slightly more sensitive
+        const deadzone = mode === "fist" ? 0.0014 : 0.0018;
+        if (Math.hypot(dx, dy) > deadzone) {
+          const speedScale = mode === "fist" ? 1.25 : 1.0;
+          const rotX = dx * ROTATE_SPEED * speedScale;
+          const rotY = dy * ROTATE_SPEED * speedScale;
           this.callbacks.onRotate(rotX, rotY);
           // Store angular momentum for smooth inertial coasting upon release
           this.vx = 0.72 * this.vx + 0.28 * rotX;
@@ -461,12 +575,10 @@ export class HandTracker {
         ctx.save();
         ctx.beginPath();
         ctx.arc(x, y, isTip ? 5 : isKnuckle ? 3 : 2, 0, Math.PI * 2);
-        // Fingertips: bright white-cyan; knuckles: cyan; other joints: dim
         ctx.fillStyle = isTip ? "#ffffff" : isKnuckle ? "#00f0ff" : "rgba(0, 240, 255, 0.6)";
         ctx.shadowColor = isTip ? "#ffffff" : "#00f0ff";
         ctx.shadowBlur = isTip ? 14 : isKnuckle ? 6 : 3;
         ctx.fill();
-        // White ring outline on fingertips
         if (isTip) {
           ctx.strokeStyle = "rgba(0, 240, 255, 0.8)";
           ctx.lineWidth = 1;

@@ -442,7 +442,7 @@ export class AiRouter {
       : messages;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for local models
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout for local models
 
     try {
       const response = await fetch(url, {
