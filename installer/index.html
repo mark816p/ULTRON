@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>U.L.T.R.O.N. Installer</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background: #08080e;
+      color: #e8e8f0;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+      -webkit-app-region: no-drag;
+    }
+
+    /* Title bar */
+    .titlebar {
+      height: 40px;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      -webkit-app-region: drag;
+      gap: 10px;
+    }
+    .titlebar-logo {
+      width: 18px; height: 18px;
+      background: #ffffff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: #000; font-weight: 900;
+      flex-shrink: 0;
+    }
+    .titlebar-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      color: #aaa;
+      text-transform: uppercase;
+      flex: 1;
+    }
+    .titlebar-close {
+      -webkit-app-region: no-drag;
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      background: transparent;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .titlebar-close:hover { background: rgba(255,60,60,0.2); color: #ff4444; }
+
+    /* Main content */
+    .content {
+      padding: 28px 32px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 10px 0 4px;
+    }
+    .hero-orb {
+      width: 72px; height: 72px;
+      margin: 0 auto 16px;
+      position: relative;
+    }
+    .orb-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.15);
+      animation: spin linear infinite;
+    }
+    .orb-ring:nth-child(1) { inset: 0; animation-duration: 8s; }
+    .orb-ring:nth-child(2) { inset: 8px; border-color: rgba(255,255,255,0.25); animation-duration: 5s; animation-direction: reverse; }
+    .orb-core {
+      position: absolute;
+      inset: 20px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffffff 0%, rgba(200,200,255,0.6) 50%, transparent 100%);
+      box-shadow: 0 0 20px rgba(255,255,255,0.4), 0 0 40px rgba(200,200,255,0.2);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity: 0.9; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+
+    .hero h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+    .hero p {
+      font-size: 12px;
+      color: #666;
+      letter-spacing: 0.08em;
+    }
+
+    /* Status pill */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      color: #888;
+      letter-spacing: 0.08em;
+      margin-top: 8px;
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #00ff88;
+      box-shadow: 0 0 6px #00ff88;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Version selector */
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      color: #555;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .version-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 180px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .version-list::-webkit-scrollbar { width: 4px; }
+    .version-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+    .version-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.03);
+      cursor: pointer;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .version-item:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); }
+    .version-item.selected {
+      border-color: rgba(255,255,255,0.5);
+      background: rgba(255,255,255,0.08);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
+    }
+    .version-radio {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.3);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .version-item.selected .version-radio {
+      border-color: #ffffff;
+      background: rgba(255,255,255,0.1);
+    }
+    .version-radio-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #ffffff;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .version-item.selected .version-radio-dot { opacity: 1; }
+    .version-info { flex: 1; }
+    .version-tag {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e8e8e8;
+    }
+    .version-sub {
+      font-size: 11px;
+      color: #555;
+      margin-top: 1px;
+    }
+    .version-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.1);
+      color: #e0e0e0;
+      letter-spacing: 0.05em;
+    }
+    .version-badge.latest {
+      background: rgba(0,255,136,0.12);
+      color: #00ff88;
+      border: 1px solid rgba(0,255,136,0.3);
+    }
+
+    .loading-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px; color: #555; font-size: 12px;
+    }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.1);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Progress bar */
+    .progress-section { display: none; }
+    .progress-section.visible { display: block; }
+    .progress-bar-track {
+      height: 4px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: #ffffff;
+      border-radius: 2px;
+      transition: width 0.2s;
+      width: 0%;
+    }
+    .progress-label {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    /* Install button */
+    .install-btn {
+      width: 100%;
+      padding: 14px;
+      background: #ffffff;
+      color: #000000;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .install-btn:hover:not(:disabled) {
+      background: #e8e8e8;
+      box-shadow: 0 0 24px rgba(255,255,255,0.2);
+      transform: translateY(-1px);
+    }
+    .install-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Footer */
+    .footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 4px;
+    }
+    .footer-ver { font-size: 10px; color: #333; letter-spacing: 0.1em; }
+    .footer-link {
+      font-size: 10px; color: #444;
+      cursor: pointer; letter-spacing: 0.08em;
+      text-decoration: none; transition: color 0.15s;
+    }
+    .footer-link:hover { color: #aaa; }
+
+    /* Error */
+    .error-msg {
+      font-size: 11px;
+      color: #ff6666;
+      text-align: center;
+      padding: 6px;
+      background: rgba(255,60,60,0.08);
+      border-radius: 6px;
+      border: 1px solid rgba(255,60,60,0.2);
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+  </style>
+</head>
+<body>
+  <!-- Title bar -->
+  <div class="titlebar">
+    <div class="titlebar-logo">U</div>
+    <span class="titlebar-title">U.L.T.R.O.N. Installer</span>
+    <button class="titlebar-close" onclick="closeApp()">&#x2715;</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-orb">
+        <div class="orb-ring"></div>
+        <div class="orb-ring"></div>
+        <div class="orb-core"></div>
+      </div>
+      <h1>U.L.T.R.O.N.</h1>
+      <p>AUTONOMOUS NEURAL DESKTOP COMPANION</p>
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        INSTALLER v44 &nbsp;&middot;&nbsp; FETCHING RELEASES
+      </div>
+    </div>
+
+    <!-- Version picker -->
+    <div>
+      <div class="section-label">Select Version</div>
+      <div class="version-list" id="versionList">
+        <div class="loading-row">
+          <div class="spinner"></div>
+          Connecting to GitHub...
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-section" id="progressSection">
+      <div class="progress-label" id="progressLabel">Downloading...</div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div class="error-msg" id="errorMsg"></div>
+
+    <!-- Install button -->
+    <button class="install-btn" id="installBtn" onclick="install()" disabled>
+      ⚡ INSTALL SELECTED VERSION
+    </button>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span class="footer-ver">v44.0.0</span>
+      <a class="footer-link" onclick="openGitHub()">View all releases on GitHub ↗</a>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    let releases = [];
+    let selectedTag = null;
+
+    function closeApp() { ipcRenderer.send('close-app'); }
+    function openGitHub() { ipcRenderer.send('open-github'); }
+
+    function selectVersion(tag) {
+      selectedTag = tag;
+      document.querySelectorAll('.version-item').forEach(el => {
+        el.classList.toggle('selected', el.dataset.tag === tag);
+      });
+      document.getElementById('installBtn').disabled = false;
+    }
+
+    async function loadReleases() {
+      try {
+        releases = await ipcRenderer.invoke('get-releases');
+        renderVersionList();
+      } catch (e) {
+        releases = [{ tag: 'latest', name: 'Latest (Auto-Detect)' }];
+        renderVersionList();
+      }
+    }
+
+    function renderVersionList() {
+      const list = document.getElementById('versionList');
+      list.innerHTML = '';
+
+      // Always show "Latest" first
+      const latestEntry = { tag: 'latest', name: releases[0]?.name || 'Latest Release' };
+      const allEntries = [latestEntry, ...releases.filter(r => r.tag !== 'latest')];
+
+      allEntries.forEach((rel, i) => {
+        const item = document.createElement('div');
+        item.className = 'version-item' + (i === 0 ? ' selected' : '');
+        item.dataset.tag = i === 0 ? 'latest' : rel.tag;
+        item.onclick = () => selectVersion(item.dataset.tag);
+        item.innerHTML = `
+          <div class="version-radio"><div class="version-radio-dot"></div></div>
+          <div class="version-info">
+            <div class="version-tag">${i === 0 ? 'Latest — Auto-Detect' : rel.tag}</div>
+            <div class="version-sub">${i === 0 ? 'Always downloads the newest release' : (rel.name || '')}</div>
+          </div>
+          ${i === 0 ? '<span class="version-badge latest">RECOMMENDED</span>' : ''}
+        `;
+        list.appendChild(item);
+      });
+
+      selectedTag = 'latest';
+      document.getElementById('installBtn').disabled = false;
+
+      // Update status pill
+      document.querySelector('.status-pill').innerHTML =
+        '<span class="status-dot"></span> INSTALLER v44 &nbsp;&middot;&nbsp; ' +
+        releases.length + ' VERSION' + (releases.length !== 1 ? 'S' : '') + ' FOUND';
+    }
+
+    async function install() {
+      if (!selectedTag) return;
+      const btn = document.getElementById('installBtn');
+      const progress = document.getElementById('progressSection');
+      const label = document.getElementById('progressLabel');
+      const fill = document.getElementById('progressFill');
+      const err = document.getElementById('errorMsg');
+
+      btn.disabled = true;
+      btn.textContent = 'Downloading...';
+      progress.classList.add('visible');
+      err.classList.remove('visible');
+      label.textContent = `Downloading ${selectedTag === 'latest' ? 'latest release' : selectedTag}...`;
+
+      // Listen for progress updates
+      ipcRenderer.removeAllListeners('download-progress');
+      ipcRenderer.on('download-progress', (_, pct) => {
+        fill.style.width = pct + '%';
+        label.textContent = `Downloading... ${pct}%`;
+      });
+
+      try {
+        await ipcRenderer.invoke('download-and-install', selectedTag);
+        btn.textContent = '✓ Installer Launched';
+        label.textContent = 'Setup launched — follow the on-screen instructions.';
+        fill.style.width = '100%';
+        setTimeout(() => closeApp(), 3000);
+      } catch (e) {
+        err.textContent = '⚠ Download failed: ' + e.message + '. Check your internet connection or visit GitHub.';
+        err.classList.add('visible');
+        btn.disabled = false;
+        btn.textContent = '⚡ RETRY INSTALLATION';
+        progress.classList.remove('visible');
+      }
+    }
+
+    loadReleases();
+  </script>
+</body>
+</html>
