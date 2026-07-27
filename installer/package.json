@@ -1,6 +1,6 @@
 {
   "name": "ultron-bootstrapper",
-  "version": "43.0.0",
+  "version": "44.0.0",
   "description": "U.L.T.R.O.N. Universal Neural Client Bootstrapper",
   "main": "main.js",
   "private": true,
@@ -30,7 +30,7 @@
     }
   },
   "devDependencies": {
-    "electron": "^43.2.0",
+    "electron": "43.2.0",
     "electron-builder": "^26.15.3"
   }
 }

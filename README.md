@@ -3,7 +3,7 @@
 # 🔮 U.L.T.R.O.N.
 ### Autonomous Sentient Neural Orb & Context Engine
 
-[![Version](https://img.shields.io/badge/Version-v43.0.0-00f0ff?style=for-the-badge&logo=electron&logoColor=white)](https://github.com/mark816p/ULTRON)
+[![Version](https://img.shields.io/badge/Version-v44.0.0-00f0ff?style=for-the-badge&logo=electron&logoColor=white)](https://github.com/mark816p/ULTRON)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![Electron](https://img.shields.io/badge/Electron-Native-47848F?style=for-the-badge&logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Three.js](https://img.shields.io/badge/Three.js-WebGL-black?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org/)

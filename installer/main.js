@@ -38,7 +38,7 @@ ipcMain.handle('get-releases', async () => {
       hostname: 'api.github.com',
       path: '/repos/mark816p/ULTRON/releases',
       method: 'GET',
-      headers: { 'User-Agent': 'ULTRON-Installer/43.0.0' },
+      headers: { 'User-Agent': 'ULTRON-Installer/44.0.0' },
     };
     const req = https.request(options, (res) => {
       let data = '';
@@ -82,7 +82,7 @@ ipcMain.handle('download-and-install', async (event, tag) => {
     const follow = (redirectUrl, depth = 0) => {
       if (depth > 10) return reject(new Error('Too many redirects'));
       const mod = redirectUrl.startsWith('https') ? https : http;
-      mod.get(redirectUrl, { headers: { 'User-Agent': 'ULTRON-Installer/43.0.0' } }, (res) => {
+      mod.get(redirectUrl, { headers: { 'User-Agent': 'ULTRON-Installer/44.0.0' } }, (res) => {
         if (res.statusCode === 301 || res.statusCode === 302) {
           return follow(res.headers.location, depth + 1);
         }
