@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { OrbSceneApi } from "@/lib/orbScene";
 import { voiceEngine, VoiceProfile } from "@/lib/voiceEngine";
 import { LogoIcon, ChatIcon, TasksIcon, SystemIcon, VoiceIcon, SendIcon, EyeIcon } from "@/components/Icons";
+import SettingsModal from "@/components/SettingsModal";
 
 export interface Message {
   role: "user" | "assistant" | "system" | "tool";
@@ -56,7 +57,8 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
 
   // UI states
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState<"chat" | "tasks" | "system">("chat");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"chat" | "tasks">("chat");
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [sysInfo, setSysInfo] = useState<any>(null);
@@ -189,13 +191,13 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   }, []);
 
   useEffect(() => {
-    if (activeTab === "system" && !sysInfo) {
+    if (isSettingsOpen && !sysInfo) {
       fetch("/api/sysinfo")
         .then((res) => res.json())
         .then((data) => setSysInfo(data))
         .catch(() => {});
     }
-  }, [activeTab]);
+  }, [isSettingsOpen, sysInfo]);
 
   // Autonomous Pondering background loop (every 30s when idle)
   useEffect(() => {
@@ -517,7 +519,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         <div className="hud-title-box" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <LogoIcon size={20} />
           <span className="pulse-dot" />
-          <span className="hud-label">U.L.T.R.O.N. NEURAL LINK v42</span>
+          <span className="hud-label">U.L.T.R.O.N. NEURAL LINK v43</span>
           <span className="stat-pill">
             🧠 {selectedModelName}
           </span>
@@ -643,11 +645,11 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         </button>
         <button
           type="button"
-          className={`hud-tab-btn ${activeTab === "system" ? "active" : ""}`}
-          onClick={() => setActiveTab("system")}
+          className="hud-tab-btn"
+          onClick={() => setIsSettingsOpen(true)}
           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
         >
-          <SystemIcon size={14} color={activeTab === "system" ? "#00ff66" : "#aaa"} /> SYSTEM
+          <SystemIcon size={14} color="#00ff66" /> SETTINGS
         </button>
       </div>
 
@@ -727,8 +729,8 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
 
           {/* Bottom App Version Indicator */}
           <div className="chat-app-footer-version" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 12px 6px", fontSize: "10px", color: "#888", fontFamily: "'JetBrains Mono', monospace", borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(5, 5, 8, 0.7)" }}>
-            <span style={{ cursor: "pointer", textDecoration: "underline", opacity: 0.7 }} onClick={() => setActiveTab("system")} title="Go to System tab to configure AI engines">⚙ CONFIG AI ENGINE</span>
-            <span style={{ color: "#e0e0e0", fontWeight: "bold", background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(200, 200, 200, 0.3)", padding: "1px 8px", borderRadius: "10px", letterSpacing: "0.5px" }}>v42</span>
+            <span style={{ cursor: "pointer", textDecoration: "underline", opacity: 0.7 }} onClick={() => setIsSettingsOpen(true)} title="Open Settings to configure AI engines">⚙ CONFIG AI ENGINE</span>
+            <span style={{ color: "#e0e0e0", fontWeight: "bold", background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(200, 200, 200, 0.3)", padding: "1px 8px", borderRadius: "10px", letterSpacing: "0.5px" }}>v43</span>
           </div>
         </>
       )}
@@ -770,256 +772,40 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         </div>
       )}
 
-      {/* TAB 3: SYSTEM BENCHMARK & COGNITIVE ENGINE CONTROL */}
-      {activeTab === "system" && (
-        <div className="system-area">
-          <div className="sys-section">
-            <div className="sys-header">🌐 CHANGE AI MIND & DUO MODE AT ANY TIME</div>
-            <p className="sys-desc">
-              Configure your Duo Mode failover and API keys below. Changes take effect immediately without repeating onboarding.
-            </p>
-            <label style={{ fontSize: "11px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-              ⚡ ROUTING STRATEGY (DUO MODE):
-            </label>
-            <select
-              value={modelMode}
-              onChange={(e) => handleEngineChange(e.target.value as any)}
-              className="model-select-large"
-              style={{ marginBottom: "12px", border: "1px solid #00ff66" }}
-            >
-              <option value="auto">🔄 Auto Duo Mode (Try Online 1st ➔ Fallback to Local)</option>
-              <option value="antigravity">🌐 Strict Antigravity Free Bridge Only</option>
-              <option value="api-key">🔑 Strict Cloud API Key Only</option>
-              <option value="ollama">🦙 Strict Ollama Local Only</option>
-              <option value="lm-studio">🖥️ Strict LM Studio Bionic Only</option>
-            </select>
-
-            {/* SECTION 1: ONLINE ENGINE */}
-            <div style={{ background: "rgba(0, 255, 102, 0.05)", border: "1px solid rgba(0, 255, 102, 0.3)", padding: "10px", borderRadius: "6px", marginBottom: "12px" }}>
-              <div style={{ fontSize: "11px", color: "#00ff66", fontWeight: "bold", marginBottom: "8px" }}>
-                1️⃣ ONLINE ENGINE (CLOUD INFERENCE)
-              </div>
-              <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => handleOnlineModeChange("antigravity")}
-                  className={`hud-tab-btn ${onlineMode === "antigravity" && modelMode !== "api-key" ? "active" : ""}`}
-                  style={{ flex: 1, padding: "6px", fontSize: "10px", fontWeight: "bold" }}
-                >
-                  🌐 Antigravity (Free)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleOnlineModeChange("api-key");
-                    if (modelMode === "antigravity") handleEngineChange("api-key");
-                  }}
-                  className={`hud-tab-btn ${onlineMode === "api-key" || modelMode === "api-key" ? "active" : ""}`}
-                  style={{ flex: 1, padding: "6px", fontSize: "10px", fontWeight: "bold" }}
-                >
-                  🔑 API Key Provider
-                </button>
-              </div>
-
-              {(onlineMode === "api-key" || modelMode === "api-key") ? (
-                <>
-                  <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "3px" }}>
-                    CLOUD PROVIDER:
-                  </label>
-                  <select
-                    value={apiProvider}
-                    onChange={(e) => handleApiProviderChange(e.target.value)}
-                    className="model-select-large"
-                    style={{ marginBottom: "8px", fontSize: "12px" }}
-                  >
-                    <option value="openrouter">OpenRouter (Multi-Model Router)</option>
-                    <option value="gemini">Google Gemini Native API</option>
-                    <option value="openai">OpenAI Official API</option>
-                    <option value="anthropic">Anthropic Claude Official API</option>
-                    <option value="deepseek">DeepSeek Native API</option>
-                    <option value="groq">Groq Ultra-Fast LPU API</option>
-                    <option value="mistral">Mistral AI Official API</option>
-                    <option value="xai">xAI Grok API</option>
-                    <option value="custom">Custom OpenAI-Compatible Endpoint</option>
-                  </select>
-
-                  <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "3px" }}>
-                    API KEY ({apiProvider.toUpperCase()}):
-                  </label>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => handleApiKeyChange(e.target.value)}
-                    placeholder={`Paste your ${apiProvider.toUpperCase()} API Key...`}
-                    className="chat-input"
-                    style={{ marginBottom: "8px", width: "100%", padding: "6px", fontSize: "12px" }}
-                  />
-
-                  {apiProvider === "custom" && (
-                    <>
-                      <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "3px" }}>
-                        CUSTOM BASE URL:
-                      </label>
-                      <input
-                        type="text"
-                        value={apiBaseUrl}
-                        onChange={(e) => handleApiBaseUrlChange(e.target.value)}
-                        placeholder="https://your-api.com/v1/chat/completions"
-                        className="chat-input"
-                        style={{ marginBottom: "8px", width: "100%", padding: "6px", fontSize: "12px" }}
-                      />
-                    </>
-                  )}
-
-                  <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "3px" }}>
-                    MODEL NAME:
-                  </label>
-                  <select
-                    value={selectedModelName}
-                    onChange={(e) => handleModelChange(e.target.value)}
-                    className="model-select-large"
-                    style={{ marginBottom: "4px", fontSize: "12px" }}
-                  >
-                    {(
-                      apiProvider === "openrouter" ? (modelsData?.openRouterModels || ["openrouter/auto", "anthropic/claude-3.7-sonnet", "openai/gpt-4o"]) :
-                      apiProvider === "openai" ? (modelsData?.openAiModels || ["gpt-4o", "gpt-4o-mini", "o1", "o3-mini"]) :
-                      apiProvider === "gemini" ? (modelsData?.geminiApiModels || ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-pro-exp-02-05"]) :
-                      apiProvider === "anthropic" ? (modelsData?.anthropicModels || ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022"]) :
-                      apiProvider === "deepseek" ? (modelsData?.deepSeekModels || ["deepseek-r1", "deepseek-chat"]) :
-                      apiProvider === "groq" ? (modelsData?.groqModels || ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b"]) :
-                      apiProvider === "mistral" ? (modelsData?.mistralModels || ["mistral-large-latest", "codestral-latest"]) :
-                      apiProvider === "xai" ? (modelsData?.xAiModels || ["grok-2-1212", "grok-beta"]) : ["custom-model"]
-                    ).map((mod: string, i: number) => (
-                      <option key={i} value={mod}>
-                        {mod}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              ) : (
-                <>
-                  <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "3px" }}>
-                    ANTIGRAVITY MODEL (100% FREE BRIDGE):
-                  </label>
-                  <select
-                    value={selectedModelName}
-                    onChange={(e) => handleModelChange(e.target.value)}
-                    className="model-select-large"
-                    style={{ marginBottom: "4px", fontSize: "12px" }}
-                  >
-                    {(modelsData?.antigravityModels || [
-                      "gemini-2.5-pro",
-                      "gemini-2.5-flash",
-                      "gemini-2.5-flash-lite",
-                      "gemini-2.0-pro-exp-02-05",
-                      "gemini-2.0-flash-001",
-                      "claude-3.7-sonnet",
-                    ]).map((mod: string, i: number) => (
-                      <option key={i} value={mod}>
-                        {mod}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
-            </div>
-
-            {/* SECTION 2: LOCAL ENGINE */}
-            <div style={{ background: "rgba(0, 229, 255, 0.05)", border: "1px solid rgba(0, 229, 255, 0.3)", padding: "10px", borderRadius: "6px", marginBottom: "12px" }}>
-              <div style={{ fontSize: "11px", color: "#00e5ff", fontWeight: "bold", marginBottom: "8px" }}>
-                2️⃣ LOCAL ENGINE (OFFLINE ON-DEVICE FAILOVER)
-              </div>
-              <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => handleLocalModeChange("ollama")}
-                  className={`hud-tab-btn ${localMode === "ollama" ? "active" : ""}`}
-                  style={{ flex: 1, padding: "6px", fontSize: "10px", fontWeight: "bold" }}
-                >
-                  🦙 Ollama
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLocalModeChange("lm-studio")}
-                  className={`hud-tab-btn ${localMode === "lm-studio" ? "active" : ""}`}
-                  style={{ flex: 1, padding: "6px", fontSize: "10px", fontWeight: "bold" }}
-                >
-                  🖥️ LM Studio Bionic
-                </button>
-              </div>
-
-              <label style={{ fontSize: "10px", color: "#aaa", display: "block", marginBottom: "3px" }}>
-                SELECT LOCAL MODEL ({localMode.toUpperCase()}):
-              </label>
-              <select
-                value={selectedLocalModelName}
-                onChange={(e) => handleLocalModelChange(e.target.value)}
-                className="model-select-large"
-                style={{ marginBottom: "4px", fontSize: "12px" }}
-              >
-                {(localMode === "lm-studio" ? (modelsData?.lmStudioModels || ["local-model"]) : (modelsData?.ollamaModels || ["llama3:8b", "qwen2.5:14b", "mistral:7b"])).map((mod: string, i: number) => (
-                  <option key={i} value={mod}>
-                    {mod} (On-Device)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ marginTop: "14px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "10px" }}>
-              <label style={{ fontSize: "11px", color: "#00e5ff", fontWeight: "bold", display: "block", marginBottom: "6px" }}>
-                🗣️ AI VOICE PERSONA & TELEMETRY CHIRPS:
-              </label>
-              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                {(["jarvis", "friday", "edith"] as const).map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => {
-                      setVoiceProfile(v);
-                      voiceEngine?.setProfile(v);
-                      voiceEngine?.speak(`Greetings. I am ${v.toUpperCase()}, your automated AI assistant.`);
-                    }}
-                    className={`hud-tab-btn ${voiceProfile === v ? "active" : ""}`}
-                    style={{ flex: 1, textAlign: "center", padding: "8px", fontSize: "10px", fontWeight: "bold" }}
-                  >
-                    {v === "jarvis" && "👔 J.A.R.V.I.S."}
-                    {v === "friday" && "👩‍🦰 F.R.I.D.A.Y."}
-                    {v === "edith" && "👓 E.D.I.T.H."}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="sys-section">
-            <div className="sys-header">💻 HOST HARDWARE BENCHMARK</div>
-            {sysInfo ? (
-              <div className="sys-grid">
-                <div><strong>CPU:</strong> {sysInfo.cpuModel}</div>
-                <div><strong>CORES:</strong> {sysInfo.cpuCores} Logic Units</div>
-                <div><strong>RAM:</strong> {sysInfo.freeMemMb} MB Free / {sysInfo.totalMemMb} MB Total</div>
-                <div><strong>AI TIER:</strong> <span className="tier-tag">{sysInfo.tierBadge}</span></div>
-              </div>
-            ) : (
-              <div className="sys-loading">Analyzing neural hardware...</div>
-            )}
-            <button type="button" onClick={onOpenBenchmark} className="hud-btn" style={{ width: "100%", marginTop: "8px" }}>
-              ⚙️ RE-RUN ONBOARDING WIZARD
-            </button>
-          </div>
-
-          <div className="sys-section">
-            <div className="sys-header">🧠 NEVER-FORGET MEMORY MANAGEMENT</div>
-            <p className="sys-desc">
-              SQZ rolling block deduplication is active. You can prune old scratchpad data and run SQLite VACUUM.
-            </p>
-            <button type="button" onClick={handleOptimizeMemory} className="send-btn" style={{ width: "100%", padding: "8px" }}>
-              ⚡ OPTIMIZE & VACUUM DATABASE
-            </button>
-            {memOptResult && <div className="opt-result">{memOptResult}</div>}
-          </div>
-        </div>
-      )}
+      {/* SETTINGS POPUP MODAL */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        modelMode={modelMode}
+        onlineMode={onlineMode}
+        localMode={localMode}
+        apiProvider={apiProvider}
+        apiKey={apiKey}
+        apiBaseUrl={apiBaseUrl}
+        selectedModelName={selectedModelName}
+        selectedLocalModelName={selectedLocalModelName}
+        modelsData={modelsData}
+        voiceProfile={voiceProfile}
+        speakOnTyping={speakOnTyping}
+        onEngineChange={handleEngineChange}
+        onOnlineModeChange={handleOnlineModeChange}
+        onLocalModeChange={handleLocalModeChange}
+        onApiProviderChange={handleApiProviderChange}
+        onApiKeyChange={handleApiKeyChange}
+        onApiBaseUrlChange={handleApiBaseUrlChange}
+        onModelChange={handleModelChange}
+        onLocalModelChange={handleLocalModelChange}
+        onVoiceProfileChange={(v) => {
+          setVoiceProfile(v);
+          voiceEngine?.setProfile(v);
+          voiceEngine?.speak(`Greetings. I am ${v.toUpperCase()}, your automated AI assistant.`);
+        }}
+        onSpeakOnTypingChange={setSpeakOnTyping}
+        onOptimizeMemory={handleOptimizeMemory}
+        onOpenBenchmark={onOpenBenchmark}
+        sysInfo={sysInfo}
+        memOptResult={memOptResult}
+      />
     </div>
   );
 }
