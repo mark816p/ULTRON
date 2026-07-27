@@ -171,6 +171,26 @@ export default function SettingsModal(props: SettingsModalProps) {
 
   const [activeTab, setActiveTab] = useState<"engine" | "voice" | "system">("engine");
   const [showKey, setShowKey] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "up-to-date" | "available" | "error">("idle");
+  const [latestVer, setLatestVer] = useState<string>("");
+
+  const handleCheckUpdate = async () => {
+    setUpdateStatus("checking");
+    try {
+      const res = await fetch("https://api.github.com/repos/mark816p/ULTRON/releases/latest");
+      if (!res.ok) throw new Error("API error");
+      const data = await res.json();
+      const tag = data.tag_name || "";
+      setLatestVer(tag);
+      if (tag && tag !== "v43.0.0" && !tag.includes("v43")) {
+        setUpdateStatus("available");
+      } else {
+        setUpdateStatus("up-to-date");
+      }
+    } catch {
+      setUpdateStatus("error");
+    }
+  };
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") onClose();
@@ -442,6 +462,43 @@ export default function SettingsModal(props: SettingsModalProps) {
                   </div>
                 </div>
               )}
+
+              <div style={S.section}>
+                <span style={S.sectionLabel}>In-App Updater</span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <div>
+                    <span style={{ fontSize: 12, color: "#ccc", display: "block" }}>Current Version: v43.0.0</span>
+                    <span style={{ fontSize: 10, color: "#444" }}>Check official repository for new releases</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCheckUpdate}
+                    disabled={updateStatus === "checking"}
+                    style={{ ...S.footerBtn, flex: "none", padding: "6px 14px", fontSize: 10 }}
+                  >
+                    {updateStatus === "checking" ? "Checking..." : "⚡ CHECK FOR UPDATES"}
+                  </button>
+                </div>
+                {updateStatus === "up-to-date" && (
+                  <p style={{ fontSize: 11, color: "#44bb44", margin: 0 }}>✅ U.L.T.R.O.N. is running the latest verified version (v43.0.0).</p>
+                )}
+                {updateStatus === "available" && (
+                  <div style={{ background: "rgba(255, 170, 48, 0.1)", border: "1px solid rgba(255, 170, 48, 0.4)", borderRadius: 6, padding: 10, marginTop: 8 }}>
+                    <p style={{ fontSize: 11, color: "#ffaa30", margin: "0 0 8px" }}>🚀 New release available: {latestVer}</p>
+                    <a
+                      href="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Installer.exe"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ ...S.footerBtn, display: "inline-block", textDecoration: "none", fontSize: 10, padding: "6px 12px", background: "var(--accent-amber)", color: "#000" }}
+                    >
+                      Download & Install Update &rarr;
+                    </a>
+                  </div>
+                )}
+                {updateStatus === "error" && (
+                  <p style={{ fontSize: 11, color: "#bb4444", margin: 0 }}>⚠️ Could not check for updates. Check internet connection.</p>
+                )}
+              </div>
 
               <div style={S.section}>
                 <span style={S.sectionLabel}>Memory Management</span>

@@ -3,7 +3,7 @@
 # 🔮 U.L.T.R.O.N.
 ### Autonomous Sentient Neural Orb & Context Engine
 
-[![Version](https://img.shields.io/badge/Version-v43.0.0-00f0ff?style=for-the-badge&logo=electron&logoColor=white)](https://github.com/mark816p/ultron-autonomous-orb)
+[![Version](https://img.shields.io/badge/Version-v43.0.0-00f0ff?style=for-the-badge&logo=electron&logoColor=white)](https://github.com/mark816p/ULTRON)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![Electron](https://img.shields.io/badge/Electron-Native-47848F?style=for-the-badge&logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Three.js](https://img.shields.io/badge/Three.js-WebGL-black?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org/)
@@ -75,8 +75,8 @@ Built for performance. U.L.T.R.O.N. ships as an ultra-compact native desktop app
 
 ### Step 1: Clone the Repository
 ```bash
-git clone https://github.com/mark816p/ultron-autonomous-orb.git
-cd ultron-autonomous-orb
+git clone https://github.com/mark816p/ULTRON.git
+cd ULTRON
 ```
 
 ### Step 2: Install Dependencies
@@ -143,7 +143,7 @@ Click the **GESTURES OFF** button in the top HUD (or press `G`) and allow camera
 ## 📂 System Architecture & Code Structure
 
 ```text
-ultron-autonomous-orb/
+ULTRON/
 ├── app/                  # Next.js 16 App Router (API endpoints, voice synthesis, memory routes)
 ├── components/           # React 19 UI components (ChatPanel, HUD, Icons, ModelSelector)
 ├── docs/                 # Official promotional landing page & download portal (index.html)

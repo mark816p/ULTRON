@@ -6,7 +6,7 @@
 set -e
 
 REPO_OWNER="mark816p"
-REPO_NAME="ultron-autonomous-orb"
+REPO_NAME="ULTRON"
 API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases"
 
 echo ""

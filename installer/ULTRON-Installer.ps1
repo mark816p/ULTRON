@@ -5,7 +5,7 @@
 
 $ErrorActionPreference = "Stop"
 $RepoOwner = "mark816p"
-$RepoName = "ultron-autonomous-orb"
+$RepoName = "ULTRON"
 $ApiUrl = "https://api.github.com/repos/$RepoOwner/$RepoName/releases"
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12

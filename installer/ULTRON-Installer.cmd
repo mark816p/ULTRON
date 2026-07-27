@@ -18,7 +18,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0ULTRON-Installer.ps1"
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo [!] Local script launch fallback. Downloading raw script from GitHub...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-Expression (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/mark816p/ultron-autonomous-orb/main/installer/ULTRON-Installer.ps1')"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-Expression (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/mark816p/ULTRON/main/installer/ULTRON-Installer.ps1')"
 )
 
 pause

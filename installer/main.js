@@ -36,7 +36,7 @@ ipcMain.handle('get-releases', async () => {
   return new Promise((resolve) => {
     const options = {
       hostname: 'api.github.com',
-      path: '/repos/mark816p/ultron-autonomous-orb/releases',
+      path: '/repos/mark816p/ULTRON/releases',
       method: 'GET',
       headers: { 'User-Agent': 'ULTRON-Installer/43.0.0' },
     };
@@ -71,9 +71,9 @@ ipcMain.handle('download-and-install', async (event, tag) => {
 
   let url;
   if (tag === 'latest') {
-    url = `https://github.com/mark816p/ultron-autonomous-orb/releases/latest/download/${assetName}`;
+    url = `https://github.com/mark816p/ULTRON/releases/latest/download/${assetName}`;
   } else {
-    url = `https://github.com/mark816p/ultron-autonomous-orb/releases/download/${tag}/${assetName}`;
+    url = `https://github.com/mark816p/ULTRON/releases/download/${tag}/${assetName}`;
   }
 
   const dest = path.join(os.tmpdir(), `ULTRON-Setup-${tag}${ext}`);
@@ -119,4 +119,4 @@ ipcMain.handle('download-and-install', async (event, tag) => {
 
 // ── Window controls ──────────────────────────────────────────────────────────
 ipcMain.on('close-app', () => app.quit());
-ipcMain.on('open-github', () => shell.openExternal('https://github.com/mark816p/ultron-autonomous-orb/releases'));
+ipcMain.on('open-github', () => shell.openExternal('https://github.com/mark816p/ULTRON/releases'));
