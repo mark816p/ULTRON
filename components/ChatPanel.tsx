@@ -326,11 +326,15 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         }, 20);
       } catch (err) {
         sceneRef.current?.setAIState("idle");
+        const errMsg = (err as Error).message || "Unknown error";
+        const isEngineErr = errMsg.includes("unreachable") || errMsg.includes("API Key is missing") || errMsg.includes("failed") || errMsg.includes("unavailable");
         setMessages((prev) => [
           ...prev,
           {
             role: "system",
-            content: `⚠️ Error: ${(err as Error).message}. Attempting circuit-breaker reset...`,
+            content: isEngineErr
+              ? `⚠️ AI ENGINE OFFLINE: ${errMsg}\n\n💡 FIX: Go to SYSTEM tab → set your API key (Gemini / OpenRouter / OpenAI / Groq etc.) or start Ollama locally. U.L.T.R.O.N. supports 10+ engines simultaneously.`
+              : `⚠️ Error: ${errMsg}`,
             timestamp: new Date().toLocaleTimeString(),
           },
         ]);
@@ -513,11 +517,11 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         <div className="hud-title-box" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <LogoIcon size={20} />
           <span className="pulse-dot" />
-          <span className="hud-label">U.L.T.R.O.N. NEURAL LINK v39</span>
-          <span className="stat-pill" style={{ borderColor: "#00ff66", color: "#00ff66" }}>
+          <span className="hud-label">U.L.T.R.O.N. NEURAL LINK v42</span>
+          <span className="stat-pill">
             🧠 {selectedModelName}
           </span>
-          <span className="stat-pill" style={{ borderColor: "#00e5ff", color: "#00e5ff" }} title={`Active Brains: ${activeBrains.join(", ")}`}>
+          <span className="stat-pill" title={`Active Brains: ${activeBrains.join(", ")}`}>
             ⚡ MULTI-BRAIN: {activeBrains.length} ACTIVE
           </span>
           {pondering && <span className="pondering-badge">🧠 PONDERING...</span>}
@@ -722,9 +726,9 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
           </form>
 
           {/* Bottom App Version Indicator */}
-          <div className="chat-app-footer-version" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 12px 6px", fontSize: "10px", color: "#888d9e", fontFamily: "'JetBrains Mono', monospace", borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(5, 5, 8, 0.7)" }}>
-            <span>SYSTEM STATUS: ONLINE</span>
-            <span style={{ color: "#00f0ff", fontWeight: "bold", background: "rgba(0, 240, 255, 0.12)", border: "1px solid rgba(0, 240, 255, 0.35)", padding: "1px 8px", borderRadius: "10px", letterSpacing: "0.5px" }}>v39</span>
+          <div className="chat-app-footer-version" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 12px 6px", fontSize: "10px", color: "#888", fontFamily: "'JetBrains Mono', monospace", borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(5, 5, 8, 0.7)" }}>
+            <span style={{ cursor: "pointer", textDecoration: "underline", opacity: 0.7 }} onClick={() => setActiveTab("system")} title="Go to System tab to configure AI engines">⚙ CONFIG AI ENGINE</span>
+            <span style={{ color: "#e0e0e0", fontWeight: "bold", background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(200, 200, 200, 0.3)", padding: "1px 8px", borderRadius: "10px", letterSpacing: "0.5px" }}>v42</span>
           </div>
         </>
       )}

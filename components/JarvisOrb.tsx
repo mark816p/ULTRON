@@ -263,6 +263,7 @@ export default function JarvisOrb() {
                 RESET
               </button>
             </div>
+            <div className="hud-version">v42</div>
           </div>
 
           {/* Futuristic Chat & Cognitive Control Panel */}

@@ -298,12 +298,25 @@ export class HandTracker {
     }
 
     // Determine global gesture mode
-    let targetMode: GestureMode =
-      pinchedGrabs.length >= 2
-        ? "zoom"
-        : pinchedGrabs.length === 1
-          ? detectedModes[0] === "fist" ? "fist" : "spin"
-          : detectedModes[0] || "idle";
+    // CRITICAL FIX: Zoom only triggers when BOTH hands are actively pinching (spin/fist mode).
+    // A single pinching hand + any idle/open second hand must NOT trigger zoom.
+    const activePinchHands = pinchedGrabs.length;
+    const totalHands = landmarks.length;
+
+    let targetMode: GestureMode;
+    if (activePinchHands >= 2) {
+      // Both hands are pinching — true zoom gesture
+      targetMode = "zoom";
+    } else if (activePinchHands === 1) {
+      // Only one hand is pinching — spin or fist, regardless of how many hands are in frame
+      const pinchingHandMode = Array.from(this.handStates.values()).find(
+        (s) => s.mode === "spin" || s.mode === "fist"
+      )?.mode;
+      targetMode = pinchingHandMode === "fist" ? "fist" : "spin";
+    } else {
+      // No pinching hands
+      targetMode = detectedModes[0] || "idle";
+    }
 
     // Check fast open palm swipe
     if (targetMode === "open_palm" || targetMode === "idle") {
@@ -438,19 +451,27 @@ export class HandTracker {
       ctx.stroke();
       ctx.restore();
 
-      // Draw glowing joint nodes
+      // Draw glowing joint nodes — always visible on all 21 landmarks
       lm.forEach((pt, idx) => {
         const x = (1 - pt.x) * width;
         const y = pt.y * height;
         const isTip = idx === THUMB_TIP || idx === INDEX_TIP || idx === MIDDLE_TIP || idx === RING_TIP || idx === PINKY_TIP;
+        const isKnuckle = idx === THUMB_MCP || idx === INDEX_MCP || idx === MIDDLE_MCP || idx === RING_MCP || idx === PINKY_MCP;
 
         ctx.save();
         ctx.beginPath();
-        ctx.arc(x, y, isTip ? 4 : 2, 0, Math.PI * 2);
-        ctx.fillStyle = isTip ? "#ffaa30" : "#00f0ff";
-        ctx.shadowColor = isTip ? "#ffaa30" : "#00f0ff";
-        ctx.shadowBlur = isTip ? 10 : 4;
+        ctx.arc(x, y, isTip ? 5 : isKnuckle ? 3 : 2, 0, Math.PI * 2);
+        // Fingertips: bright white-cyan; knuckles: cyan; other joints: dim
+        ctx.fillStyle = isTip ? "#ffffff" : isKnuckle ? "#00f0ff" : "rgba(0, 240, 255, 0.6)";
+        ctx.shadowColor = isTip ? "#ffffff" : "#00f0ff";
+        ctx.shadowBlur = isTip ? 14 : isKnuckle ? 6 : 3;
         ctx.fill();
+        // White ring outline on fingertips
+        if (isTip) {
+          ctx.strokeStyle = "rgba(0, 240, 255, 0.8)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
         ctx.restore();
       });
     });
