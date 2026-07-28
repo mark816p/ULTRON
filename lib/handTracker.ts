@@ -9,7 +9,7 @@ const WASM_CDN =
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
 
-// Landmark indices (MediaPipe hand model)
+// ── MediaPipe Landmark Indices ───────────────────────────────────────────────
 const WRIST = 0;
 const THUMB_CMC = 1;
 const THUMB_MCP = 2;
@@ -21,32 +21,46 @@ const INDEX_DIP = 7;
 const INDEX_TIP = 8;
 const MIDDLE_MCP = 9;
 const MIDDLE_PIP = 10;
+const MIDDLE_DIP = 11;
 const MIDDLE_TIP = 12;
 const RING_MCP = 13;
 const RING_PIP = 14;
+const RING_DIP = 15;
 const RING_TIP = 16;
 const PINKY_MCP = 17;
 const PINKY_PIP = 18;
+const PINKY_DIP = 19;
 const PINKY_TIP = 20;
 
-// Pinch thresholds relative to palm scale
-const PINCH_ON = 0.22;
-const PINCH_OFF = 0.28;
+// ── Tuned Thresholds ─────────────────────────────────────────────────────────
+// Pinch: normalized to INDEX_MCP→PINKY_MCP "palm width" (adapts to distance)
+const PINCH_ON = 0.30;        // pinch activates < 30% of palm width
+const PINCH_OFF = 0.42;       // hysteresis — releases > 42% of palm width
+const PINCH_LATCH = 18;       // frames to coast after thumb leaves frame
 
-// How strongly hand movement rotates the orb (radians per normalized unit)
-const ROTATE_SPEED = 9.0;
-// Base smoothing factor for grab-point tracking
-const BASE_SMOOTHING = 0.25;
-const MAX_SMOOTHING = 0.88;
+// Curl: angle (0–1) at which a finger is considered "curled shut"
+// Using MCP→PIP→TIP dot product normalized to [0,1]
+const CURL_CLOSED = 0.55;     // below this = finger curled
+const CURL_OPEN = 0.70;       // above this = finger extended (hysteresis)
 
-// Minimum intentional zoom delta — user must spread/pinch hands at least this much
-// before zoom is triggered. Prevents accidental zoom from small positional variance.
-const ZOOM_MIN_DELTA_RATIO = 0.020; // 2.0% change from baseline is enough to signal zoom intent
-// Minimum frames the zoom gesture must sustain before activating
-const ZOOM_SUSTAIN_FRAMES = 4;
-// Frames the active pinch state is latched after the thumb leaves view
-const PINCH_LATCH_FRAMES = 22;
+// Rotation
+const ROTATE_SPEED = 8.5;
+const DEADZONE = 0.0012;      // minimum delta before rotation fires
+const SMOOTHING_BASE = 0.20;  // EMA alpha at low speed
+const SMOOTHING_MAX = 0.80;   // EMA alpha at high speed
+const INERTIA_DECAY = 0.93;   // momentum decay per frame (idle coast)
+const BRAKE_DECAY = 0.40;     // momentum decay per frame (open palm brake)
 
+// Zoom
+const ZOOM_SUSTAIN = 8;       // frames both hands must sustain spread/pinch
+const ZOOM_DELTA = 0.022;     // 2.2% spread change required to engage zoom
+const ZOOM_LATCH = 14;        // frames baseline holds after hands separate
+
+// Mode debounce
+const DEBOUNCE_FRAMES = 4;    // frames a new mode must hold before committing
+const ACTION_COOLDOWN = 900;  // ms between one-shot gesture actions
+
+// ── Types ────────────────────────────────────────────────────────────────────
 export type GestureMode =
   | "idle"
   | "spin"
@@ -63,16 +77,16 @@ export interface TrackerStatus {
   hands: number;
   mode: GestureMode;
   confidence?: number;
+  /** 0–1 depth factor: 1 = hand very close, 0 = hand far away */
+  depthFactor?: number;
 }
 
 export interface HandTrackerCallbacks {
-  /** Called when rotating: deltas in mirrored normalized coords or angular velocities. */
   onRotate(deltaTheta: number, deltaPhi: number): void;
-  /** Called when zooming: multiply camera distance by factor. */
   onZoom(factor: number): void;
-  /** Called when a special gesture action is detected. */
   onGestureAction?(action: "reset" | "zoomIn" | "zoomOut" | "pulse" | "toggleUI"): void;
   onStatus(status: TrackerStatus): void;
+  onDepth?(factor: number): void;
 }
 
 interface Point {
@@ -80,16 +94,108 @@ interface Point {
   y: number;
 }
 
+interface FingerState {
+  curl: number;     // 0 = open, 1 = fully curled (angle-based)
+  extended: boolean;
+  hysteresis: boolean; // latched open/closed to prevent flicker
+}
+
 interface HandState {
   mode: GestureMode;
-  grab: Point; // smoothed pinch midpoint, mirrored
+  grab: Point;
   wristX: number;
-  confidence: number;
-  /** Frames since the thumb was last visible and confirmed pinched */
-  pinchLatchFrames: number;
-  /** True while the pinch latch is active (thumb gone but recently pinching) */
+  pinchLatch: number;
   pinchLatched: boolean;
+  fingers: FingerState[]; // [thumb, index, middle, ring, pinky]
 }
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** 3D Euclidean distance using x, y, z */
+function dist3d(a: NormalizedLandmark, b: NormalizedLandmark): number {
+  return Math.hypot(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0));
+}
+
+/**
+ * Compute curl factor for a finger using the angle at the PIP joint.
+ * Returns 0 (fully extended) → 1 (fully curled).
+ * Uses vectors MCP→PIP and PIP→TIP; the dot product tells us straightness.
+ */
+function computeCurl(
+  lm: NormalizedLandmark[],
+  mcpIdx: number,
+  pipIdx: number,
+  tipIdx: number
+): number {
+  const mcp = lm[mcpIdx];
+  const pip = lm[pipIdx];
+  const tip = lm[tipIdx];
+
+  // Vector from MCP to PIP
+  const v1x = pip.x - mcp.x;
+  const v1y = pip.y - mcp.y;
+  const v1z = (pip.z ?? 0) - (mcp.z ?? 0);
+  const len1 = Math.hypot(v1x, v1y, v1z) + 1e-8;
+
+  // Vector from PIP to TIP
+  const v2x = tip.x - pip.x;
+  const v2y = tip.y - pip.y;
+  const v2z = (tip.z ?? 0) - (pip.z ?? 0);
+  const len2 = Math.hypot(v2x, v2y, v2z) + 1e-8;
+
+  // Normalized dot product (1 = straight, -1 = fully bent back)
+  const dot = (v1x * v2x + v1y * v2y + v1z * v2z) / (len1 * len2);
+
+  // Map: 1 (straight/open) → 0 curl, -1 (fully bent) → 1 curl
+  return (1 - dot) / 2;
+}
+
+/**
+ * Compute thumb curl using CMC→MCP→IP angle.
+ * Thumb has different anatomy — abduction matters more than curl.
+ */
+function computeThumbCurl(lm: NormalizedLandmark[]): number {
+  const cmc = lm[THUMB_CMC];
+  const mcp = lm[THUMB_MCP];
+  const tip = lm[THUMB_TIP];
+
+  // Abduction: how far is the thumb tip from the palm center (index MCP)?
+  const palmWidth = dist3d(lm[INDEX_MCP], lm[PINKY_MCP]) + 1e-8;
+  const thumbSpread = dist3d(tip, lm[INDEX_MCP]) / palmWidth;
+
+  // Curl along CMC→MCP→TIP axis
+  const v1x = mcp.x - cmc.x;
+  const v1y = mcp.y - cmc.y;
+  const v1z = (mcp.z ?? 0) - (cmc.z ?? 0);
+  const len1 = Math.hypot(v1x, v1y, v1z) + 1e-8;
+  const v2x = tip.x - mcp.x;
+  const v2y = tip.y - mcp.y;
+  const v2z = (tip.z ?? 0) - (mcp.z ?? 0);
+  const len2 = Math.hypot(v2x, v2y, v2z) + 1e-8;
+  const dot = (v1x * v2x + v1y * v2y + v1z * v2z) / (len1 * len2);
+  const bendCurl = (1 - dot) / 2;
+
+  // Thumb is "extended" when it's spread out (high thumbSpread) AND not bent
+  // Blend: low spread = curled toward palm (curl ~ 1), high spread = extended (curl ~ 0)
+  return Math.min(1, (bendCurl * 0.4 + Math.max(0, 0.8 - thumbSpread) * 0.6));
+}
+
+/** Update a finger's extended state with hysteresis */
+function updateFingerState(
+  existing: FingerState,
+  curl: number
+): FingerState {
+  let extended = existing.extended;
+  if (curl < CURL_CLOSED) extended = true;
+  else if (curl > CURL_OPEN) extended = false;
+  return { curl, extended, hysteresis: existing.hysteresis };
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+// ── Main Class ───────────────────────────────────────────────────────────────
 
 export class HandTracker {
   private video: HTMLVideoElement;
@@ -107,20 +213,23 @@ export class HandTracker {
   private candidateFrames = 0;
   private prevSpinGrab: Point | null = null;
   private prevZoomDist: number | null = null;
-  private zoomBaselineDist: number | null = null;
-  private zoomSustainFrames = 0;
-  private zoomBaselineLatch = 0; // frames to hold baseline before resetting
-  private lastStatus: TrackerStatus = { hands: 0, mode: "idle", confidence: 0 };
+  private zoomBaseline: number | null = null;
+  private zoomSustain = 0;
+  private zoomLatch = 0;
+  private lastStatus: TrackerStatus = { hands: 0, mode: "idle", confidence: 0, depthFactor: 0 };
+  private lastActionTime = 0;
 
-  // Kinetic rotational inertia (angular momentum)
+  // Kinetic inertia
   private vx = 0;
   private vy = 0;
-  private lastActionTime = 0;
+
+  // Depth tracking (3D awareness)
+  private depthSmoothed = 0;
 
   constructor(
     video: HTMLVideoElement,
     overlay: HTMLCanvasElement,
-    callbacks: HandTrackerCallbacks,
+    callbacks: HandTrackerCallbacks
   ) {
     this.video = video;
     this.overlay = overlay;
@@ -129,7 +238,12 @@ export class HandTracker {
 
   async start(): Promise<void> {
     this.stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 640, height: 480, facingMode: "user", frameRate: { ideal: 60, min: 30 } },
+      video: {
+        width: 640,
+        height: 480,
+        facingMode: "user",
+        frameRate: { ideal: 60, min: 30 },
+      },
       audio: false,
     });
     this.video.srcObject = this.stream;
@@ -140,9 +254,9 @@ export class HandTracker {
       baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" as const },
       runningMode: "VIDEO" as const,
       numHands: 2,
-      minHandDetectionConfidence: 0.55,
-      minHandPresenceConfidence: 0.55,
-      minTrackingConfidence: 0.55,
+      minHandDetectionConfidence: 0.50,
+      minHandPresenceConfidence: 0.50,
+      minTrackingConfidence: 0.50,
     };
     try {
       this.landmarker = await HandLandmarker.createFromOptions(fileset, options);
@@ -171,286 +285,272 @@ export class HandTracker {
     this.candidateFrames = 0;
     this.prevSpinGrab = null;
     this.prevZoomDist = null;
-    this.zoomBaselineDist = null;
-    this.zoomSustainFrames = 0;
-    this.zoomBaselineLatch = 0;
+    this.zoomBaseline = null;
+    this.zoomSustain = 0;
+    this.zoomLatch = 0;
     this.vx = 0;
     this.vy = 0;
+    this.depthSmoothed = 0;
     const ctx = this.overlay.getContext("2d");
     ctx?.clearRect(0, 0, this.overlay.width, this.overlay.height);
-    this.emitStatus({ hands: 0, mode: "idle", confidence: 0 });
+    this.emitStatus({ hands: 0, mode: "idle", confidence: 0, depthFactor: 0 });
   }
+
+  // ── Main Loop ──────────────────────────────────────────────────────────────
 
   private loop = () => {
     if (!this.running) return;
     this.rafId = requestAnimationFrame(this.loop);
-
     if (!this.landmarker || this.video.readyState < 2) return;
     if (this.video.currentTime === this.lastVideoTime) {
-      // Continue kinetic coasting when frame hasn't updated yet
-      this.applyKineticInertia();
+      this.applyInertia();
       return;
     }
     this.lastVideoTime = this.video.currentTime;
 
     const result = this.landmarker.detectForVideo(this.video, performance.now());
-    this.processHands(result.landmarks, result.handedness.map((h) => h[0]?.categoryName ?? "?"));
+    this.processHands(
+      result.landmarks,
+      result.handedness.map((h) => h[0]?.categoryName ?? "?")
+    );
     this.drawOverlay(result.landmarks);
-    this.applyKineticInertia();
+    this.applyInertia();
   };
 
-  private applyKineticInertia(): void {
-    // Apply inertia when in idle, point, or victory modes (not actively dragging or braking)
-    if (
-      this.prevMode === "idle" ||
-      this.prevMode === "point" ||
-      this.prevMode === "victory" ||
-      this.prevMode === "thumbs_up" ||
-      this.prevMode === "thumbs_down"
-    ) {
-      this.vx *= 0.94;
-      this.vy *= 0.94;
-      if (Math.hypot(this.vx, this.vy) > 1e-5) {
-        this.callbacks.onRotate(this.vx, this.vy);
-      } else {
-        this.vx = 0;
-        this.vy = 0;
-      }
-    } else if (this.prevMode === "open_palm") {
-      // Air brake! Immediately absorb momentum
-      this.vx *= 0.45;
-      this.vy *= 0.45;
-      if (Math.hypot(this.vx, this.vy) > 1e-5) {
-        this.callbacks.onRotate(this.vx, this.vy);
-      } else {
-        this.vx = 0;
-        this.vy = 0;
-      }
+  // ── Inertia ────────────────────────────────────────────────────────────────
+
+  private applyInertia(): void {
+    const decay =
+      this.prevMode === "open_palm" ? BRAKE_DECAY : INERTIA_DECAY;
+    this.vx *= decay;
+    this.vy *= decay;
+    if (Math.hypot(this.vx, this.vy) > 1e-5) {
+      this.callbacks.onRotate(this.vx, this.vy);
+    } else {
+      this.vx = 0;
+      this.vy = 0;
     }
   }
 
+  // ── Per-Frame Processing ───────────────────────────────────────────────────
+
   private processHands(
     landmarks: NormalizedLandmark[][],
-    labels: string[],
+    labels: string[]
   ): void {
     const pinchedGrabs: Point[] = [];
-    const openPalms: { x: number; label: string }[] = [];
+    const openPalms: { xDelta: number }[] = [];
     const seen = new Set<string>();
-    let detectedModes: GestureMode[] = [];
+    const detectedModes: GestureMode[] = [];
+
+    // 3D depth: average wrist Z across all hands (more negative = closer to camera)
+    let depthSum = 0;
+    let depthCount = 0;
 
     landmarks.forEach((lm, i) => {
       const label = labels[i] || `hand_${i}`;
       seen.add(label);
 
-      // Compute 3D distances (incorporating depth Z) for robustness
-      const palmScale = dist3d(lm[WRIST], lm[MIDDLE_MCP]);
-      if (palmScale < 1e-6) return;
+      // Palm scale: width between INDEX_MCP and PINKY_MCP
+      const palmWidth = dist3d(lm[INDEX_MCP], lm[PINKY_MCP]);
+      if (palmWidth < 1e-6) return;
 
-      // ── THUMB VISIBILITY CHECK ────────────────────────────────────────────
-      // MediaPipe sets landmark visibility/presence < 0.5 when occluded.
-      // We treat the thumb as "in view" if either tip visibility is fine OR
-      // if the hand state is currently latched (was recently pinching).
-      const thumbVisible =
-        (lm[THUMB_TIP].visibility ?? 1) > 0.35 &&
-        (lm[INDEX_TIP].visibility ?? 1) > 0.35;
+      // ── DEPTH FACTOR ──────────────────────────────────────────────────────
+      // MediaPipe z is in the same scale as x/y, negative = toward camera
+      // Wrist z typically ranges: ~-0.1 (close) to ~0.1 (far)
+      // We invert and normalize so 1 = very close, 0 = far
+      const wristZ = lm[WRIST].z ?? 0;
+      depthSum += Math.max(0, Math.min(1, (-wristZ + 0.05) / 0.15));
+      depthCount++;
 
-      const pinchDist = dist3d(lm[THUMB_TIP], lm[INDEX_TIP]);
-      const pinchRatio = pinchDist / palmScale;
-
-      // Classify finger extension states (3D)
-      const indexExt = isFingerExtended(lm, WRIST, INDEX_PIP, INDEX_TIP);
-      const middleExt = isFingerExtended(lm, WRIST, MIDDLE_PIP, MIDDLE_TIP);
-      const ringExt = isFingerExtended(lm, WRIST, RING_PIP, RING_TIP);
-      const pinkyExt = isFingerExtended(lm, WRIST, PINKY_PIP, PINKY_TIP);
-      const thumbExt = isThumbExtended(lm);
-
-      const extCount = (indexExt ? 1 : 0) + (middleExt ? 1 : 0) + (ringExt ? 1 : 0) + (pinkyExt ? 1 : 0) + (thumbExt ? 1 : 0);
-
-      const raw: Point = {
-        x: 1 - (lm[THUMB_TIP].x + lm[INDEX_TIP].x) / 2,
-        y: (lm[THUMB_TIP].y + lm[INDEX_TIP].y) / 2,
-      };
-
+      // ── CURL DETECTION (angle-based) ──────────────────────────────────────
       let state = this.handStates.get(label);
       if (!state) {
         state = {
           mode: "idle",
-          grab: raw,
+          grab: { x: 0.5, y: 0.5 },
           wristX: 1 - lm[WRIST].x,
-          confidence: 100,
-          pinchLatchFrames: 0,
+          pinchLatch: 0,
           pinchLatched: false,
+          fingers: [
+            { curl: 0, extended: true, hysteresis: false }, // thumb
+            { curl: 0, extended: true, hysteresis: false }, // index
+            { curl: 0, extended: true, hysteresis: false }, // middle
+            { curl: 0, extended: true, hysteresis: false }, // ring
+            { curl: 0, extended: true, hysteresis: false }, // pinky
+          ],
         };
         this.handStates.set(label, state);
       }
 
-      // ── PINCH LATCH LOGIC ─────────────────────────────────────────────────
-      // If the hand was pinching and the thumb goes out of frame, continue
-      // treating it as pinched for PINCH_LATCH_FRAMES frames. This prevents
-      // rotation from stopping when the thumb briefly exits the camera edge.
+      // Compute angle-based curl for all 5 fingers
+      const thumbCurl = computeThumbCurl(lm);
+      const indexCurl = computeCurl(lm, INDEX_MCP, INDEX_PIP, INDEX_TIP);
+      const middleCurl = computeCurl(lm, MIDDLE_MCP, MIDDLE_PIP, MIDDLE_TIP);
+      const ringCurl = computeCurl(lm, RING_MCP, RING_PIP, RING_TIP);
+      const pinkyCurl = computeCurl(lm, PINKY_MCP, PINKY_PIP, PINKY_TIP);
+
+      state.fingers[0] = updateFingerState(state.fingers[0], thumbCurl);
+      state.fingers[1] = updateFingerState(state.fingers[1], indexCurl);
+      state.fingers[2] = updateFingerState(state.fingers[2], middleCurl);
+      state.fingers[3] = updateFingerState(state.fingers[3], ringCurl);
+      state.fingers[4] = updateFingerState(state.fingers[4], pinkyCurl);
+
+      const [thumbF, indexF, middleF, ringF, pinkyF] = state.fingers;
+      const extendedCount =
+        (thumbF.extended ? 1 : 0) +
+        (indexF.extended ? 1 : 0) +
+        (middleF.extended ? 1 : 0) +
+        (ringF.extended ? 1 : 0) +
+        (pinkyF.extended ? 1 : 0);
+
+      // ── PINCH (index tip to thumb tip, normalized to palm width) ──────────
+      const pinchDist = dist3d(lm[THUMB_TIP], lm[INDEX_TIP]) / palmWidth;
+      const tipVisible =
+        (lm[THUMB_TIP].visibility ?? 1) > 0.30 &&
+        (lm[INDEX_TIP].visibility ?? 1) > 0.30;
+
       let effectivePinched = false;
-      if (thumbVisible) {
-        if (pinchRatio < PINCH_ON) {
+      if (tipVisible) {
+        if (pinchDist < PINCH_ON) {
           effectivePinched = true;
-          state.pinchLatchFrames = PINCH_LATCH_FRAMES;
+          state.pinchLatch = PINCH_LATCH;
           state.pinchLatched = true;
-        } else if (pinchRatio < PINCH_OFF && state.pinchLatched) {
-          // Hysteresis — still within latch range
-          effectivePinched = true;
+        } else if (pinchDist < PINCH_OFF && state.pinchLatched) {
+          effectivePinched = true; // hysteresis zone
         } else {
-          // Fully released
-          if (state.pinchLatchFrames > 0) {
-            state.pinchLatchFrames--;
-            effectivePinched = state.pinchLatchFrames > 0;
+          if (state.pinchLatch > 0) {
+            state.pinchLatch--;
+            effectivePinched = state.pinchLatch > 0;
           } else {
             state.pinchLatched = false;
-            effectivePinched = false;
           }
         }
+      } else if (state.pinchLatch > 0) {
+        state.pinchLatch--;
+        effectivePinched = true; // coast on latch
       } else {
-        // Thumb not visible — coast on latch
-        if (state.pinchLatchFrames > 0) {
-          state.pinchLatchFrames--;
-          effectivePinched = true; // keep spinning until latch expires
-        } else {
-          state.pinchLatched = false;
-          effectivePinched = false;
-        }
+        state.pinchLatched = false;
       }
 
-      // ── FIST DETECTION ───────────────────────────────────────────────────
-      // Fist = all fingers closed (extCount 0 or 1, not pinching with thumb out)
-      const isFist = extCount === 0 || (extCount <= 1 && !indexExt && !thumbExt);
-
-      // ── DETERMINE HAND MODE ───────────────────────────────────────────────
+      // ── CLASSIFY HAND MODE ────────────────────────────────────────────────
       let handMode: GestureMode = "idle";
+
       if (effectivePinched) {
-        // Pinch (index+thumb) OR the hand was latched
         handMode = "spin";
-      } else if (isFist) {
-        // Closed fist — also allows spinning
+      } else if (extendedCount === 0 || (extendedCount <= 1 && !indexF.extended)) {
+        // All fingers closed = fist (also allows spin with fist)
         handMode = "fist";
-      } else if (extCount >= 4) {
+      } else if (extendedCount >= 4) {
         handMode = "open_palm";
-      } else if (indexExt && !middleExt && !ringExt && !pinkyExt) {
+      } else if (indexF.extended && !middleF.extended && !ringF.extended && !pinkyF.extended) {
         handMode = "point";
-      } else if (indexExt && middleExt && !ringExt && !pinkyExt) {
+      } else if (indexF.extended && middleF.extended && !ringF.extended && !pinkyF.extended) {
         handMode = "victory";
-      } else if (thumbExt && !indexExt && !middleExt && !ringExt && !pinkyExt) {
-        const thumbUp = lm[THUMB_TIP].y < lm[WRIST].y - 0.08;
-        const thumbDown = lm[THUMB_TIP].y > lm[WRIST].y + 0.08;
-        if (thumbUp) handMode = "thumbs_up";
-        else if (thumbDown) handMode = "thumbs_down";
+      } else if (thumbF.extended && !indexF.extended && !middleF.extended && !ringF.extended && !pinkyF.extended) {
+        // Thumb up/down — use wrist-relative Y position
+        const thumbTip = lm[THUMB_TIP];
+        const wrist = lm[WRIST];
+        if (thumbTip.y < wrist.y - 0.10) handMode = "thumbs_up";
+        else if (thumbTip.y > wrist.y + 0.10) handMode = "thumbs_down";
       }
 
       state.mode = handMode;
       detectedModes.push(handMode);
 
-      // Adaptive One-Euro style smoothing
-      // Use wrist-center for fist mode (more stable), pinch midpoint for spin
-      let trackPoint: Point = raw;
-      if (isFist || handMode === "fist") {
-        trackPoint = { x: 1 - lm[WRIST].x, y: lm[WRIST].y };
-      }
+      // ── SMOOTHED GRAB POINT ───────────────────────────────────────────────
+      const raw: Point =
+        handMode === "fist"
+          ? { x: 1 - lm[WRIST].x, y: lm[WRIST].y }
+          : {
+              x: 1 - (lm[THUMB_TIP].x + lm[INDEX_TIP].x) / 2,
+              y: (lm[THUMB_TIP].y + lm[INDEX_TIP].y) / 2,
+            };
 
-      const speed = Math.hypot(trackPoint.x - state.grab.x, trackPoint.y - state.grab.y);
-      const alpha = Math.min(MAX_SMOOTHING, Math.max(BASE_SMOOTHING, speed * 28));
-
+      const speed = Math.hypot(raw.x - state.grab.x, raw.y - state.grab.y);
+      const alpha = Math.min(SMOOTHING_MAX, Math.max(SMOOTHING_BASE, speed * 24));
       const prevWristX = state.wristX;
       state.wristX = 1 - lm[WRIST].x;
-
       state.grab = {
-        x: state.grab.x + (trackPoint.x - state.grab.x) * alpha,
-        y: state.grab.y + (trackPoint.y - state.grab.y) * alpha,
+        x: state.grab.x + (raw.x - state.grab.x) * alpha,
+        y: state.grab.y + (raw.y - state.grab.y) * alpha,
       };
 
       if (handMode === "spin" || handMode === "fist") {
         pinchedGrabs.push(state.grab);
       } else if (handMode === "open_palm") {
-        openPalms.push({ x: state.wristX - prevWristX, label });
+        openPalms.push({ xDelta: state.wristX - prevWristX });
       }
     });
 
+    // Expire removed hands
     for (const key of this.handStates.keys()) {
       if (!seen.has(key)) {
-        // Hand left view — decay latch
         const s = this.handStates.get(key)!;
-        if (s.pinchLatchFrames > 0) {
-          s.pinchLatchFrames--;
-        } else {
-          this.handStates.delete(key);
-        }
+        if (s.pinchLatch > 0) s.pinchLatch--;
+        else this.handStates.delete(key);
       }
     }
 
-    // ── GLOBAL GESTURE RESOLUTION ─────────────────────────────────────────
-    // ZOOM requires BOTH hands actively pinching/fisting AND the distance
-    // delta must exceed a spatial depth threshold (ZOOM_MIN_DELTA_RATIO).
-    // A single pinching hand + idle/open second hand → spin, never zoom.
-    const activePinchHands = pinchedGrabs.length;
+    // ── DEPTH FACTOR ─────────────────────────────────────────────────────────
+    const rawDepth = depthCount > 0 ? depthSum / depthCount : 0;
+    this.depthSmoothed = lerp(this.depthSmoothed, rawDepth, 0.12);
+    this.callbacks.onDepth?.(this.depthSmoothed);
 
+    // ── GLOBAL MODE RESOLUTION ────────────────────────────────────────────────
     let targetMode: GestureMode;
-    if (activePinchHands >= 2) {
-      // Both hands are active — evaluate zoom intent via spatial depth
-      if (this.zoomBaselineDist === null) {
-        // First frame of dual-pinch — record baseline, don't zoom yet
-        this.zoomBaselineDist = Math.hypot(
+    const activePinch = pinchedGrabs.length;
+
+    if (activePinch >= 2) {
+      if (this.zoomBaseline === null) {
+        this.zoomBaseline = Math.hypot(
           pinchedGrabs[0].x - pinchedGrabs[1].x,
-          pinchedGrabs[0].y - pinchedGrabs[1].y,
+          pinchedGrabs[0].y - pinchedGrabs[1].y
         );
-        this.zoomSustainFrames = 0;
-        this.zoomBaselineLatch = 12; // hold baseline for 12 frames after hands drop
-        targetMode = "spin"; // still spin until intent is confirmed
+        this.zoomSustain = 0;
+        this.zoomLatch = ZOOM_LATCH;
+        targetMode = "spin";
       } else {
-        const currentDist = Math.hypot(
+        const cur = Math.hypot(
           pinchedGrabs[0].x - pinchedGrabs[1].x,
-          pinchedGrabs[0].y - pinchedGrabs[1].y,
+          pinchedGrabs[0].y - pinchedGrabs[1].y
         );
-        const deltaRatio = Math.abs(currentDist - this.zoomBaselineDist) / (this.zoomBaselineDist + 1e-6);
-        if (deltaRatio > ZOOM_MIN_DELTA_RATIO) {
-          this.zoomSustainFrames++;
-          // Update baseline gradually to track absolute distance as user moves hands
-          this.zoomBaselineDist = this.zoomBaselineDist * 0.85 + currentDist * 0.15;
+        const delta = Math.abs(cur - this.zoomBaseline) / (this.zoomBaseline + 1e-6);
+        if (delta > ZOOM_DELTA) {
+          this.zoomSustain++;
+          // Slowly drift baseline to track sustained movement
+          this.zoomBaseline = this.zoomBaseline * 0.88 + cur * 0.12;
         }
-        this.zoomBaselineLatch = 12; // refresh latch while both hands are active
-        // Only lock into zoom after sustaining the intent for enough frames
-        if (this.zoomSustainFrames >= ZOOM_SUSTAIN_FRAMES) {
-          targetMode = "zoom";
-        } else {
-          targetMode = "spin";
-        }
+        this.zoomLatch = ZOOM_LATCH;
+        targetMode = this.zoomSustain >= ZOOM_SUSTAIN ? "zoom" : "spin";
       }
     } else {
-      // Single or no pinching hand — reset zoom state only after latch expires
-      if (this.zoomBaselineLatch > 0) {
-        this.zoomBaselineLatch--;
-        // Keep baseline alive so user can bring second hand back quickly
-      } else {
-        this.zoomBaselineDist = null;
-        this.zoomSustainFrames = 0;
+      if (this.zoomLatch > 0) this.zoomLatch--;
+      else {
+        this.zoomBaseline = null;
+        this.zoomSustain = 0;
       }
 
-      if (activePinchHands === 1) {
-        const pinchingHandMode = Array.from(this.handStates.values()).find(
+      if (activePinch === 1) {
+        const pinchingMode = Array.from(this.handStates.values()).find(
           (s) => s.mode === "spin" || s.mode === "fist"
         )?.mode;
-        targetMode = pinchingHandMode === "fist" ? "fist" : "spin";
+        targetMode = pinchingMode === "fist" ? "fist" : "spin";
       } else {
-        // No pinching hands — idle / open_palm / swipe
-        targetMode = detectedModes[0] || "idle";
+        targetMode = detectedModes[0] ?? "idle";
       }
     }
 
-    // Check fast open palm swipe
+    // ── SWIPE DETECTION ───────────────────────────────────────────────────────
     if (targetMode === "open_palm" || targetMode === "idle") {
-      const fastSwipe = openPalms.find((p) => Math.abs(p.x) > 0.016);
-      if (fastSwipe) {
+      const swipe = openPalms.find((p) => Math.abs(p.xDelta) > 0.018);
+      if (swipe) {
         targetMode = "swipe";
-        this.callbacks.onRotate(fastSwipe.x * ROTATE_SPEED * 1.5, 0);
+        this.callbacks.onRotate(swipe.xDelta * ROTATE_SPEED * 1.6, 0);
       }
     }
 
-    // Debounce state transitions (2 frames hysteresis) unless actively spinning or zooming
+    // ── DEBOUNCED STATE TRANSITION ────────────────────────────────────────────
     if (targetMode !== this.candidateMode) {
       this.candidateMode = targetMode;
       this.candidateFrames = 1;
@@ -458,25 +558,24 @@ export class HandTracker {
       this.candidateFrames++;
     }
 
-    let mode = this.prevMode;
-    if (
-      this.candidateFrames >= 2 ||
+    const immediate =
       targetMode === "spin" ||
       targetMode === "fist" ||
       targetMode === "zoom" ||
-      targetMode === "swipe"
-    ) {
+      targetMode === "swipe";
+
+    let mode = this.prevMode;
+    if (immediate || this.candidateFrames >= DEBOUNCE_FRAMES) {
       mode = targetMode;
     }
 
+    // ── ONE-SHOT ACTIONS ──────────────────────────────────────────────────────
     if (mode !== this.prevMode && mode !== "swipe") {
       this.prevSpinGrab = null;
       this.prevZoomDist = null;
-      this.prevMode = mode;
 
-      // Trigger one-shot action callbacks
       const now = performance.now();
-      if (now - this.lastActionTime > 800) {
+      if (now - this.lastActionTime > ACTION_COOLDOWN) {
         if (mode === "victory") {
           this.callbacks.onGestureAction?.("pulse");
           this.lastActionTime = now;
@@ -492,192 +591,188 @@ export class HandTracker {
         }
       }
     }
+    this.prevMode = mode;
 
+    // ── ROTATION APPLICATION ──────────────────────────────────────────────────
     if (mode === "spin" || mode === "fist") {
       const grab = pinchedGrabs[0];
       if (this.prevSpinGrab && grab) {
         const dx = grab.x - this.prevSpinGrab.x;
         const dy = grab.y - this.prevSpinGrab.y;
-        // Deadzone thresholding — fist is slightly more sensitive
-        const deadzone = mode === "fist" ? 0.0014 : 0.0018;
-        if (Math.hypot(dx, dy) > deadzone) {
-          const speedScale = mode === "fist" ? 1.25 : 1.0;
-          const rotX = dx * ROTATE_SPEED * speedScale;
-          const rotY = dy * ROTATE_SPEED * speedScale;
-          this.callbacks.onRotate(rotX, rotY);
-          // Store angular momentum for smooth inertial coasting upon release
-          this.vx = 0.72 * this.vx + 0.28 * rotX;
-          this.vy = 0.72 * this.vy + 0.28 * rotY;
+        if (Math.hypot(dx, dy) > DEADZONE) {
+          const scale = mode === "fist" ? 1.20 : 1.0;
+          const rx = dx * ROTATE_SPEED * scale;
+          const ry = dy * ROTATE_SPEED * scale;
+          this.callbacks.onRotate(rx, ry);
+          this.vx = 0.70 * this.vx + 0.30 * rx;
+          this.vy = 0.70 * this.vy + 0.30 * ry;
         }
       }
-      this.prevSpinGrab = grab || null;
+      this.prevSpinGrab = grab ?? null;
     } else if (mode === "zoom") {
       if (pinchedGrabs[0] && pinchedGrabs[1]) {
         const d = Math.hypot(
           pinchedGrabs[0].x - pinchedGrabs[1].x,
-          pinchedGrabs[0].y - pinchedGrabs[1].y,
+          pinchedGrabs[0].y - pinchedGrabs[1].y
         );
         if (this.prevZoomDist && d > 1e-4) {
-          // spread hands = zoom in (factor < 1 means camera moves closer)
-          const factor = Math.min(1.18, Math.max(0.85, this.prevZoomDist / d));
+          const factor = Math.min(1.15, Math.max(0.88, this.prevZoomDist / d));
           this.callbacks.onZoom(factor);
         }
         this.prevZoomDist = d;
       }
     }
 
-    const conf = landmarks.length > 0 ? Math.min(99, 75 + landmarks[0].length * 1.1) : 0;
-    this.emitStatus({ hands: landmarks.length, mode, confidence: Math.floor(conf) });
+    const conf = landmarks.length > 0 ? Math.min(99, 70 + landmarks[0].length * 1.4) : 0;
+    this.emitStatus({
+      hands: landmarks.length,
+      mode,
+      confidence: Math.floor(conf),
+      depthFactor: Math.round(this.depthSmoothed * 100) / 100,
+    });
   }
+
+  // ── Status Emit ────────────────────────────────────────────────────────────
 
   private emitStatus(status: TrackerStatus): void {
     if (
       status.hands !== this.lastStatus.hands ||
       status.mode !== this.lastStatus.mode ||
-      Math.abs((status.confidence || 0) - (this.lastStatus.confidence || 0)) > 5
+      Math.abs((status.confidence ?? 0) - (this.lastStatus.confidence ?? 0)) > 5 ||
+      Math.abs((status.depthFactor ?? 0) - (this.lastStatus.depthFactor ?? 0)) > 0.05
     ) {
       this.lastStatus = status;
       this.callbacks.onStatus(status);
     }
   }
 
+  // ── Overlay Drawing ────────────────────────────────────────────────────────
+
   private drawOverlay(landmarks: NormalizedLandmark[][]): void {
     const ctx = this.overlay.getContext("2d");
     if (!ctx) return;
     const { width, height } = this.overlay;
     ctx.clearRect(0, 0, width, height);
-    if (!landmarks || landmarks.length === 0) return;
+    if (!landmarks?.length) return;
 
-    // Hand skeleton connection pairs
-    const connections = [
+    const connections: [number, number][] = [
       [WRIST, THUMB_CMC], [THUMB_CMC, THUMB_MCP], [THUMB_MCP, THUMB_IP], [THUMB_IP, THUMB_TIP],
       [WRIST, INDEX_MCP], [INDEX_MCP, INDEX_PIP], [INDEX_PIP, INDEX_DIP], [INDEX_DIP, INDEX_TIP],
-      [WRIST, MIDDLE_MCP], [MIDDLE_MCP, MIDDLE_PIP], [MIDDLE_PIP, 11], [11, MIDDLE_TIP],
-      [WRIST, RING_MCP], [RING_MCP, RING_PIP], [RING_PIP, 15], [15, RING_TIP],
-      [WRIST, PINKY_MCP], [PINKY_MCP, PINKY_PIP], [PINKY_PIP, 19], [19, PINKY_TIP],
-      [INDEX_MCP, MIDDLE_MCP], [MIDDLE_MCP, RING_MCP], [RING_MCP, PINKY_MCP]
+      [WRIST, MIDDLE_MCP], [MIDDLE_MCP, MIDDLE_PIP], [MIDDLE_PIP, MIDDLE_DIP], [MIDDLE_DIP, MIDDLE_TIP],
+      [WRIST, RING_MCP], [RING_MCP, RING_PIP], [RING_PIP, RING_DIP], [RING_DIP, RING_TIP],
+      [WRIST, PINKY_MCP], [PINKY_MCP, PINKY_PIP], [PINKY_PIP, PINKY_DIP], [PINKY_DIP, PINKY_TIP],
+      [INDEX_MCP, MIDDLE_MCP], [MIDDLE_MCP, RING_MCP], [RING_MCP, PINKY_MCP],
     ];
 
-    landmarks.forEach((lm) => {
-      // Draw cybernetic skeleton lines
+    const mode = this.lastStatus.mode;
+    const lineColor =
+      mode === "zoom" ? "#ff6600"
+      : mode === "fist" ? "#ffaa30"
+      : mode === "spin" ? "#00ff66"
+      : "#00f0ff";
+
+    landmarks.forEach((lm, handIdx) => {
+      const handState = Array.from(this.handStates.values())[handIdx];
+
+      // Draw skeleton
       ctx.save();
-      ctx.strokeStyle = "rgba(0, 240, 255, 0.75)";
-      ctx.lineWidth = 1.8;
-      ctx.shadowColor = "#00f0ff";
-      ctx.shadowBlur = 6;
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = lineColor;
+      ctx.shadowBlur = 8;
       ctx.beginPath();
       connections.forEach(([p1, p2]) => {
-        const pt1 = lm[p1];
-        const pt2 = lm[p2];
-        if (pt1 && pt2) {
-          ctx.moveTo((1 - pt1.x) * width, pt1.y * height);
-          ctx.lineTo((1 - pt2.x) * width, pt2.y * height);
+        const a = lm[p1];
+        const b = lm[p2];
+        if (a && b) {
+          ctx.moveTo((1 - a.x) * width, a.y * height);
+          ctx.lineTo((1 - b.x) * width, b.y * height);
         }
       });
       ctx.stroke();
       ctx.restore();
 
-      // Draw glowing joint nodes — always visible on all 21 landmarks
+      // Draw joints — color-coded by curl state
       lm.forEach((pt, idx) => {
         const x = (1 - pt.x) * width;
         const y = pt.y * height;
-        const isTip = idx === THUMB_TIP || idx === INDEX_TIP || idx === MIDDLE_TIP || idx === RING_TIP || idx === PINKY_TIP;
-        const isKnuckle = idx === THUMB_MCP || idx === INDEX_MCP || idx === MIDDLE_MCP || idx === RING_MCP || idx === PINKY_MCP;
+        const isTip = [THUMB_TIP, INDEX_TIP, MIDDLE_TIP, RING_TIP, PINKY_TIP].includes(idx);
+        const isMCP = [THUMB_MCP, INDEX_MCP, MIDDLE_MCP, RING_MCP, PINKY_MCP].includes(idx);
+
+        // Get curl color from finger state
+        let fillColor = isTip ? "#ffffff" : isMCP ? "#00f0ff" : "rgba(0,240,255,0.5)";
+        if (handState && isTip) {
+          const fingerIdx = [THUMB_TIP, INDEX_TIP, MIDDLE_TIP, RING_TIP, PINKY_TIP].indexOf(idx);
+          if (fingerIdx >= 0) {
+            const curl = handState.fingers[fingerIdx]?.curl ?? 0;
+            // Red = curled, green = extended
+            const r = Math.round(curl * 255);
+            const g = Math.round((1 - curl) * 200);
+            fillColor = `rgb(${r},${g},60)`;
+          }
+        }
 
         ctx.save();
         ctx.beginPath();
-        ctx.arc(x, y, isTip ? 5 : isKnuckle ? 3 : 2, 0, Math.PI * 2);
-        ctx.fillStyle = isTip ? "#ffffff" : isKnuckle ? "#00f0ff" : "rgba(0, 240, 255, 0.6)";
-        ctx.shadowColor = isTip ? "#ffffff" : "#00f0ff";
-        ctx.shadowBlur = isTip ? 14 : isKnuckle ? 6 : 3;
+        ctx.arc(x, y, isTip ? 5.5 : isMCP ? 3.5 : 2, 0, Math.PI * 2);
+        ctx.fillStyle = fillColor;
+        ctx.shadowColor = fillColor;
+        ctx.shadowBlur = isTip ? 14 : 5;
         ctx.fill();
-        if (isTip) {
-          ctx.strokeStyle = "rgba(0, 240, 255, 0.8)";
-          ctx.lineWidth = 1;
-          ctx.stroke();
-        }
         ctx.restore();
       });
-    });
 
-    // Draw target crosshairs for active grab / pinch / zoom
-    if (this.lastStatus.mode === "spin" || this.lastStatus.mode === "fist" || this.lastStatus.mode === "zoom") {
-      landmarks.forEach((lm) => {
+      // Pinch crosshair
+      if (mode === "spin" || mode === "fist" || mode === "zoom") {
         const thumb = lm[THUMB_TIP];
         const index = lm[INDEX_TIP];
         if (thumb && index) {
-          const midX = (1 - (thumb.x + index.x) / 2) * width;
-          const midY = ((thumb.y + index.y) / 2) * height;
-          const time = performance.now() * 0.003;
+          const mx = (1 - (thumb.x + index.x) / 2) * width;
+          const my = ((thumb.y + index.y) / 2) * height;
+          const t = performance.now() * 0.003;
 
           ctx.save();
-          ctx.translate(midX, midY);
-          ctx.rotate(time);
-          ctx.strokeStyle = this.lastStatus.mode === "fist" ? "#ffaa30" : "#00ff66";
+          ctx.translate(mx, my);
+          ctx.rotate(t);
+          ctx.strokeStyle = lineColor;
           ctx.lineWidth = 1.5;
-          ctx.shadowColor = ctx.strokeStyle;
-          ctx.shadowBlur = 8;
-
+          ctx.shadowColor = lineColor;
+          ctx.shadowBlur = 10;
           ctx.beginPath();
-          ctx.arc(0, 0, 14, 0, Math.PI * 2);
+          ctx.arc(0, 0, 13, 0, Math.PI * 2);
           ctx.stroke();
-
-          // Outer crosshair ticks
           for (let i = 0; i < 4; i++) {
             ctx.rotate(Math.PI / 2);
             ctx.beginPath();
-            ctx.moveTo(18, 0);
-            ctx.lineTo(24, 0);
+            ctx.moveTo(17, 0);
+            ctx.lineTo(23, 0);
             ctx.stroke();
           }
           ctx.restore();
         }
-      });
-    }
+      }
+    });
 
-    // Top HUD status badge
+    // HUD status bar
+    const modeLabel = mode.toUpperCase().replace("_", " ");
+    const depth = Math.round((this.lastStatus.depthFactor ?? 0) * 100);
     ctx.save();
-    ctx.fillStyle = "rgba(10, 10, 15, 0.8)";
-    ctx.fillRect(6, 6, 172, 26);
-    ctx.strokeStyle = "rgba(0, 240, 255, 0.6)";
+    ctx.fillStyle = "rgba(8, 8, 14, 0.85)";
+    const hudW = 210;
+    ctx.fillRect(5, 5, hudW, 28);
+    ctx.strokeStyle = lineColor;
     ctx.lineWidth = 1;
-    ctx.strokeRect(6, 6, 172, 26);
-
-    ctx.fillStyle = "#00f0ff";
+    ctx.strokeRect(5, 5, hudW, 28);
+    ctx.fillStyle = lineColor;
     ctx.font = "bold 10px 'JetBrains Mono', monospace";
-    ctx.fillText(`HUD // ${this.lastStatus.mode.toUpperCase()}`, 12, 23);
+    ctx.fillText(`${modeLabel}  ⊕ DEPTH ${depth}%`, 10, 22);
 
-    // Kinetic momentum indicator
+    // Momentum bar
     const speed = Math.hypot(this.vx, this.vy);
     if (speed > 0.005) {
       ctx.fillStyle = "#ffaa30";
-      ctx.fillRect(130, 15, Math.min(42, speed * 200), 6);
+      ctx.fillRect(150, 14, Math.min(60, speed * 200), 6);
     }
     ctx.restore();
   }
-}
-
-function dist3d(a: NormalizedLandmark, b: NormalizedLandmark): number {
-  return Math.hypot(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0));
-}
-
-function isFingerExtended(
-  lm: NormalizedLandmark[],
-  wristIdx: number,
-  pipIdx: number,
-  tipIdx: number,
-): boolean {
-  const tipToWrist = dist3d(lm[tipIdx], lm[wristIdx]);
-  const pipToWrist = dist3d(lm[pipIdx], lm[wristIdx]);
-  const tipToPip = dist3d(lm[tipIdx], lm[pipIdx]);
-  const pipToMcp = dist3d(lm[pipIdx], lm[pipIdx - 1]);
-  return tipToWrist > 1.22 * pipToWrist && tipToPip > 0.85 * pipToMcp;
-}
-
-function isThumbExtended(lm: NormalizedLandmark[]): boolean {
-  const tipToWrist = dist3d(lm[THUMB_TIP], lm[WRIST]);
-  const ipToWrist = dist3d(lm[THUMB_IP], lm[WRIST]);
-  const tipToPinkyMcp = Math.hypot(lm[THUMB_TIP].x - lm[PINKY_MCP].x, lm[THUMB_TIP].y - lm[PINKY_MCP].y);
-  const mcpToPinkyMcp = Math.hypot(lm[THUMB_MCP].x - lm[PINKY_MCP].x, lm[THUMB_MCP].y - lm[PINKY_MCP].y);
-  return tipToWrist > 1.15 * ipToWrist && tipToPinkyMcp > 1.05 * mcpToPinkyMcp;
 }

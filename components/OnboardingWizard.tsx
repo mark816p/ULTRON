@@ -26,6 +26,10 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
   const [selectedVoice, setSelectedVoice] = useState<VoiceProfile>("jarvis");
   const [activeBrains, setActiveBrains] = useState<string[]>(["antigravity", "ollama"]);
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+  
+  const [depth3dEnabled, setDepth3dEnabled] = useState(false);
+  const [voiceTestText, setVoiceTestText] = useState("");
+  const [isListening, setIsListening] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -40,6 +44,11 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
       const savedKeys = localStorage.getItem("ultron_api_keys");
       if (savedKeys) {
         try { setApiKeys(JSON.parse(savedKeys)); } catch (e) {}
+      }
+      
+      const saved3d = localStorage.getItem("ultron_3d_awareness");
+      if (saved3d) {
+        setDepth3dEnabled(saved3d === "true");
       }
       Promise.all([
         fetch("/api/sysinfo").then((res) => res.json()).catch(() => null),
@@ -70,6 +79,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
     localStorage.setItem("ultron_voice_profile", selectedVoice);
     localStorage.setItem("ultron_active_brains", JSON.stringify(activeBrains));
     localStorage.setItem("ultron_api_keys", JSON.stringify(apiKeys));
+    localStorage.setItem("ultron_3d_awareness", depth3dEnabled ? "true" : "false");
     onClose(selectedEngine, finalModel, selectedVoice);
   };
 
@@ -389,6 +399,91 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                     <span className="tool-icon">🔄</span>
                     <div>
                       <strong>Change AI Mind Anytime:</strong> You can switch your backend engine or specific model from the System tab whenever you want.
+                    </div>
+                  </div>
+                  
+                  <div className="tool-item">
+                    <span className="tool-icon">🌐</span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <strong>3D Spatial Awareness:</strong>
+                      <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                        <input 
+                          type="checkbox" 
+                          checked={depth3dEnabled}
+                          onChange={(e) => setDepth3dEnabled(e.target.checked)}
+                          style={{ accentColor: "#00ff66" }}
+                        />
+                        <span style={{ fontSize: "12px", color: "#ccc" }}>
+                          Enable depth-reactive rendering (orb responds to how close your hand is to the camera)
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="tool-item" style={{ border: "1px solid rgba(0, 255, 102, 0.3)", padding: "10px", borderRadius: "6px", background: "rgba(0, 255, 102, 0.05)" }}>
+                    <span className="tool-icon">🎤</span>
+                    <div style={{ width: "100%" }}>
+                      <strong>Microphone Test:</strong>
+                      <p style={{ fontSize: "11px", color: "#aaa", margin: "4px 0 8px 0" }}>Test your voice input now before launching.</p>
+                      
+                      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isListening) return;
+                            setIsListening(true);
+                            setVoiceTestText("");
+                            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                            if (SpeechRecognition) {
+                              const recognition = new SpeechRecognition();
+                              recognition.continuous = false;
+                              recognition.interimResults = true;
+                              
+                              recognition.onresult = (event: any) => {
+                                let finalTranscript = "";
+                                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                                  if (event.results[i].isFinal) {
+                                    finalTranscript += event.results[i][0].transcript;
+                                  }
+                                }
+                                if (finalTranscript) {
+                                  setVoiceTestText(finalTranscript);
+                                  setIsListening(false);
+                                }
+                              };
+                              
+                              recognition.onerror = () => setIsListening(false);
+                              recognition.onend = () => setIsListening(false);
+                              
+                              try {
+                                recognition.start();
+                              } catch(e) {
+                                setIsListening(false);
+                              }
+                            } else {
+                              setVoiceTestText("Voice input not supported in this browser.");
+                              setIsListening(false);
+                            }
+                          }}
+                          className={`hud-btn ${isListening ? "active pulse" : ""}`}
+                          style={{ minWidth: "120px" }}
+                        >
+                          {isListening ? "🔴 LISTENING..." : "🎙️ START TEST"}
+                        </button>
+                        
+                        <div style={{ 
+                          flex: 1, 
+                          background: "rgba(0,0,0,0.4)", 
+                          border: "1px solid rgba(255,255,255,0.1)", 
+                          padding: "8px", 
+                          borderRadius: "4px",
+                          minHeight: "34px",
+                          fontSize: "12px",
+                          color: voiceTestText ? "#00ff66" : "#666"
+                        }}>
+                          {voiceTestText || "Say something..."}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

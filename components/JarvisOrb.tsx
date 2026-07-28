@@ -36,6 +36,9 @@ export default function JarvisOrb() {
   const [showWizard, setShowWizard] = useState(false);
   const [hideUI, setHideUI] = useState(false);
   const [showWebcamFeed, setShowWebcamFeed] = useState(false);
+  const [depth3dEnabled, setDepth3dEnabled] = useState(() =>
+    typeof window !== "undefined" ? localStorage.getItem("ultron_3d_awareness") === "true" : false
+  );
 
   useEffect(() => {
     const isOnboarded = localStorage.getItem("ultron_onboarded");
@@ -74,6 +77,10 @@ export default function JarvisOrb() {
       onRotate: (dt, dp) => sceneRef.current?.rotateBy(dt, dp),
       onZoom: (factor) => sceneRef.current?.zoomBy(factor),
       onStatus: setStatus,
+      onDepth: (factor) => {
+        if (depth3dEnabled) sceneRef.current?.setDepthFactor(factor);
+        else sceneRef.current?.setDepthFactor(0);
+      },
       onGestureAction: (action) => {
         if (!sceneRef.current) return;
         if (action === "reset") {
@@ -164,7 +171,13 @@ export default function JarvisOrb() {
       </button>
 
       {/* Onboarding Wizard Overlay */}
-      <OnboardingWizard isOpen={showWizard} onClose={() => setShowWizard(false)} />
+      <OnboardingWizard
+        isOpen={showWizard}
+        onClose={(engine, model, voice) => {
+          setShowWizard(false);
+          setDepth3dEnabled(localStorage.getItem("ultron_3d_awareness") === "true");
+        }}
+      />
 
       {/* When hideUI is false, render all text HUD and chat panels */}
       {!hideUI && (
@@ -263,7 +276,7 @@ export default function JarvisOrb() {
                 RESET
               </button>
             </div>
-            <div className="hud-version">v48</div>
+            <div className="hud-version">v49</div>
           </div>
 
           {/* Futuristic Chat & Cognitive Control Panel */}

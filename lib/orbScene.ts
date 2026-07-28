@@ -15,6 +15,8 @@ export interface OrbSceneApi {
   resetView(): void;
   setAIState(state: "idle" | "thinking" | "speaking" | "pondering"): void;
   setThoughtWords(words: string[]): void;
+  /** Optional 3D hand-depth awareness: factor 0=far, 1=very close. */
+  setDepthFactor(factor: number): void;
   dispose(): void;
 }
 
@@ -858,16 +860,18 @@ export function createOrbScene(container: HTMLElement): OrbSceneApi {
       });
     }
 
-    // Bloom pulse reactive to AI state
+    // Bloom pulse reactive to AI state, optionally boosted by 3D depth
+    const depthBloomBoost = currentDepth * 0.8; // 0 to 0.8 extra bloom when close
     if (aiState === "speaking") {
-      bloom.strength = 1.9 + Math.sin(t * 14) * 0.6;
+      bloom.strength = 1.9 + Math.sin(t * 14) * 0.6 + depthBloomBoost;
     } else if (aiState === "thinking" || aiState === "pondering") {
-      bloom.strength = 2.4 + Math.sin(t * 6) * 0.4;
+      bloom.strength = 2.4 + Math.sin(t * 6) * 0.4 + depthBloomBoost;
     } else {
-      bloom.strength = 1.6 + Math.sin(t * 0.8) * 0.3;
+      bloom.strength = 1.6 + Math.sin(t * 0.8) * 0.3 + depthBloomBoost;
     }
 
-    // Update chromatic aberration time
+    // Chromatic aberration intensifies with hand proximity
+    chromaticPass.uniforms.uIntensity.value = 0.003 + currentDepth * 0.006;
     chromaticPass.uniforms.uTime.value = t;
 
     controls.update();
@@ -909,6 +913,15 @@ export function createOrbScene(container: HTMLElement): OrbSceneApi {
     renderer.domElement.remove();
   }
 
+  // ——— 3D DEPTH AWARENESS ———
+  let currentDepth = 0;
+  let targetDepth = 0;
+  function setDepthFactor(factor: number) {
+    targetDepth = Math.max(0, Math.min(1, factor));
+    // Smoothly update currentDepth in the animate loop
+    currentDepth += (targetDepth - currentDepth) * 0.08;
+  }
+
   return {
     rotateBy,
     zoomBy,
@@ -917,6 +930,7 @@ export function createOrbScene(container: HTMLElement): OrbSceneApi {
     resetView,
     setAIState,
     setThoughtWords,
+    setDepthFactor,
     dispose,
   };
 }
