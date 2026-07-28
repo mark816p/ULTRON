@@ -182,7 +182,7 @@ export default function SettingsModal(props: SettingsModalProps) {
       const data = await res.json();
       const tag = data.tag_name || "";
       setLatestVer(tag);
-      if (tag && tag !== "v47.0.0" && !tag.includes("v47")) {
+      if (tag && tag !== "v48.0.0" && !tag.includes("v48")) {
         setUpdateStatus("available");
       } else {
         setUpdateStatus("up-to-date");
@@ -232,7 +232,7 @@ export default function SettingsModal(props: SettingsModalProps) {
       <div style={S.modal}>
         {/* Header */}
         <div style={S.header}>
-          <span style={S.headerTitle}>⚙ SETTINGS — U.L.T.R.O.N. v47</span>
+          <span style={S.headerTitle}>⚙ SETTINGS — U.L.T.R.O.N. v48</span>
           <button style={S.closeBtn} onClick={onClose} title="Close (Esc)">✕</button>
         </div>
 
@@ -467,7 +467,7 @@ export default function SettingsModal(props: SettingsModalProps) {
                 <span style={S.sectionLabel}>In-App Updater</span>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                   <div>
-                    <span style={{ fontSize: 12, color: "#ccc", display: "block" }}>Current Version: v47.0.0</span>
+                    <span style={{ fontSize: 12, color: "#ccc", display: "block" }}>Current Version: v48.0.0</span>
                     <span style={{ fontSize: 10, color: "#444" }}>Check official repository for new releases</span>
                   </div>
                   <button
@@ -480,7 +480,7 @@ export default function SettingsModal(props: SettingsModalProps) {
                   </button>
                 </div>
                 {updateStatus === "up-to-date" && (
-                  <p style={{ fontSize: 11, color: "#44bb44", margin: 0 }}>✅ U.L.T.R.O.N. is running the latest verified version (v47.0.0).</p>
+                  <p style={{ fontSize: 11, color: "#44bb44", margin: 0 }}>✅ U.L.T.R.O.N. is running the latest verified version (v48.0.0).</p>
                 )}
                 {updateStatus === "available" && (
                   <div style={{ background: "rgba(255, 170, 48, 0.1)", border: "1px solid rgba(255, 170, 48, 0.4)", borderRadius: 6, padding: 10, marginTop: 8 }}>
@@ -530,7 +530,7 @@ export default function SettingsModal(props: SettingsModalProps) {
 
               <div style={{ ...S.section, textAlign: "center" as const }}>
                 <span style={{ fontSize: 10, color: "#333", letterSpacing: "0.12em" }}>
-                  U.L.T.R.O.N. v47 · Neural OS · Google DeepMind Antigravity AI
+                  U.L.T.R.O.N. v48 · Neural OS · Google DeepMind Antigravity AI
                 </span>
               </div>
             </>
