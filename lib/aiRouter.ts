@@ -32,6 +32,7 @@ export interface RouteOptions {
   apiKeys?: Record<string, string>;
   ollamaModel?: string;
   lmStudioModel?: string;
+  modelNames?: Record<string, string>; // optional per-brain model override, e.g. { anthropic: "claude-sonnet-5" }
 }
 
 export class AiRouter {
@@ -69,8 +70,24 @@ export class AiRouter {
 
     // 0. Dynamic Multi-Brain Checkbox Queue Architecture
     if (options.activeBrains && options.activeBrains.length > 0) {
+      // Safety net: if a cloud provider has a usable key (apiKeys map, the currently
+      // selected apiProvider/apiKey pair, or an environment variable) but was never
+      // explicitly ticked, try it anyway before giving up. A valid key should never
+      // go unused just because a checkbox wasn't checked.
+      const knownCloudProviders = ["anthropic", "openai", "gemini", "openrouter", "deepseek", "groq", "mistral", "xai"];
+      const hasUsableKey = (p: string) =>
+        !!(
+          options.apiKeys?.[p] ||
+          (p === options.apiProvider && options.apiKey) ||
+          process.env[`${p.toUpperCase()}_API_KEY`]
+        );
+      const extraBrains = knownCloudProviders.filter(
+        (p) => hasUsableKey(p) && !options.activeBrains!.includes(p)
+      );
+      const brainQueue = [...options.activeBrains, ...extraBrains];
+
       let failoverLog: string[] = [];
-      for (const brain of options.activeBrains) {
+      for (const brain of brainQueue) {
         try {
           if (brain === "antigravity") {
             const res = await this.antigravity.execute(latestPrompt, systemInstructions, exactModelName);
@@ -113,12 +130,17 @@ export class AiRouter {
           } else {
             // Cloud API provider (openrouter, gemini, openai, anthropic, deepseek, groq, mistral, xai, custom)
             const key = options.apiKeys?.[brain] || (brain === options.apiProvider ? options.apiKey : "") || "";
-            let targetModel = exactModelName;
+            // Only honor a single global model name when there's exactly one brain queued.
+            // With a real multi-brain failover list, a model picked for one provider (e.g.
+            // a Gemini model string) is invalid for the others and breaks every brain after
+            // the first. Use options.modelNames for a real per-brain override.
+            const singleBrain = brainQueue.length === 1;
+            let targetModel = options.modelNames?.[brain] || (singleBrain ? exactModelName : undefined);
             if (!targetModel || targetModel === "auto") {
               if (brain === "openrouter") targetModel = "openrouter/auto";
-              else if (brain === "gemini") targetModel = "gemini-2.5-pro";
-              else if (brain === "openai") targetModel = "gpt-4o";
-              else if (brain === "anthropic") targetModel = "claude-3-7-sonnet-20250219";
+              else if (brain === "gemini") targetModel = "gemini-3.1-pro";
+              else if (brain === "openai") targetModel = "gpt-5.6";
+              else if (brain === "anthropic") targetModel = "claude-sonnet-5";
               else if (brain === "deepseek") targetModel = "deepseek-r1";
               else if (brain === "groq") targetModel = "llama-3.3-70b-versatile";
               else if (brain === "mistral") targetModel = "mistral-large-latest";
@@ -153,7 +175,7 @@ export class AiRouter {
         const firstLine = s.split("\n")[0].replace(/\s{2,}/g, " ").slice(0, 120);
         return firstLine;
       });
-      throw new Error(`AI routing failed: All active ticked brains [${options.activeBrains.join(", ")}] failed or are unreachable. Failover log: ${cleanLog.join(" -> ")}`);
+      throw new Error(`AI routing failed: All available brains [${brainQueue.join(", ")}] failed or are unreachable. Failover log: ${cleanLog.join(" -> ")}`);
     }
 
     // 1. If preferred is auto, antigravity, or api-key, try Online Engine first
@@ -328,7 +350,7 @@ export class AiRouter {
     try {
       // 1. Google Gemini Native REST API
       if (provider === "gemini") {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model || "gemini-2.5-pro"}:generateContent?key=${key}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model || "gemini-3.1-pro"}:generateContent?key=${key}`;
         const contents = messages.map((m) => ({
           role: m.role === "assistant" ? "model" : "user",
           parts: [{ text: m.content }],
@@ -362,7 +384,7 @@ export class AiRouter {
             content: m.content,
           }));
         const body: any = {
-          model: model || "claude-3-7-sonnet-20250219",
+          model: model || "claude-sonnet-5",
           max_tokens: 4096,
           messages: anthropicMessages,
         };
@@ -417,7 +439,7 @@ export class AiRouter {
         method: "POST",
         headers,
         body: JSON.stringify({
-          model: model || (provider === "openrouter" ? "openrouter/auto" : "gpt-4o"),
+          model: model || (provider === "openrouter" ? "openrouter/auto" : "gpt-5.6"),
           messages: fullMessages,
           temperature: 0.7,
           stream: false,

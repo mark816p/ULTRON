@@ -41,11 +41,11 @@ const MAX_SMOOTHING = 0.88;
 
 // Minimum intentional zoom delta — user must spread/pinch hands at least this much
 // before zoom is triggered. Prevents accidental zoom from small positional variance.
-const ZOOM_MIN_DELTA_RATIO = 0.025; // 2.5% change from baseline is enough to signal zoom intent
+const ZOOM_MIN_DELTA_RATIO = 0.020; // 2.0% change from baseline is enough to signal zoom intent
 // Minimum frames the zoom gesture must sustain before activating
-const ZOOM_SUSTAIN_FRAMES = 2;
+const ZOOM_SUSTAIN_FRAMES = 4;
 // Frames the active pinch state is latched after the thumb leaves view
-const PINCH_LATCH_FRAMES = 18;
+const PINCH_LATCH_FRAMES = 22;
 
 export type GestureMode =
   | "idle"
@@ -399,7 +399,7 @@ export class HandTracker {
           pinchedGrabs[0].y - pinchedGrabs[1].y,
         );
         this.zoomSustainFrames = 0;
-        this.zoomBaselineLatch = 8; // hold baseline for 8 frames after hands drop
+        this.zoomBaselineLatch = 12; // hold baseline for 12 frames after hands drop
         targetMode = "spin"; // still spin until intent is confirmed
       } else {
         const currentDist = Math.hypot(
@@ -409,8 +409,10 @@ export class HandTracker {
         const deltaRatio = Math.abs(currentDist - this.zoomBaselineDist) / (this.zoomBaselineDist + 1e-6);
         if (deltaRatio > ZOOM_MIN_DELTA_RATIO) {
           this.zoomSustainFrames++;
+          // Update baseline gradually to track absolute distance as user moves hands
+          this.zoomBaselineDist = this.zoomBaselineDist * 0.85 + currentDist * 0.15;
         }
-        this.zoomBaselineLatch = 8; // refresh latch while both hands are active
+        this.zoomBaselineLatch = 12; // refresh latch while both hands are active
         // Only lock into zoom after sustaining the intent for enough frames
         if (this.zoomSustainFrames >= ZOOM_SUSTAIN_FRAMES) {
           targetMode = "zoom";
@@ -517,7 +519,7 @@ export class HandTracker {
         );
         if (this.prevZoomDist && d > 1e-4) {
           // spread hands = zoom in (factor < 1 means camera moves closer)
-          const factor = Math.min(1.15, Math.max(0.87, this.prevZoomDist / d));
+          const factor = Math.min(1.18, Math.max(0.85, this.prevZoomDist / d));
           this.callbacks.onZoom(factor);
         }
         this.prevZoomDist = d;

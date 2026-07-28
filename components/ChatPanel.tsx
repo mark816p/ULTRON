@@ -36,7 +36,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [modelMode, setModelMode] = useState<"auto" | "antigravity" | "api-key" | "ollama" | "lm-studio">("auto");
-  const [selectedModelName, setSelectedModelName] = useState("gemini-2.5-pro");
+  const [selectedModelName, setSelectedModelName] = useState("auto");
   const [selectedLocalModelName, setSelectedLocalModelName] = useState("llama3:8b");
   const [onlineMode, setOnlineMode] = useState<"antigravity" | "api-key">("antigravity");
   const [localMode, setLocalMode] = useState<"ollama" | "lm-studio">("ollama");
@@ -347,67 +347,85 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
     [input, loading, messages, modelMode, selectedModelName, onlineMode, localMode, apiProvider, apiKey, apiBaseUrl, sceneRef]
   );
 
-  // Always-active Wake Word ("Ultron") continuous recognition
+  // Always-active Wake Word ("Ultron") continuous recognition — auto-restart with backoff
   useEffect(() => {
     if (!wakeWordActive || isListening || loading) return;
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-
+    let recognition: any = null;
     let recognitionStopped = false;
+    let restartTimeout: ReturnType<typeof setTimeout> | null = null;
+    let restartAttempts = 0;
 
-    recognition.onresult = (event: any) => {
-      const results = event.results;
-      const latestResult = results[results.length - 1];
-      const transcript = latestResult[0].transcript.trim();
+    const startRecognition = () => {
+      if (recognitionStopped) return;
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+      recognition.maxAlternatives = 1;
 
-      const lower = transcript.toLowerCase();
-      if (lower.includes("ultron") || lower.includes("altron")) {
-        const idx = Math.max(lower.indexOf("ultron"), lower.indexOf("altron"));
-        const command = transcript.slice(idx + 6).trim();
+      recognition.onresult = (event: any) => {
+        const results = event.results;
+        const latestResult = results[results.length - 1];
+        const transcript = latestResult[0].transcript.trim();
 
-        if (latestResult.isFinal && command.length > 2) {
-          recognitionStopped = true;
-          recognition.stop();
-          setInput(command);
-          handleSend(undefined, command);
-        } else if (latestResult.isFinal) {
-          sceneRef.current?.setAIState("thinking");
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "system",
-              content: "🎙️ U.L.T.R.O.N. active. Listening for your command...",
-              timestamp: new Date().toLocaleTimeString(),
-            },
-          ]);
+        const lower = transcript.toLowerCase();
+        if (lower.includes("ultron") || lower.includes("altron")) {
+          const idx = Math.max(lower.indexOf("ultron"), lower.indexOf("altron"));
+          const command = transcript.slice(idx + 6).trim();
+
+          if (latestResult.isFinal && command.length > 2) {
+            recognitionStopped = true;
+            recognition.stop();
+            setInput(command);
+            handleSend(undefined, command);
+          } else if (latestResult.isFinal) {
+            sceneRef.current?.setAIState("thinking");
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "system",
+                content: "🎙️ U.L.T.R.O.N. active. Listening for your command...",
+                timestamp: new Date().toLocaleTimeString(),
+              },
+            ]);
+          }
         }
-      }
+      };
+
+      recognition.onerror = (e: any) => {
+        // 'no-speech' and 'audio-capture' are non-fatal; restart quietly
+        if (e.error !== "aborted" && e.error !== "not-allowed") {
+          // will restart via onend
+        }
+      };
+
+      recognition.onend = () => {
+        if (!recognitionStopped && wakeWordActive) {
+          // Exponential backoff: 200ms → 400ms → 800ms → 1s max
+          const delay = Math.min(1000, 200 * Math.pow(1.5, restartAttempts));
+          restartAttempts = Math.min(restartAttempts + 1, 4);
+          restartTimeout = setTimeout(() => {
+            restartAttempts = 0; // reset on successful start
+            try { startRecognition(); } catch (e) {}
+          }, delay);
+        }
+      };
+
+      recognition.onstart = () => { restartAttempts = 0; };
+
+      try { recognition.start(); } catch (e) {}
     };
 
-    recognition.onerror = () => {};
-    recognition.onend = () => {
-      if (!recognitionStopped && wakeWordActive) {
-        try {
-          recognition.start();
-        } catch (e) {}
-      }
-    };
-
-    try {
-      recognition.start();
-    } catch (e) {}
+    startRecognition();
 
     return () => {
       recognitionStopped = true;
-      try {
-        recognition.stop();
-      } catch (e) {}
+      if (restartTimeout) clearTimeout(restartTimeout);
+      try { recognition?.stop(); } catch (e) {}
     };
   }, [wakeWordActive, isListening, loading, handleSend, sceneRef]);
 
@@ -504,7 +522,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   const activeTaskCount = tasks.filter((t) => t.status === "active" || t.status === "queued").length;
 
   const getAvailableModels = () => {
-    const defaultCloud = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-pro-exp-02-05", "gemini-2.0-flash-001", "claude-3.7-sonnet"];
+    const defaultCloud = ["gemini-3.1-pro", "gemini-3.5-flash", "claude-sonnet-5", "claude-opus-4-8", "gpt-5.6"];
     if (!modelsData) return defaultCloud;
     if (modelMode === "antigravity" || modelMode === "auto") return modelsData.antigravityModels || defaultCloud;
     if (modelMode === "ollama") return modelsData.ollamaModels || ["llama3:8b"];
@@ -518,7 +536,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
       <div className="chat-hud-header" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 10px", flexWrap: "nowrap" }}>
         <LogoIcon size={18} />
         <span className="pulse-dot" />
-        <span className="hud-label" style={{ fontSize: 11, whiteSpace: "nowrap" }}>U.L.T.R.O.N. v46</span>
+        <span className="hud-label" style={{ fontSize: 11, whiteSpace: "nowrap" }}>U.L.T.R.O.N. v47</span>
         <span className="stat-pill" style={{ fontSize: 10, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           🧠 {selectedModelName}
         </span>
@@ -660,7 +678,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
           {/* Bottom App Version Indicator */}
           <div className="chat-app-footer-version" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 12px 6px", fontSize: "10px", color: "#888", fontFamily: "'JetBrains Mono', monospace", borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(5, 5, 8, 0.7)" }}>
             <span style={{ cursor: "pointer", textDecoration: "underline", opacity: 0.7 }} onClick={() => setIsSettingsOpen(true)} title="Open Settings to configure AI engines">⚙ CONFIG AI ENGINE</span>
-            <span style={{ color: "#e0e0e0", fontWeight: "bold", background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(200, 200, 200, 0.3)", padding: "1px 8px", borderRadius: "10px", letterSpacing: "0.5px" }}>v46</span>
+            <span style={{ color: "#e0e0e0", fontWeight: "bold", background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(200, 200, 200, 0.3)", padding: "1px 8px", borderRadius: "10px", letterSpacing: "0.5px" }}>v47</span>
           </div>
         </>
       )}

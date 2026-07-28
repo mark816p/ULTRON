@@ -47,10 +47,10 @@ const PROVIDERS = [
 ];
 
 const PROVIDER_MODELS: Record<string, string[]> = {
-  openrouter: ["openrouter/auto", "anthropic/claude-3.7-sonnet", "openai/gpt-4o", "google/gemini-2.5-pro"],
-  gemini: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"],
-  openai: ["gpt-4o", "gpt-4o-mini", "o3-mini", "o1"],
-  anthropic: ["claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022"],
+  openrouter: ["openrouter/auto", "anthropic/claude-sonnet-5", "openai/gpt-5.6", "google/gemini-3.1-pro"],
+  gemini: ["gemini-3.1-pro", "gemini-3.5-flash", "gemini-2.5-flash"],
+  openai: ["gpt-5.6", "gpt-5.6-terra", "gpt-5.6-luna"],
+  anthropic: ["claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5-20251001"],
   groq: ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b", "qwen-qwq-32b"],
   deepseek: ["deepseek-r1", "deepseek-chat"],
   mistral: ["mistral-large-latest", "codestral-latest"],
@@ -59,8 +59,8 @@ const PROVIDER_MODELS: Record<string, string[]> = {
 };
 
 const ANTIGRAVITY_MODELS = [
-  "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite",
-  "gemini-2.0-pro-exp-02-05", "gemini-2.0-flash-001",
+  "gemini-3.1-pro", "gemini-3.5-flash", "gemini-2.5-flash",
+  "claude-sonnet-5", "claude-opus-4-8",
 ];
 
 const S: Record<string, React.CSSProperties> = {
@@ -182,7 +182,7 @@ export default function SettingsModal(props: SettingsModalProps) {
       const data = await res.json();
       const tag = data.tag_name || "";
       setLatestVer(tag);
-      if (tag && tag !== "v46.0.0" && !tag.includes("v46")) {
+      if (tag && tag !== "v47.0.0" && !tag.includes("v47")) {
         setUpdateStatus("available");
       } else {
         setUpdateStatus("up-to-date");
@@ -232,7 +232,7 @@ export default function SettingsModal(props: SettingsModalProps) {
       <div style={S.modal}>
         {/* Header */}
         <div style={S.header}>
-          <span style={S.headerTitle}>⚙ SETTINGS — U.L.T.R.O.N. v46</span>
+          <span style={S.headerTitle}>⚙ SETTINGS — U.L.T.R.O.N. v47</span>
           <button style={S.closeBtn} onClick={onClose} title="Close (Esc)">✕</button>
         </div>
 
@@ -467,7 +467,7 @@ export default function SettingsModal(props: SettingsModalProps) {
                 <span style={S.sectionLabel}>In-App Updater</span>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                   <div>
-                    <span style={{ fontSize: 12, color: "#ccc", display: "block" }}>Current Version: v46.0.0</span>
+                    <span style={{ fontSize: 12, color: "#ccc", display: "block" }}>Current Version: v47.0.0</span>
                     <span style={{ fontSize: 10, color: "#444" }}>Check official repository for new releases</span>
                   </div>
                   <button
@@ -480,7 +480,7 @@ export default function SettingsModal(props: SettingsModalProps) {
                   </button>
                 </div>
                 {updateStatus === "up-to-date" && (
-                  <p style={{ fontSize: 11, color: "#44bb44", margin: 0 }}>✅ U.L.T.R.O.N. is running the latest verified version (v46.0.0).</p>
+                  <p style={{ fontSize: 11, color: "#44bb44", margin: 0 }}>✅ U.L.T.R.O.N. is running the latest verified version (v47.0.0).</p>
                 )}
                 {updateStatus === "available" && (
                   <div style={{ background: "rgba(255, 170, 48, 0.1)", border: "1px solid rgba(255, 170, 48, 0.4)", borderRadius: 6, padding: 10, marginTop: 8 }}>
@@ -530,7 +530,7 @@ export default function SettingsModal(props: SettingsModalProps) {
 
               <div style={{ ...S.section, textAlign: "center" as const }}>
                 <span style={{ fontSize: 10, color: "#333", letterSpacing: "0.12em" }}>
-                  U.L.T.R.O.N. v46 · Neural OS · Google DeepMind Antigravity AI
+                  U.L.T.R.O.N. v47 · Neural OS · Google DeepMind Antigravity AI
                 </span>
               </div>
             </>

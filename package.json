@@ -1,6 +1,6 @@
 {
   "name": "ultron-orb-ui",
-  "version": "46.0.0",
+  "version": "47.0.0",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -29,7 +29,7 @@
     ],
     "artifactName": "ULTRON-Setup.exe",
     "extraMetadata": {
-      "version": "46.0.0"
+      "version": "47.0.0"
     },
     "files": [
       ".next/**/*",
@@ -96,7 +96,8 @@
       "guid": "4A9D38C2-817B-4F29-875D-32A29C5B2A1E",
       "shortcutName": "U.L.T.R.O.N.",
       "installerSidebar": null,
-      "uninstallerSidebar": null
+      "uninstallerSidebar": null,
+      "signAndEditExecutable": false
     },
     "directories": {
       "output": "dist"
