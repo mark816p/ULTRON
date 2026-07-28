@@ -615,24 +615,6 @@
       <h2 class="section-title">Download U.L.T.R.O.N.</h2>
       <p class="section-sub">Universal neural client. Seamlessly deploys across local and cloud intelligence tiers with zero configuration.</p>
 
-      <!-- Universal Auto-Updating Bootstrapper Installer -->
-      <div style="background: linear-gradient(135deg, rgba(255, 170, 48, 0.15), rgba(0, 240, 255, 0.1)); border: 1px solid rgba(255, 170, 48, 0.4); border-radius: 16px; padding: 24px; margin-bottom: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); text-align: center;">
-        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-amber); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 8px;">⚡ RECOMMENDED AUTO-UPDATING BOOTSTRAPPER</div>
-        <h3 style="font-family: var(--font-display); font-size: 20px; color: #fff; margin: 0 0 8px;">Universal U.L.T.R.O.N. Bootstrapper Installer</h3>
-        <p style="font-size: 13px; color: #ccc; max-width: 680px; margin: 0 auto 18px; line-height: 1.5;">Never needs to be updated or re-downloaded. This ultra-lightweight bootstrapper automatically detects your OS, connects to the neural intelligence grid, and always downloads and launches the latest verified version.</p>
-        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-          <a href="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Installer.exe" class="btn-nav" style="text-decoration:none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px;" onclick="event.preventDefault(); startDownload(this.href, 'ULTRON-Installer.exe')">
-            <span>Download Windows Bootstrapper (.exe)</span>
-            <span>&rarr;</span>
-          </a>
-          <a href="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Installer.dmg" class="btn-ghost" style="text-decoration:none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 12px;" onclick="event.preventDefault(); startDownload(this.href, 'ULTRON-Installer.dmg')">
-            <span>macOS (.dmg)</span>
-          </a>
-          <a href="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Installer.AppImage" class="btn-ghost" style="text-decoration:none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 12px;" onclick="event.preventDefault(); startDownload(this.href, 'ULTRON-Installer.AppImage')">
-            <span>Linux (.AppImage)</span>
-          </a>
-        </div>
-      </div>
 
       <div class="dl-grid">
         <!-- Windows -->
@@ -646,8 +628,7 @@
             <div style="margin-bottom: 18px;">
               <label style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-cyan); display: block; margin-bottom: 6px;">SELECT VERSION (DEFAULT: LATEST):</label>
               <select id="win-ver" style="width: 100%; padding: 8px 12px; border-radius: 8px; background: rgba(20, 20, 30, 0.9); color: #fff; border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px; cursor: pointer;">
-                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Installer.exe">⚡ Bootstrapper Installer (Never Needs Update)</option>
-                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.exe">Latest (v47.0.0 Auto-Detect)</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.exe">⚡ Latest (v47.0.0 — always up to date)</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v47.0.0/ULTRON-Setup.exe">v47.0.0</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v45.0.0/ULTRON-Setup.exe">v45.0.0</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v44.0.0/ULTRON-Setup.exe">v44.0.0</option>
@@ -685,8 +666,7 @@
             <div style="margin-bottom: 18px;">
               <label style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-cyan); display: block; margin-bottom: 6px;">SELECT VERSION (DEFAULT: LATEST):</label>
               <select id="mac-ver" style="width: 100%; padding: 8px 12px; border-radius: 8px; background: rgba(20, 20, 30, 0.9); color: #fff; border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px; cursor: pointer;">
-                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Installer.dmg">⚡ Bootstrapper Installer (Never Needs Update)</option>
-                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.dmg">Latest (v47.0.0 Auto-Detect)</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.dmg">⚡ Latest (v47.0.0 — always up to date)</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v47.0.0/ULTRON-Setup.dmg">v47.0.0</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v45.0.0/ULTRON-Setup.dmg">v45.0.0</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v44.0.0/ULTRON-Setup.dmg">v44.0.0</option>
@@ -724,8 +704,7 @@
             <div style="margin-bottom: 18px;">
               <label style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-cyan); display: block; margin-bottom: 6px;">SELECT VERSION (DEFAULT: LATEST):</label>
               <select id="nix-ver" style="width: 100%; padding: 8px 12px; border-radius: 8px; background: rgba(20, 20, 30, 0.9); color: #fff; border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px; cursor: pointer;">
-                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Installer.AppImage">⚡ Bootstrapper Installer (Never Needs Update)</option>
-                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.AppImage">Latest (v47.0.0 Auto-Detect)</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.AppImage">⚡ Latest (v47.0.0 — always up to date)</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v47.0.0/ULTRON-Setup.AppImage">v47.0.0</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v45.0.0/ULTRON-Setup.AppImage">v45.0.0</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v44.0.0/ULTRON-Setup.AppImage">v44.0.0</option>
@@ -867,13 +846,8 @@
     const FILE = { win: 'ULTRON-Setup.exe', mac: 'ULTRON-Setup.dmg', nix: 'ULTRON-Setup.AppImage' };
 
     function startDownload(url, filename) {
-      // Direct download — create a hidden link and click it
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // GitHub release URLs are cross-origin — window.open triggers the redirect+download
+      window.open(url, '_blank');
     }
 
     async function loadReleases() {
@@ -909,17 +883,11 @@
           // Clear existing options
           sel.innerHTML = '';
 
-          // Add Bootstrapper as first option
-          const bootOpt = document.createElement('option');
-          bootOpt.value = `https://github.com/${REPO}/releases/latest/download/ULTRON-Installer${EXT[os]}`;
-          bootOpt.textContent = '⚡ Bootstrapper Installer (Never Needs Update)';
-          sel.appendChild(bootOpt);
-
-          // Add Latest auto-detect as second option
+          // Add Latest as first option (always points to the newest release)
           const latestOpt = document.createElement('option');
           const latestUrl = `https://github.com/${REPO}/releases/latest/download/${FILE[os]}`;
           latestOpt.value = latestUrl;
-          latestOpt.textContent = `Latest (${latestStableTag})`;
+          latestOpt.textContent = `⚡ Latest (${latestStableTag} — always up to date)`;
           sel.appendChild(latestOpt);
 
           // Add each release
