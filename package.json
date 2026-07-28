@@ -96,8 +96,7 @@
       "guid": "4A9D38C2-817B-4F29-875D-32A29C5B2A1E",
       "shortcutName": "U.L.T.R.O.N.",
       "installerSidebar": null,
-      "uninstallerSidebar": null,
-      "signAndEditExecutable": false
+      "uninstallerSidebar": null
     },
     "directories": {
       "output": "dist"
