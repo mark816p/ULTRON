@@ -1,6 +1,4 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+const nextConfig = {
   serverExternalPackages: ["never-forget-engine", "better-sqlite3"],
 };
 

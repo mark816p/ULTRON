@@ -112,6 +112,14 @@ npm run build:installer:publish
 ```
 *All generated installer binaries are output to the `dist/` directory.*
 
+### ⚠️ Windows Smart App Control / SmartScreen
+Because U.L.T.R.O.N. is an open-source project and not signed with an expensive Extended Validation (EV) Code Signing Certificate, Windows 11 Smart App Control or Windows Defender SmartScreen may block the installer. 
+To bypass this:
+1. Right-click the downloaded `ULTRON-Setup.exe` file and select **Properties**.
+2. At the bottom of the General tab, check the **Unblock** box (this removes the "Mark of the Web").
+3. Click **Apply** and **OK**.
+4. Run the installer. *(If SmartScreen still prompts, click "More info" then "Run anyway".)*
+
 ---
 
 ## 🎮 Controls & Gesture Reference

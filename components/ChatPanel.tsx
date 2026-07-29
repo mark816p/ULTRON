@@ -536,7 +536,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
       <div className="chat-hud-header" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 10px", flexWrap: "nowrap" }}>
         <LogoIcon size={18} />
         <span className="pulse-dot" />
-        <span className="hud-label" style={{ fontSize: 11, whiteSpace: "nowrap" }}>U.L.T.R.O.N. v49</span>
+        <span className="hud-label" style={{ fontSize: 11, whiteSpace: "nowrap" }}>U.L.T.R.O.N. v51.4</span>
         <span className="stat-pill" style={{ fontSize: 10, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           🧠 {selectedModelName}
         </span>
@@ -678,7 +678,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
           {/* Bottom App Version Indicator */}
           <div className="chat-app-footer-version" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 12px 6px", fontSize: "10px", color: "#888", fontFamily: "'JetBrains Mono', monospace", borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(5, 5, 8, 0.7)" }}>
             <span style={{ cursor: "pointer", textDecoration: "underline", opacity: 0.7 }} onClick={() => setIsSettingsOpen(true)} title="Open Settings to configure AI engines">⚙ CONFIG AI ENGINE</span>
-            <span style={{ color: "#e0e0e0", fontWeight: "bold", background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(200, 200, 200, 0.3)", padding: "1px 8px", borderRadius: "10px", letterSpacing: "0.5px" }}>v49</span>
+            <span style={{ color: "#e0e0e0", fontWeight: "bold", background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(200, 200, 200, 0.3)", padding: "1px 8px", borderRadius: "10px", letterSpacing: "0.5px" }}>v51</span>
           </div>
         </>
       )}

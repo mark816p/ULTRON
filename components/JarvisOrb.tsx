@@ -12,9 +12,7 @@ const MODE_LABEL: Record<TrackerStatus["mode"], string> = {
   idle: "STANDBY",
   spin: "PRECISION PINCH",
   zoom: "ZOOM SCALING",
-  swipe: "AIR SWIPE",
   fist: "POWER GRAB",
-  point: "LASER POINT (RESET)",
   victory: "SYSTEM PULSE",
   thumbs_up: "ZOOM IN",
   thumbs_down: "ZOOM OUT",
@@ -36,13 +34,12 @@ export default function JarvisOrb() {
   const [showWizard, setShowWizard] = useState(false);
   const [hideUI, setHideUI] = useState(false);
   const [showWebcamFeed, setShowWebcamFeed] = useState(false);
-  const [depth3dEnabled, setDepth3dEnabled] = useState(() =>
-    typeof window !== "undefined" ? localStorage.getItem("ultron_3d_awareness") === "true" : false
-  );
+  const [depth3dEnabled, setDepth3dEnabled] = useState(false);
 
   useEffect(() => {
     const isOnboarded = localStorage.getItem("ultron_onboarded");
     if (!isOnboarded) setShowWizard(true);
+    if (localStorage.getItem("ultron_3d_awareness") === "true") setDepth3dEnabled(true);
   }, []);
 
   useEffect(() => {
@@ -276,7 +273,7 @@ export default function JarvisOrb() {
                 RESET
               </button>
             </div>
-            <div className="hud-version">v49</div>
+            <div className="hud-version">v51.4</div>
           </div>
 
           {/* Futuristic Chat & Cognitive Control Panel */}

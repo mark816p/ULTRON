@@ -1,6 +1,6 @@
 {
   "name": "ultron-orb-ui",
-  "version": "49.0.0",
+  "version": "51.4.0",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -12,12 +12,9 @@
     "build:installer:publish": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --publish=always"
   },
   "build": {
-    "appId": "com.antigravity.ultron",
+    "appId": "com.mark816p.ultron",
     "productName": "ULTRON",
-    "asar": true,
-    "asarUnpack": [
-      "node_modules/@mediapipe/**/*"
-    ],
+    "asar": false,
     "npmRebuild": false,
     "compression": "maximum",
     "publish": [
@@ -29,9 +26,10 @@
     ],
     "artifactName": "ULTRON-Setup.exe",
     "extraMetadata": {
-      "version": "48.0.0"
+      "version": "51.4.0"
     },
     "files": [
+      "next.config.mjs",
       ".next/**/*",
       "!.next/cache/**/*",
       "public/**/*",

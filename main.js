@@ -1,46 +1,119 @@
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
 const http = require('http');
+const fs = require('fs');
+const { spawn } = require('child_process');
 const { autoUpdater } = require('electron-updater');
 
 let mainWindow;
+let nextProcess = null;
 const PORT = 7777;
 
 // Configure autoUpdater for background auto-updating
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
-async function startNextServer() {
+function getAppDir() {
+  // When packaged with asar:false, files are at resources/app/
+  // When not packaged, they are at __dirname
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'app')
+    : __dirname;
+}
+
+function getNextBin() {
+  const appDir = getAppDir();
+  const nextPath = path.join(appDir, 'node_modules', 'next', 'dist', 'bin', 'next');
+  if (fs.existsSync(nextPath)) {
+    return nextPath;
+  }
+  return null;
+}
+
+function waitForServer(url, retries, delay) {
   return new Promise((resolve, reject) => {
-    // Check if server is already active on port 7777
-    http.get(`http://127.0.0.1:${PORT}`, () => {
-      resolve();
-    }).on('error', async () => {
-      try {
-        const next = require('next');
-        const dev = false;
-        const nextApp = next({ dev, dir: __dirname });
-        await nextApp.prepare();
-        const handle = nextApp.getRequestHandler();
-
-        const server = http.createServer((req, res) => {
-          handle(req, res);
+    function attempt(n) {
+      http
+        .get(url, (res) => {
+          if (res.statusCode < 500) {
+            resolve();
+          } else if (n > 0) {
+            setTimeout(() => attempt(n - 1), delay);
+          } else {
+            reject(new Error(`Server at ${url} returned status ${res.statusCode}`));
+          }
+        })
+        .on('error', () => {
+          if (n > 0) {
+            setTimeout(() => attempt(n - 1), delay);
+          } else {
+            reject(new Error(`Could not connect to server at ${url} after multiple retries`));
+          }
         });
+    }
+    attempt(retries);
+  });
+}
 
-        server.listen(PORT, '127.0.0.1', () => {
-          console.log(`[U.L.T.R.O.N.] Internal Neural Bridge active on http://127.0.0.1:${PORT}`);
-          resolve();
-        });
+async function startNextServer() {
+  // If server already running, reuse it
+  try {
+    await waitForServer(`http://127.0.0.1:${PORT}`, 1, 100);
+    console.log('[U.L.T.R.O.N.] Neural bridge already active.');
+    return;
+  } catch (_) {}
 
-        server.on('error', (err) => {
-          console.error('[U.L.T.R.O.N.] Server listen error:', err);
-          reject(err);
-        });
-      } catch (err) {
-        console.error('[U.L.T.R.O.N.] Failed to initialize Next.js engine:', err);
-        reject(err);
+  const appDir = getAppDir();
+  const nextBin = getNextBin();
+
+  if (!nextBin) {
+    throw new Error(
+      `Could not locate Next.js script.\nappDir=${appDir}\nExpected at: ${path.join(appDir, 'node_modules', 'next', 'dist', 'bin', 'next')}`
+    );
+  }
+
+  console.log(
+    `[U.L.T.R.O.N.] Spawning Neural Bridge using Node via Electron:\n  script=${nextBin}\n  cwd=${appDir}\n  port=${PORT}`
+  );
+
+  return new Promise((resolve, reject) => {
+    nextProcess = spawn(process.execPath, [nextBin, 'start', '-p', String(PORT)], {
+      cwd: appDir,
+      env: {
+        ...process.env,
+        ELECTRON_RUN_AS_NODE: '1',
+        NODE_ENV: 'production',
+        PORT: String(PORT),
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stderr = '';
+
+    nextProcess.stdout.on('data', (data) => {
+      console.log('[next]', data.toString().trim());
+    });
+
+    nextProcess.stderr.on('data', (data) => {
+      const msg = data.toString();
+      stderr += msg;
+      console.error('[next:err]', msg.trim());
+    });
+
+    nextProcess.on('error', (err) => {
+      reject(new Error(`Failed to spawn next process: ${err.message}`));
+    });
+
+    nextProcess.on('exit', (code) => {
+      if (code !== 0 && code !== null) {
+        reject(new Error(`next process exited with code ${code}.\n${stderr}`));
       }
     });
+
+    // Poll up to 60 seconds (120 × 500ms) for the server to be ready
+    waitForServer(`http://127.0.0.1:${PORT}`, 120, 500)
+      .then(resolve)
+      .catch(reject);
   });
 }
 
@@ -48,15 +121,15 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 920,
-    title: "U.L.T.R.O.N. Autonomous Neural Orb",
+    title: 'U.L.T.R.O.N. Autonomous Neural Orb',
     icon: path.join(__dirname, 'public/favicon.ico'),
     backgroundColor: '#0c0c0c',
     autoHideMenuBar: true,
-    show: false, // Show once loaded to prevent white flash
+    show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-    }
+    },
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -73,9 +146,18 @@ async function createWindow() {
     await mainWindow.loadURL(`http://127.0.0.1:${PORT}`);
     mainWindow.show();
   } catch (e) {
-    console.error("Failed to load U.L.T.R.O.N. UI:", e);
-    // If server fails for any reason, display emergency diagnostic HUD instead of failing silently
-    const errHtml = `data:text/html;charset=utf-8,<html><body style="background:#0c0c0c;color:#e6e6e6;font-family:sans-serif;padding:50px;text-align:center;"><h2 style="color:#ffffff;">U.L.T.R.O.N. Neural Bridge Diagnostics</h2><p style="color:#aaaaaa;">Server initialization on port ${PORT} encountered an issue.</p><p style="background:#1a1a1a;padding:15px;border-radius:6px;display:inline-block;color:#ff4444;">${e.message || e}</p></body></html>`;
+    console.error('Failed to load U.L.T.R.O.N. UI:', e);
+    const errMsg = encodeURIComponent(
+      (e.stack || e.message || String(e)).slice(0, 3000)
+    );
+    const errHtml =
+      `data:text/html;charset=utf-8,` +
+      `<html><body style="background:%230c0c0c;color:%23e6e6e6;font-family:sans-serif;padding:50px;text-align:center;">` +
+      `<h2 style="color:%23ffffff;">U.L.T.R.O.N. Neural Bridge Diagnostics</h2>` +
+      `<p style="color:%23aaaaaa;">Server initialization on port ${PORT} encountered an issue.</p>` +
+      `<pre style="background:%231a1a1a;padding:15px;border-radius:6px;display:inline-block;color:%23ff4444;` +
+      `text-align:left;white-space:pre-wrap;word-break:break-all;max-width:85%;">${errMsg}</pre>` +
+      `</body></html>`;
     await mainWindow.loadURL(errHtml);
     mainWindow.show();
   }
@@ -84,13 +166,17 @@ async function createWindow() {
   try {
     autoUpdater.checkForUpdatesAndNotify();
   } catch (e) {
-    console.log("Auto-updater offline or unreachable:", e.message);
+    console.log('Auto-updater offline or unreachable:', e.message);
   }
 }
 
 app.on('ready', createWindow);
 
 app.on('window-all-closed', () => {
+  if (nextProcess) {
+    nextProcess.kill();
+    nextProcess = null;
+  }
   if (process.platform !== 'darwin') {
     app.quit();
   }
