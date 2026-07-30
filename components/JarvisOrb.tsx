@@ -50,6 +50,7 @@ export default function JarvisOrb() {
     const el = container;
     let scene: ReturnType<typeof createOrbScene> | null = null;
     let initialized = false;
+    let ro: ResizeObserver | null = null;
 
     function initScene() {
       if (initialized) return;
@@ -57,18 +58,20 @@ export default function JarvisOrb() {
       initialized = true;
       scene = createOrbScene(el);
       sceneRef.current = scene;
-      ro.disconnect();
+      if (ro) ro.disconnect();
     }
 
     // Try immediately — works if container already has size
     initScene();
 
     // Otherwise wait for the container to get a real size
-    const ro = new ResizeObserver(() => initScene());
-    if (!initialized) ro.observe(el);
+    if (!initialized) {
+      ro = new ResizeObserver(() => initScene());
+      ro.observe(el);
+    }
 
     return () => {
-      ro.disconnect();
+      if (ro) ro.disconnect();
       trackerRef.current?.stop();
       trackerRef.current = null;
       scene?.dispose();
@@ -294,7 +297,7 @@ export default function JarvisOrb() {
                 RESET
               </button>
             </div>
-            <div className="hud-version">v51.5.1</div>
+            <div className="hud-version">v51.5.2</div>
           </div>
 
           {/* Futuristic Chat & Cognitive Control Panel */}

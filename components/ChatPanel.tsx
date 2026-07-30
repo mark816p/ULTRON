@@ -536,7 +536,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
       <div className="chat-hud-header" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 10px", flexWrap: "nowrap" }}>
         <LogoIcon size={18} />
         <span className="pulse-dot" />
-        <span className="hud-label" style={{ fontSize: 11, whiteSpace: "nowrap" }}>U.L.T.R.O.N. v51.5.1</span>
+        <span className="hud-label" style={{ fontSize: 11, whiteSpace: "nowrap" }}>U.L.T.R.O.N. v51.5.2</span>
         <span className="stat-pill" style={{ fontSize: 10, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           🧠 {selectedModelName}
         </span>
