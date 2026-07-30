@@ -182,7 +182,7 @@ export default function SettingsModal(props: SettingsModalProps) {
       const data = await res.json();
       const tag = data.tag_name || "";
       setLatestVer(tag);
-      if (tag && tag !== "v51.5.0" && !tag.includes("v51.5")) {
+      if (tag && tag !== "v51.5.1" && !tag.includes("v51.5")) {
         setUpdateStatus("available");
       } else {
         setUpdateStatus("up-to-date");
@@ -480,7 +480,7 @@ export default function SettingsModal(props: SettingsModalProps) {
                   </button>
                 </div>
                 {updateStatus === "up-to-date" && (
-                  <p style={{ fontSize: 11, color: "#44bb44", margin: 0 }}>✅ U.L.T.R.O.N. is running the latest verified version (v51.5.0).</p>
+                  <p style={{ fontSize: 11, color: "#44bb44", margin: 0 }}>✅ U.L.T.R.O.N. is running the latest verified version (v51.5.1).</p>
                 )}
                 {updateStatus === "available" && (
                   <div style={{ background: "rgba(255, 170, 48, 0.1)", border: "1px solid rgba(255, 170, 48, 0.4)", borderRadius: 6, padding: 10, marginTop: 8 }}>
