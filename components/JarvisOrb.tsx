@@ -45,12 +45,33 @@ export default function JarvisOrb() {
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const scene = createOrbScene(container);
-    sceneRef.current = scene;
+
+    // Capture in a non-null const so TypeScript is happy inside closures
+    const el = container;
+    let scene: ReturnType<typeof createOrbScene> | null = null;
+    let initialized = false;
+
+    function initScene() {
+      if (initialized) return;
+      if (el.clientWidth === 0 || el.clientHeight === 0) return;
+      initialized = true;
+      scene = createOrbScene(el);
+      sceneRef.current = scene;
+      ro.disconnect();
+    }
+
+    // Try immediately — works if container already has size
+    initScene();
+
+    // Otherwise wait for the container to get a real size
+    const ro = new ResizeObserver(() => initScene());
+    if (!initialized) ro.observe(el);
+
     return () => {
+      ro.disconnect();
       trackerRef.current?.stop();
       trackerRef.current = null;
-      scene.dispose();
+      scene?.dispose();
       sceneRef.current = null;
     };
   }, []);
