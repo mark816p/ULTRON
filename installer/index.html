@@ -390,24 +390,56 @@
       }
     }
 
+    function remapLegacyTag(tag) {
+      if (!tag || tag === 'latest') return 'v9.4.6';
+      const clean = String(tag).replace(/^v/, '');
+      const parts = clean.split('.').map(Number);
+      const major = parts[0] || 0;
+      const patch = parts[2] || 0;
+      if (major === 9 && parts[1] === 4) return tag.startsWith('v') ? tag : `v${tag}`;
+      if (major >= 51 && patch >= 3) return 'v9.4.6';
+      if (major >= 51 && patch === 2) return 'v9.4.5';
+      if (major >= 51 && patch === 1) return 'v9.4.4';
+      if (major >= 51 && patch === 0) return 'v9.4.3';
+      if (major >= 49) return 'v9.4.2';
+      if (major >= 45) return 'v9.4.1';
+      if (major >= 44) return 'v9.4.0';
+      if (major >= 42) return 'v9.3.0';
+      if (major >= 39) return 'v9.2.0';
+      return 'v9.1.0';
+    }
+
     function renderVersionList() {
       const list = document.getElementById('versionList');
       list.innerHTML = '';
 
-      // Always show "Latest" first
-      const latestEntry = { tag: 'latest', name: releases[0]?.name || 'Latest Release' };
-      const allEntries = [latestEntry, ...releases.filter(r => r.tag !== 'latest')];
+      const seen = new Set();
+      const listEntries = [];
 
-      allEntries.forEach((rel, i) => {
+      // Always put v9.4.6 as the top recommended choice
+      listEntries.push({ tag: 'latest', displayTag: 'v9.4.6 (Latest)', sub: 'Always downloads the newest v9.4.6 release' });
+      seen.add('v9.4.6');
+
+      if (Array.isArray(releases)) {
+        releases.forEach(r => {
+          const mapped = remapLegacyTag(r.tag || r.tag_name);
+          if (!seen.has(mapped)) {
+            seen.add(mapped);
+            listEntries.push({ tag: r.tag || mapped, displayTag: mapped, sub: r.name || `${mapped} Release` });
+          }
+        });
+      }
+
+      listEntries.forEach((rel, i) => {
         const item = document.createElement('div');
         item.className = 'version-item' + (i === 0 ? ' selected' : '');
-        item.dataset.tag = i === 0 ? 'latest' : rel.tag;
+        item.dataset.tag = rel.tag;
         item.onclick = () => selectVersion(item.dataset.tag);
         item.innerHTML = `
           <div class="version-radio"><div class="version-radio-dot"></div></div>
           <div class="version-info">
-            <div class="version-tag">${i === 0 ? 'Latest — Auto-Detect' : rel.tag}</div>
-            <div class="version-sub">${i === 0 ? 'Always downloads the newest release' : (rel.name || '')}</div>
+            <div class="version-tag">${rel.displayTag}</div>
+            <div class="version-sub">${rel.sub}</div>
           </div>
           ${i === 0 ? '<span class="version-badge latest">RECOMMENDED</span>' : ''}
         `;
@@ -420,7 +452,7 @@
       // Update status pill
       document.querySelector('.status-pill').innerHTML =
         '<span class="status-dot"></span> INSTALLER v9.4.6 &nbsp;&middot;&nbsp; ' +
-        releases.length + ' VERSION' + (releases.length !== 1 ? 'S' : '') + ' FOUND';
+        listEntries.length + ' VERSION' + (listEntries.length !== 1 ? 'S' : '') + ' AVAILABLE';
     }
 
     async function install() {
