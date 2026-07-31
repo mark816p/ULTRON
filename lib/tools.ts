@@ -1,6 +1,11 @@
 import * as os from "os";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { openJarvisEngine } from "./openJarvis";
+import { screenpipeEngine } from "./screenpipe";
+import { accomplishCoworkerEngine } from "./accomplishCoworker";
+import { openDesignEngine } from "./openDesign";
+import { getNeverForgetEngine } from "./neverForgetEngine";
 
 const execAsync = promisify(exec);
 
@@ -18,9 +23,6 @@ export class UltronTools {
     this.gowaUrl = gowaBaseUrl;
   }
 
-  /**
-   * Performs instant web search using DuckDuckGo HTML Lite (no API key required)
-   */
   public async searchWeb(query: string): Promise<ToolResult> {
     try {
       const encoded = encodeURIComponent(query);
@@ -33,10 +35,8 @@ export class UltronTools {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const html = await res.text();
 
-      // Extract titles and snippets from DuckDuckGo lite HTML results
       const results: { title: string; snippet: string }[] = [];
       const snippetRegex = /<a class="result__snippet[^>]*>(.*?)<\/a>/gi;
-      const titleRegex = /<a class="result__url[^>]*>(.*?)<\/a>/gi;
 
       let sMatch;
       while ((sMatch = snippetRegex.exec(html)) !== null && results.length < 5) {
@@ -61,9 +61,6 @@ export class UltronTools {
     }
   }
 
-  /**
-   * Fetches latest world news from major RSS feeds (BBC, Al Jazeera, NYT)
-   */
   public async getNews(): Promise<ToolResult> {
     const feeds = [
       { name: "BBC World", url: "http://feeds.bbci.co.uk/news/world/rss.xml" },
@@ -88,21 +85,16 @@ export class UltronTools {
             }
           }
         }
-      } catch (e) {
-        console.warn(`Failed to fetch RSS from ${feed.name}`);
-      }
+      } catch (e) {}
     }
 
     return {
       tool: "get_news",
       success: true,
-      data: headlines.length > 0 ? headlines : [{ source: "System", title: "All news feeds currently unreachable or timed out." }],
+      data: headlines.length > 0 ? headlines : [{ source: "System", title: "All news feeds currently unreachable." }],
     };
   }
 
-  /**
-   * Reports system diagnostics, uptime, and host OS specs
-   */
   public getSysinfo(): ToolResult {
     const uptimeSec = os.uptime();
     const hours = Math.floor(uptimeSec / 3600);
@@ -123,76 +115,55 @@ export class UltronTools {
     };
   }
 
-  /**
-   * Sends a WhatsApp message via local GoWa REST container
-   */
-  public async sendWhatsapp(to: string, message: string): Promise<ToolResult> {
-    try {
-      // Clean phone number (remove spaces, +, hyphens)
-      const cleanPhone = to.replace(/[^0-9]/g, "");
-      const jid = cleanPhone.includes("@s.whatsapp.net") ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
-
-      const res = await fetch(`${this.gowaUrl}/send/message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: jid, message }),
-        signal: AbortSignal.timeout(8000),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`GoWa HTTP ${res.status}: ${errText}`);
-      }
-
-      const data = await res.json();
-      return {
-        tool: "whatsapp_send",
-        success: true,
-        data: { recipient: to, status: "sent", details: data },
-      };
-    } catch (err) {
-      return {
-        tool: "whatsapp_send",
-        success: false,
-        data: null,
-        error: `WhatsApp sending failed: ${(err as Error).message}. Make sure GoWa Docker container is running on port 3001 and QR is scanned.`,
-      };
-    }
+  public async executeOpenJarvis(command: string, description?: string): Promise<ToolResult> {
+    const res = await openJarvisEngine.executeComputerAction(command, description || "OpenJarvis computer control");
+    return {
+      tool: "openjarvis_execute",
+      success: res.status === "completed" || res.status === "self_healed",
+      data: res,
+      error: res.status === "failed" ? res.result : undefined,
+    };
   }
 
-  /**
-   * Checks WhatsApp GoWa connection status
-   */
-  public async getWhatsappStatus(): Promise<ToolResult> {
-    try {
-      const res = await fetch(`${this.gowaUrl}/user/me`, {
-        signal: AbortSignal.timeout(3000),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      return {
-        tool: "whatsapp_status",
-        success: true,
-        data: { connected: true, user: data },
-      };
-    } catch (err) {
-      return {
-        tool: "whatsapp_status",
-        success: false,
-        data: { connected: false },
-        error: "GoWa WhatsApp container offline or not authenticated.",
-      };
-    }
+  public async runCoworkerTask(title: string, goal: string): Promise<ToolResult> {
+    const task = await accomplishCoworkerEngine.createCoworkerTask(title, goal);
+    return {
+      tool: "coworker_run_task",
+      success: true,
+      data: task,
+    };
   }
 
-  /**
-   * Executes a terminal/shell command on demand (unlimited, free local access)
-   */
+  public generateOpenDesign(name: string, description: string, category: any): ToolResult {
+    const comp = openDesignEngine.generateDesignComponent(name, description, category || "card");
+    return {
+      tool: "opendesign_generate",
+      success: true,
+      data: comp,
+    };
+  }
+
+  public searchScreenpipe(query: string): ToolResult {
+    const results = screenpipeEngine.searchHistory(query);
+    return {
+      tool: "screenpipe_search",
+      success: true,
+      data: results,
+    };
+  }
+
+  public getScreenpipeContext(): ToolResult {
+    const context = screenpipeEngine.getLatestScreenContext();
+    return {
+      tool: "screenpipe_get_context",
+      success: true,
+      data: { context },
+    };
+  }
+
   public async executeCommand(command: string): Promise<ToolResult> {
     try {
-      if (!command || !command.trim()) {
-        throw new Error("No command string provided");
-      }
+      if (!command || !command.trim()) throw new Error("No command string provided");
       const { stdout, stderr } = await execAsync(command, { timeout: 20000 });
       return {
         tool: "execute_command",
@@ -213,14 +184,9 @@ export class UltronTools {
     }
   }
 
-  /**
-   * Scrapes and extracts clean text content from a web page URL (unlimited on-demand web access)
-   */
   public async scrapeUrl(url: string): Promise<ToolResult> {
     try {
-      if (!url || !url.startsWith("http")) {
-        throw new Error("Invalid URL provided. Must start with http:// or https://");
-      }
+      if (!url || !url.startsWith("http")) throw new Error("Invalid URL. Must start with http:// or https://");
       const res = await fetch(url, {
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -231,12 +197,11 @@ export class UltronTools {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const html = await res.text();
 
-      // Remove scripts, styles, and comments, then strip HTML tags
       const noScript = html
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
         .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
         .replace(/<!--[\s\S]*?-->/g, "");
-      
+
       const text = noScript.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
       const summaryText = text.length > 3000 ? text.substring(0, 3000) + "... (truncated)" : text;
 
@@ -255,9 +220,6 @@ export class UltronTools {
     }
   }
 
-  /**
-   * Dispatches a tool by name and arguments
-   */
   public async executeTool(name: string, args: any = {}): Promise<ToolResult> {
     switch (name) {
       case "search_web":
@@ -266,10 +228,28 @@ export class UltronTools {
         return this.getNews();
       case "get_sysinfo":
         return this.getSysinfo();
-      case "whatsapp_send":
-        return this.sendWhatsapp(args.to || args.phone || "", args.message || args.msg || "");
-      case "whatsapp_status":
-        return this.getWhatsappStatus();
+      case "openjarvis_execute":
+        return this.executeOpenJarvis(args.command || args.cmd || "", args.description);
+      case "coworker_run_task":
+        return this.runCoworkerTask(args.title || "Autonomous Coworker Job", args.goal || args.description || "");
+      case "opendesign_generate":
+        return this.generateOpenDesign(args.name || "UI Component", args.description || "Glass component", args.category);
+      case "screenpipe_search":
+        return this.searchScreenpipe(args.query || args.q || "");
+      case "screenpipe_get_context":
+        return this.getScreenpipeContext();
+      case "neverforget_compact":
+      case "compact_database": {
+        const engine = getNeverForgetEngine();
+        const stats = engine.compactDatabase();
+        return { tool: "neverforget_compact", success: true, data: stats };
+      }
+      case "neverforget_search":
+      case "search_memory": {
+        const engine = getNeverForgetEngine();
+        const results = engine.searchMemories(args.query || args.q || "", args.limit || 10);
+        return { tool: "neverforget_search", success: true, data: results };
+      }
       case "execute_command":
       case "run_command":
         return this.executeCommand(args.command || args.cmd || "");

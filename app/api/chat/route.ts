@@ -1,42 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AiRouter } from "@/lib/aiRouter";
+import { omniRoute } from "@/lib/omniRoute";
 import { UltronTools } from "@/lib/tools";
+import { getNeverForgetEngine } from "@/lib/neverForgetEngine";
+import { mcpManager } from "@/lib/mcpManager";
+import { screenpipeEngine } from "@/lib/screenpipe";
 
-// We load never-forget-engine dynamically
-let NeverForgetEngineClass: any;
-try {
-  NeverForgetEngineClass = require("never-forget-engine").NeverForgetEngine;
-} catch (e) {
-  console.warn("Could not load never-forget-engine, using inline memory fallback.");
-}
-
-// Global singleton instances to maintain memory and routing across requests
-const aiRouter = new AiRouter();
+const memoryEngine = getNeverForgetEngine("./data/ultron_memory.db", 16);
 const ultronTools = new UltronTools();
-let memoryEngine: any = null;
 
-function getMemoryEngine() {
-  if (!memoryEngine && NeverForgetEngineClass) {
-    memoryEngine = new NeverForgetEngineClass({ dbPath: "./data/ultron_memory.db", maxWindowSize: 12 });
-  }
-  return memoryEngine;
-}
-
-const SYSTEM_INSTRUCTIONS = `You are U.L.T.R.O.N. (Universal Logistical Tactical & Reactive Operating Network), an ultra-responsive, sentient AI holographic orb.
+const SYSTEM_INSTRUCTIONS = `You are U.L.T.R.O.N. (Universal Logistical Tactical & Reactive Operating Network) v9.4.6, an ultra-responsive, sentient AI holographic orb, coworker & design engine.
 You speak with confidence, clarity, and intelligence. You have infinite memory of this conversation and never forget a detail.
+You have native access to Fish Studio voices (Jarvis, Edith, Friday), OmniRoute intelligent model switching, free LLM resources, MCP servers, OpenJarvis system automation, Screenpipe 24/7 OCR, Accomplish AI Coworker tasks, and Nexu OpenDesign synthesis.
 
 COGNITIVE SCALING (THINKING WEIGHT RULE):
 Do NOT overthink simple questions or everyday conversation! You MUST calibrate your reasoning depth and response length strictly according to the weight and complexity of the user's request:
-- For greetings, simple questions, or basic chat: Answer INSTANTLY and CONCISELY. Do not waste time on lengthy internal thinking or verbose breakdowns.
-- For complex code tasks, multi-step planning, or architectural analysis: Scale up your reasoning weight to provide a thorough, step-by-step solution.
-Always match your thinking depth directly to the weight of the question!
+- For greetings, simple questions, or basic chat: Answer INSTANTLY and CONCISELY.
+- For complex computer automation, autonomous coworker jobs, or code analysis: Scale up your reasoning weight.
 
-You have access to real-time tools. To invoke a tool, output a command on its own line in this format:
+You have access to real-time tools. Output a command on its own line in this format:
 - [TOOL: search_web(query)] - Search the internet for live information.
 - [TOOL: get_news()] - Get top international news headlines.
 - [TOOL: get_sysinfo()] - Check computer OS, RAM, and uptime.
-- [TOOL: whatsapp_send(to, message)] - Send a WhatsApp message via GoWa.
-- [TOOL: whatsapp_status()] - Check WhatsApp connection status.
+- [TOOL: openjarvis_execute(command, description)] - OpenJarvis computer automation & system execution.
+- [TOOL: coworker_run_task(title, goal)] - Accomplish AI Coworker multi-step autonomous task execution.
+- [TOOL: opendesign_generate(name, description, category)] - Nexu OpenDesign UI/UX component synthesis.
+- [TOOL: screenpipe_search(query)] - Search Screenpipe 24/7 OCR & audio history.
+- [TOOL: screenpipe_get_context()] - Get active screen context.
+- [TOOL: mcp_execute(toolName, args)] - Execute an MCP server tool (auto-spins up if needed).
+- [TOOL: execute_command(command)] - Execute terminal shell command.
+- [TOOL: scrape_url(url)] - Read full text from a website URL.
 
 If you use a tool, wait for the tool output in the next turn before answering the user.`;
 
@@ -59,72 +51,114 @@ export async function POST(req: NextRequest) {
       apiKeys,
       ollamaModel,
       lmStudioModel,
+      isBackgroundTask = false,
     } = body;
 
     if (!message) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
-    const mem = getMemoryEngine();
+    const screenContext = screenpipeEngine.getLatestScreenContext();
+    const augmentedSystemPrompt = `${SYSTEM_INSTRUCTIONS}\n\n${screenContext}`;
 
-    // 1. Remember user message in Never-Forget Engine
-    if (mem) {
-      await mem.remember(sessionId, "user", message);
+    if (memoryEngine) {
+      await memoryEngine.remember(sessionId, "user", message);
     }
 
-    // 2. Prepare compressed context with SQZ dedup & Cognitive Summary
-    let systemPrompt = SYSTEM_INSTRUCTIONS;
+    let systemPrompt = augmentedSystemPrompt;
     let recentMsgs = [...history, { role: "user", content: message }];
     let dedupStats = null;
 
-    if (mem) {
-      const prepared = mem.prepareContext(sessionId, SYSTEM_INSTRUCTIONS, recentMsgs);
+    if (memoryEngine) {
+      const prepared = memoryEngine.prepareContext(sessionId, augmentedSystemPrompt, recentMsgs);
       systemPrompt = prepared.systemPrompt;
       recentMsgs = prepared.messages;
       dedupStats = prepared.dedupStats;
     }
 
-    const routeOptions = { onlineMode, localMode, apiProvider, apiKey, apiBaseUrl, activeBrains, apiKeys, ollamaModel, lmStudioModel };
+    const routeOptions = {
+      onlineMode,
+      localMode,
+      apiProvider,
+      apiKey,
+      apiBaseUrl,
+      activeBrains,
+      apiKeys,
+      ollamaModel,
+      lmStudioModel,
+      isBackgroundTask,
+    };
 
-    // 3. Route to AI Engine (Antigravity ↔ Cloud API ↔ Ollama ↔ LM Studio failover)
-    let aiRes = await aiRouter.route(recentMsgs as any, systemPrompt, model, modelName, fallbackModelName, routeOptions);
+    let aiRes = await omniRoute.route(
+      recentMsgs as any,
+      systemPrompt,
+      model,
+      modelName,
+      fallbackModelName,
+      routeOptions
+    );
 
-    // 4. Check for Tool Invocation in AI Response
     const toolMatch = aiRes.content.match(/\[TOOL:\s*([a-zA-Z0-9_]+)\((.*?)\)\]/);
     if (toolMatch) {
       const toolName = toolMatch[1];
       const rawArgs = toolMatch[2];
       let args: any = {};
-      
+
       if (rawArgs) {
-        // Parse simple comma-separated or keyword args
         const parts = rawArgs.split(",").map((p: string) => p.trim());
         if (toolName === "search_web") args.query = parts[0]?.replace(/^["']|["']$/g, "");
-        if (toolName === "whatsapp_send") {
-          args.to = parts[0]?.replace(/^["']|["']$/g, "");
-          args.message = parts[1]?.replace(/^["']|["']$/g, "");
+        if (toolName === "scrape_url") args.url = parts[0]?.replace(/^["']|["']$/g, "");
+        if (toolName === "execute_command" || toolName === "openjarvis_execute") {
+          args.command = parts[0]?.replace(/^["']|["']$/g, "");
+          args.description = parts[1]?.replace(/^["']|["']$/g, "");
+        }
+        if (toolName === "coworker_run_task") {
+          args.title = parts[0]?.replace(/^["']|["']$/g, "");
+          args.goal = parts[1]?.replace(/^["']|["']$/g, "");
+        }
+        if (toolName === "opendesign_generate") {
+          args.name = parts[0]?.replace(/^["']|["']$/g, "");
+          args.description = parts[1]?.replace(/^["']|["']$/g, "");
+          args.category = parts[2]?.replace(/^["']|["']$/g, "");
+        }
+        if (toolName === "screenpipe_search") args.query = parts[0]?.replace(/^["']|["']$/g, "");
+        if (toolName === "mcp_execute") {
+          args.toolName = parts[0]?.replace(/^["']|["']$/g, "");
         }
       }
 
       console.log(`[Ultron Tool Execution] Running ${toolName} with args:`, args);
-      const toolResult = await ultronTools.executeTool(toolName, args);
 
-      // Feed tool output back to AI Router for final synthesis
+      let toolResult: any;
+      if (toolName === "mcp_execute") {
+        toolResult = await mcpManager.executeMcpTool(args.toolName || "fetch_url", args);
+      } else {
+        toolResult = await ultronTools.executeTool(toolName, args);
+      }
+
       const followUpMsgs = [
         ...recentMsgs,
         { role: "assistant", content: aiRes.content },
-        { role: "tool", content: `[TOOL_RESULT: ${toolName}] ${JSON.stringify(toolResult.data || toolResult.error)}` }
+        {
+          role: "tool",
+          content: `[TOOL_RESULT: ${toolName}] ${JSON.stringify(toolResult.data || toolResult.output || toolResult.error)}`,
+        },
       ];
 
-      aiRes = await aiRouter.route(followUpMsgs as any, systemPrompt, model, modelName, fallbackModelName, routeOptions);
+      aiRes = await omniRoute.route(
+        followUpMsgs as any,
+        systemPrompt,
+        model,
+        modelName,
+        fallbackModelName,
+        routeOptions
+      );
     }
 
-    // 5. Remember final AI response
-    if (mem) {
-      await mem.remember(sessionId, "assistant", aiRes.content);
+    if (memoryEngine) {
+      await memoryEngine.remember(sessionId, "assistant", aiRes.content);
     }
 
-    // 6. Extract dynamic thought keywords for Orb 3D text sprites!
     const keywords = extractKeywords(message, aiRes.content, aiRes.thoughts);
 
     return NextResponse.json({
@@ -146,19 +180,19 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/**
- * Extracts 10-15 sci-fi keywords from prompt and response to animate inside the 3D Orb!
- */
 function extractKeywords(prompt: string, response: string, thoughts?: string[]): string[] {
   const combined = `${prompt} ${response} ${thoughts ? thoughts.join(" ") : ""}`.toUpperCase();
   const clean = combined.replace(/[^A-Z0-9\s]/g, " ");
   const words = clean.split(/\s+/).filter((w) => w.length > 3 && w.length < 12);
-  
-  const stopwords = new Set(["THAT", "THIS", "WITH", "FROM", "YOUR", "HAVE", "BEEN", "WILL", "WOULD", "COULD", "SHOULD", "THERE", "THEIR", "ABOUT", "WHICH", "WHEN", "WHAT", "WHERE", "WHY", "HOW"]);
+
+  const stopwords = new Set([
+    "THAT", "THIS", "WITH", "FROM", "YOUR", "HAVE", "BEEN", "WILL", "WOULD", "COULD", "SHOULD", "THERE", "THEIR", "ABOUT", "WHICH", "WHEN", "WHAT", "WHERE", "WHY", "HOW"
+  ]);
   const unique = Array.from(new Set(words.filter((w) => !stopwords.has(w))));
-  
-  // Return top 15 distinctive keywords, padded with sci-fi terms if short
-  const defaultSciFi = ["SYNTHESIS", "QUANTUM", "NEURAL", "MEMORY", "VECTOR", "TENSOR", "OPTIC", "LOGIC", "CYBER", "PONDER"];
+
+  const defaultSciFi = [
+    "OPENDESIGN", "COWORKER", "OPENJARVIS", "SCREENPIPE", "OMNIROUTE", "FISHSTUDIO", "QUANTUM", "NEURAL", "AUTONOMOUS", "MCPHUB"
+  ];
   while (unique.length < 12) {
     unique.push(defaultSciFi[Math.floor(Math.random() * defaultSciFi.length)]!);
   }

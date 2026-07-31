@@ -21,7 +21,7 @@ echo ""
 RELEASES=($(curl -sH "User-Agent: ULTRON-Installer" "${API_URL}" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 10))
 
 if [ ${#RELEASES[@]} -eq 0 ]; then
-  RELEASES=("v44.0.0" "v43.0.0" "v42.0.0" "v39.0.0")
+  RELEASES=("v9.4.6" "v9.4.5" "v9.4.4" "v9.4.3" "v9.4.2" "v9.4.1" "v9.4.0")
 fi
 
 LATEST_TAG="${RELEASES[0]}"

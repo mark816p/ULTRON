@@ -1,6 +1,6 @@
 {
   "name": "ultron-orb-ui",
-  "version": "51.5.3",
+  "version": "9.4.6",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -14,9 +14,9 @@
   "build": {
     "appId": "com.mark816p.ultron",
     "productName": "ULTRON",
-    "asar": false,
+    "asar": true,
     "npmRebuild": false,
-    "compression": "normal",
+    "compression": "fast",
     "publish": [
       {
         "provider": "github",
@@ -26,7 +26,7 @@
     ],
     "artifactName": "ULTRON-Setup.exe",
     "extraMetadata": {
-      "version": "51.5.3"
+      "version": "9.4.6"
     },
     "files": [
       "next.config.mjs",
@@ -103,7 +103,6 @@
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.35",
     "electron-updater": "^6.8.9",
-    "never-forget-engine": "file:../never-forget-engine",
     "next": "^16.2.10",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

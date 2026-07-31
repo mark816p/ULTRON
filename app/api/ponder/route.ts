@@ -1,35 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AiRouter } from "@/lib/aiRouter";
+import { omniRoute } from "@/lib/omniRoute";
 import { UltronTools } from "@/lib/tools";
 import { globalTaskManager } from "@/lib/autonomousTasks";
+import { getNeverForgetEngine } from "@/lib/neverForgetEngine";
 
-let NeverForgetEngineClass: any;
-try {
-  NeverForgetEngineClass = require("never-forget-engine").NeverForgetEngine;
-} catch (e) {}
-
-const aiRouter = new AiRouter();
+const memoryEngine = getNeverForgetEngine("./data/ultron_memory.db");
 const ultronTools = new UltronTools();
-let memoryEngine: any = null;
-
-function getMemoryEngine() {
-  if (!memoryEngine && NeverForgetEngineClass) {
-    memoryEngine = new NeverForgetEngineClass({ dbPath: "./data/ultron_memory.db" });
-  }
-  return memoryEngine;
-}
 
 export async function POST(req: NextRequest) {
   try {
     const { sessionId = "default_session", fallbackModelName } = await req.json().catch(() => ({}));
-    const mem = getMemoryEngine();
 
-    // 0. Process any queued autonomous exploration tasks in the background!
+    // Process any queued autonomous exploration tasks in background
     try {
-      await globalTaskManager.processNextTask(mem);
+      await globalTaskManager.processNextTask(memoryEngine);
     } catch (err) {}
 
-    // 1. Perform autonomous background task: Fetch latest news & sysinfo
+    // Autonomous background telemetry
     const newsRes = await ultronTools.getNews();
     const sysRes = ultronTools.getSysinfo();
 
@@ -39,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     const sysInfo = sysRes.success ? `OS RAM Free: ${sysRes.data.freeMemoryMb}MB, Uptime: ${sysRes.data.uptime}` : "Sysinfo OK";
 
-    // 2. We use 100% FREE local model (Ollama or LM Studio) to ponder so we NEVER burn cloud credits!
+    // Ponder using background local models (Ollama/LM Studio) or OmniRoute background task mode
     const ponderPrompt = `You are U.L.T.R.O.N. sitting autonomously in background standby mode.
 Current system status: ${sysInfo}
 Latest world news: ${topNews}
@@ -49,20 +36,24 @@ Write a 1-sentence sci-fi status log reflecting on your memory, system status, o
     let engineUsed = "local-heuristic";
 
     try {
-      // Force routing to local open-source models for pondering!
-      const aiRes = await aiRouter.route([{ role: "user", content: ponderPrompt }], "You are U.L.T.R.O.N.", "ollama", fallbackModelName, fallbackModelName);
+      const aiRes = await omniRoute.route(
+        [{ role: "user", content: ponderPrompt }],
+        "You are U.L.T.R.O.N.",
+        "ollama",
+        fallbackModelName,
+        fallbackModelName,
+        { isBackgroundTask: true }
+      );
       thoughtLog = aiRes.content;
       engineUsed = aiRes.engine;
     } catch (e) {
       console.warn("[Ponder API] Local model unreachable for pondering, using heuristic log.");
     }
 
-    // 3. Store the autonomous thought in SQLite memory so it remembers what it pondered!
-    if (mem) {
-      await mem.remember(sessionId, "system", `[Autonomous Pondering Log]: ${thoughtLog}`, ["ponder", "background"]);
+    if (memoryEngine) {
+      await memoryEngine.remember(sessionId, "system", `[Autonomous Pondering Log]: ${thoughtLog}`);
     }
 
-    // 4. Extract keywords for floating 3D text sprites
     const words = thoughtLog
       .toUpperCase()
       .replace(/[^A-Z0-9\s]/g, " ")

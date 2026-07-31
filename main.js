@@ -8,9 +8,9 @@ const { autoUpdater } = require('electron-updater');
 
 let mainWindow;
 let nextProcess = null;
+let serverInstance = null;
 const PORT = 7777;
 
-// Configure autoUpdater for background auto-updating
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
@@ -51,14 +51,12 @@ function waitForServer(url, retries, delay) {
   });
 }
 
-// Write error HTML to a temp file and return its file:// URL
-// This avoids data: URL blocking in Electron with contextIsolation
 function writeErrorPage(errorText) {
   const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><title>U.L.T.R.O.N. Diagnostics</title></head>
 <body style="background:#0c0c0c;color:#e6e6e6;font-family:sans-serif;padding:50px;text-align:center;margin:0;">
-  <h2 style="color:#ffffff;margin-bottom:12px;">U.L.T.R.O.N. Neural Bridge Diagnostics</h2>
+  <h2 style="color:#ffffff;margin-bottom:12px;">U.L.T.R.O.N. Neural Bridge Diagnostics v9.4.6</h2>
   <p style="color:#aaaaaa;margin-bottom:20px;">Server initialization on port ${PORT} encountered an issue.</p>
   <pre style="background:#1a1a1a;padding:15px;border-radius:6px;display:inline-block;color:#ff4444;
     text-align:left;white-space:pre-wrap;word-break:break-all;max-width:85%;font-size:12px;">${errorText.slice(0, 4000)}</pre>
@@ -70,28 +68,27 @@ function writeErrorPage(errorText) {
   return `file://${tmpFile.replace(/\\/g, '/')}`;
 }
 
-// Write loading screen to a temp file
 function writeLoadingPage() {
   const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><title>U.L.T.R.O.N. Loading</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#000; color:#00f0ff; font-family:"Courier New",monospace;
+  body { background:#030308; color:#38bdf8; font-family:"Courier New",monospace;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     height:100vh; overflow:hidden; }
   .ring { width:80px; height:80px; border:3px solid transparent;
-    border-top-color:#00f0ff; border-radius:50%;
+    border-top-color:#38bdf8; border-radius:50%;
     animation:spin 1s linear infinite; margin-bottom:28px; }
   @keyframes spin { to { transform:rotate(360deg); } }
-  .title { font-size:22px; letter-spacing:4px; color:#00f0ff; margin-bottom:10px; }
-  .sub { font-size:12px; color:#448; letter-spacing:2px; }
+  .title { font-size:22px; letter-spacing:4px; color:#38bdf8; margin-bottom:10px; font-weight:bold; }
+  .sub { font-size:12px; color:#818cf8; letter-spacing:2px; }
 </style>
 </head>
 <body>
   <div class="ring"></div>
-  <div class="title">U.L.T.R.O.N.</div>
-  <div class="sub">INITIALIZING NEURAL BRIDGE...</div>
+  <div class="title">U.L.T.R.O.N. v9.4.6</div>
+  <div class="sub">INITIALIZING ACCOMPLISH AI COWORKER, OPENJARVIS & SCREENPIPE...</div>
 </body>
 </html>`;
   const tmpFile = path.join(os.tmpdir(), 'ultron-loading.html');
@@ -100,7 +97,6 @@ function writeLoadingPage() {
 }
 
 async function startNextServer() {
-  // If server already running, reuse it
   try {
     await waitForServer(`http://127.0.0.1:${PORT}`, 1, 100);
     console.log('[U.L.T.R.O.N.] Neural bridge already active.');
@@ -108,15 +104,31 @@ async function startNextServer() {
   } catch (_) {}
 
   const appDir = getAppDir();
-  const nextBin = getNextBin();
 
-  if (!nextBin) {
-    throw new Error(
-      `Could not locate Next.js binary.\nappDir=${appDir}\nExpected: ${path.join(appDir, 'node_modules', 'next', 'dist', 'bin', 'next')}`
-    );
+  try {
+    console.log(`[U.L.T.R.O.N.] Starting in-process Next server at ${appDir}`);
+    const next = require('next');
+    const nextApp = next({ dev: false, dir: appDir });
+    const handle = nextApp.getRequestHandler();
+    await nextApp.prepare();
+
+    serverInstance = http.createServer((req, res) => handle(req, res));
+    await new Promise((resolve, reject) => {
+      serverInstance.listen(PORT, '127.0.0.1', (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    console.log(`[U.L.T.R.O.N.] In-process Next server listening on port ${PORT}`);
+    return;
+  } catch (inProcErr) {
+    console.warn('[U.L.T.R.O.N.] In-process Next server initialization warning:', inProcErr.message);
   }
 
-  console.log(`[U.L.T.R.O.N.] Spawning Neural Bridge\n  script=${nextBin}\n  cwd=${appDir}\n  port=${PORT}`);
+  const nextBin = getNextBin();
+  if (!nextBin) {
+    throw new Error(`Could not locate Next.js binary.\nappDir=${appDir}`);
+  }
 
   return new Promise((resolve, reject) => {
     nextProcess = spawn(process.execPath, [nextBin, 'start', '-p', String(PORT)], {
@@ -160,8 +172,7 @@ async function startNextServer() {
       }
     });
 
-    // Poll up to 90 seconds for the server to be ready
-    waitForServer(`http://127.0.0.1:${PORT}`, 180, 500)
+    waitForServer(`http://127.0.0.1:${PORT}`, 120, 500)
       .then(resolve)
       .catch((err) => doReject(err));
   });
@@ -171,11 +182,11 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 920,
-    title: 'U.L.T.R.O.N. Autonomous Neural Orb',
+    title: 'U.L.T.R.O.N. v9.4.6 Sentient Holographic AI Orb & Coworker Operating System',
     icon: path.join(__dirname, 'public/favicon.ico'),
-    backgroundColor: '#000000',
+    backgroundColor: '#030308',
     autoHideMenuBar: true,
-    show: true, // Show immediately with loading page
+    show: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -191,24 +202,19 @@ async function createWindow() {
     mainWindow = null;
   });
 
-  // Intercept any navigation failure (ERR_CONNECTION_REFUSED etc.)
-  // and replace with our own error page instead of Chrome's native error
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
-    // Ignore failures on our own file:// pages and about:blank
     if (validatedURL && (validatedURL.startsWith('file://') || validatedURL === 'about:blank')) return;
     console.error(`[U.L.T.R.O.N.] Page failed to load: ${errorDescription} (${errorCode}) at ${validatedURL}`);
     const errUrl = writeErrorPage(`Navigation failed: ${errorDescription} (code ${errorCode})\nURL: ${validatedURL}`);
     mainWindow.loadURL(errUrl).catch(console.error);
   });
 
-  // Show loading screen immediately
   try {
     await mainWindow.loadURL(writeLoadingPage());
   } catch (e) {
     console.error('Could not load loading page:', e);
   }
 
-  // Start the Next.js server in background
   try {
     await startNextServer();
     await mainWindow.loadURL(`http://127.0.0.1:${PORT}`);
@@ -222,17 +228,18 @@ async function createWindow() {
     }
   }
 
-  // Check for background updates silently
   try {
     autoUpdater.checkForUpdatesAndNotify();
-  } catch (e) {
-    console.log('Auto-updater offline or unreachable:', e.message);
-  }
+  } catch (e) {}
 }
 
 app.on('ready', createWindow);
 
 app.on('window-all-closed', () => {
+  if (serverInstance) {
+    serverInstance.close();
+    serverInstance = null;
+  }
   if (nextProcess) {
     nextProcess.kill();
     nextProcess = null;

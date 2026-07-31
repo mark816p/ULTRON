@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { globalTaskManager } from "@/lib/autonomousTasks";
+import { getNeverForgetEngine } from "@/lib/neverForgetEngine";
 
-let NeverForgetEngineClass: any;
-try {
-  NeverForgetEngineClass = require("never-forget-engine").NeverForgetEngine;
-} catch (e) {}
-
-const memoryEngine = NeverForgetEngineClass ? new NeverForgetEngineClass() : null;
+const memoryEngine = getNeverForgetEngine();
 
 export async function GET() {
   try {

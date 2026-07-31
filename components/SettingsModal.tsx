@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { FREE_LLM_RESOURCES } from "@/lib/freeLlmResources";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -46,502 +47,434 @@ const PROVIDERS = [
   { id: "custom", label: "Custom", hint: "Any OpenAI-compatible endpoint" },
 ];
 
-const PROVIDER_MODELS: Record<string, string[]> = {
-  openrouter: ["openrouter/auto", "anthropic/claude-sonnet-5", "openai/gpt-5.6", "google/gemini-3.1-pro"],
-  gemini: ["gemini-3.1-pro", "gemini-3.5-flash", "gemini-2.5-flash"],
-  openai: ["gpt-5.6", "gpt-5.6-terra", "gpt-5.6-luna"],
-  anthropic: ["claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5-20251001"],
-  groq: ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b", "qwen-qwq-32b"],
-  deepseek: ["deepseek-r1", "deepseek-chat"],
-  mistral: ["mistral-large-latest", "codestral-latest"],
-  xai: ["grok-2-1212", "grok-beta"],
-  custom: ["custom-model"],
-};
-
-const ANTIGRAVITY_MODELS = [
-  "gemini-3.1-pro", "gemini-3.5-flash", "gemini-2.5-flash",
-  "claude-sonnet-5", "claude-opus-4-8",
-];
-
-const S: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: "fixed", inset: 0, zIndex: 200,
-    background: "rgba(0,0,0,0.75)",
-    backdropFilter: "blur(8px)",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    padding: 20,
-  },
-  modal: {
-    width: 520, maxWidth: "100%", maxHeight: "88vh",
-    background: "rgba(10,10,14,0.98)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    borderRadius: 16,
-    boxShadow: "0 24px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05)",
-    fontFamily: "'Courier New', monospace",
-    display: "flex", flexDirection: "column",
-    overflow: "hidden",
-  },
-  header: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "16px 20px",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.03)",
-    flexShrink: 0,
-  },
-  headerTitle: { fontSize: 13, fontWeight: "bold", color: "#e8e8e8", letterSpacing: "0.12em" },
-  closeBtn: {
-    background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
-    color: "#888", borderRadius: 6, width: 28, height: 28,
-    cursor: "pointer", fontSize: 14, display: "flex",
-    alignItems: "center", justifyContent: "center",
-    transition: "all 0.15s",
-  },
-  body: { overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: 16 },
-  section: {
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.07)",
-    borderRadius: 10, padding: "14px 16px",
-    display: "flex", flexDirection: "column", gap: 12,
-  },
-  sectionLabel: {
-    fontSize: 10, fontWeight: "bold", letterSpacing: "0.2em",
-    color: "#555", textTransform: "uppercase", marginBottom: 4,
-  },
-  row: { display: "flex", gap: 8 },
-  chipBase: {
-    flex: 1, padding: "8px 10px", borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "rgba(255,255,255,0.03)",
-    color: "#888", fontSize: 11, fontWeight: "bold",
-    cursor: "pointer", textAlign: "center" as const,
-    letterSpacing: "0.06em", transition: "all 0.15s",
-  },
-  chipActive: {
-    borderColor: "rgba(255,255,255,0.5)",
-    background: "rgba(255,255,255,0.1)",
-    color: "#fff",
-  },
-  label: { fontSize: 10, color: "#555", letterSpacing: "0.12em", marginBottom: 4, display: "block" },
-  input: {
-    width: "100%", background: "rgba(0,0,0,0.6)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    borderRadius: 7, padding: "9px 12px",
-    color: "#e0e0e0", fontSize: 12, outline: "none",
-    fontFamily: "'Courier New', monospace",
-    boxSizing: "border-box" as const,
-  },
-  select: {
-    width: "100%", background: "rgba(0,0,0,0.8)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    borderRadius: 7, padding: "9px 12px",
-    color: "#e0e0e0", fontSize: 12, outline: "none",
-    fontFamily: "'Courier New', monospace",
-    cursor: "pointer", boxSizing: "border-box" as const,
-  },
-  footer: {
-    padding: "12px 20px", borderTop: "1px solid rgba(255,255,255,0.06)",
-    display: "flex", gap: 8, flexShrink: 0,
-    background: "rgba(0,0,0,0.4)",
-  },
-  footerBtn: {
-    flex: 1, padding: "9px 12px", borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.04)",
-    color: "#aaa", fontSize: 11, fontWeight: "bold",
-    cursor: "pointer", letterSpacing: "0.06em",
-    transition: "all 0.15s",
-  },
-  primaryBtn: {
-    background: "#fff", color: "#000",
-    border: "none", boxShadow: "0 0 16px rgba(255,255,255,0.15)",
-  },
-};
-
 export default function SettingsModal(props: SettingsModalProps) {
   const {
-    isOpen, onClose,
-    modelMode, onlineMode, localMode, apiProvider, apiKey, apiBaseUrl,
-    selectedModelName, selectedLocalModelName, modelsData,
-    voiceProfile, speakOnTyping,
-    onEngineChange, onOnlineModeChange, onLocalModeChange, onApiProviderChange,
-    onApiKeyChange, onApiBaseUrlChange, onModelChange, onLocalModelChange,
-    onVoiceProfileChange, onSpeakOnTypingChange,
-    onOptimizeMemory, onOpenBenchmark, sysInfo, memOptResult,
+    isOpen,
+    onClose,
+    modelMode,
+    apiProvider,
+    apiKey,
+    voiceProfile,
+    onEngineChange,
+    onApiProviderChange,
+    onApiKeyChange,
+    onVoiceProfileChange,
+    onOptimizeMemory,
+    onOpenBenchmark,
+    memOptResult,
   } = props;
 
-  const [activeTab, setActiveTab] = useState<"engine" | "voice" | "system">("engine");
+  const [activeTab, setActiveTab] = useState<"engine" | "omniroute" | "opendesign" | "coworker" | "openjarvis" | "screenpipe" | "freellm" | "mcp" | "voice" | "system">("engine");
   const [showKey, setShowKey] = useState(false);
-  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "up-to-date" | "available" | "error">("idle");
-  const [latestVer, setLatestVer] = useState<string>("");
+  const [useFishStudio, setUseFishStudio] = useState(true);
+  const [fishApiKey, setFishApiKey] = useState("");
+  const [mcpServers, setMcpServers] = useState<any[]>([]);
+  const [jarvisHistory, setJarvisHistory] = useState<any[]>([]);
+  const [screenpipeHistory, setScreenpipeHistory] = useState<any[]>([]);
+  const [screenpipeQuery, setScreenpipeQuery] = useState("");
+  const [coworkerTasks, setCoworkerTasks] = useState<any[]>([]);
+  const [openDesignComponents, setOpenDesignComponents] = useState<any[]>([]);
 
-  const handleCheckUpdate = async () => {
-    setUpdateStatus("checking");
-    try {
-      const res = await fetch("https://api.github.com/repos/mark816p/ULTRON/releases/latest");
-      if (!res.ok) throw new Error("API error");
-      const data = await res.json();
-      const tag = data.tag_name || "";
-      setLatestVer(tag);
-      if (tag && tag !== "v51.5.3" && !tag.includes("v51.5")) {
-        setUpdateStatus("available");
-      } else {
-        setUpdateStatus("up-to-date");
-      }
-    } catch {
-      setUpdateStatus("error");
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setUseFishStudio(localStorage.getItem("ultron_use_fish_studio") !== "false");
+      setFishApiKey(localStorage.getItem("ultron_fish_api_key") || "");
+    }
+  }, []);
+
+  const handleToggleFish = (val: boolean) => {
+    setUseFishStudio(val);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ultron_use_fish_studio", String(val));
     }
   };
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") onClose();
-  }, [onClose]);
+  const handleSaveFishKey = (val: string) => {
+    setFishApiKey(val);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ultron_fish_api_key", val);
+    }
+  };
+
+  const fetchMcpServers = async () => {
+    try {
+      const res = await fetch("/api/mcp");
+      const data = await res.json();
+      if (data.servers) setMcpServers(data.servers);
+    } catch (e) {}
+  };
+
+  const fetchOpenDesignData = async () => {
+    try {
+      const res = await fetch("/api/opendesign");
+      const data = await res.json();
+      if (data.components) setOpenDesignComponents(data.components);
+    } catch (e) {}
+  };
+
+  const fetchCoworkerTasks = async () => {
+    try {
+      const res = await fetch("/api/coworker");
+      const data = await res.json();
+      if (data.tasks) setCoworkerTasks(data.tasks);
+    } catch (e) {}
+  };
+
+  const fetchOpenJarvisData = async () => {
+    try {
+      const res = await fetch("/api/openjarvis");
+      const data = await res.json();
+      if (data.history) setJarvisHistory(data.history);
+    } catch (e) {}
+  };
+
+  const fetchScreenpipeData = async (query = "") => {
+    try {
+      const res = await fetch(`/api/screenpipe?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data.history) setScreenpipeHistory(data.history);
+    } catch (e) {}
+  };
 
   useEffect(() => {
-    if (isOpen) document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, handleKeyDown]);
+    if (activeTab === "mcp") fetchMcpServers();
+    if (activeTab === "opendesign") fetchOpenDesignData();
+    if (activeTab === "coworker") fetchCoworkerTasks();
+    if (activeTab === "openjarvis") fetchOpenJarvisData();
+    if (activeTab === "screenpipe") fetchScreenpipeData(screenpipeQuery);
+  }, [activeTab, screenpipeQuery]);
+
+  const handleSpinUpMcp = async (serverId: string) => {
+    try {
+      await fetch("/api/mcp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "spin_up", serverId }),
+      });
+      fetchMcpServers();
+    } catch (e) {}
+  };
 
   if (!isOpen) return null;
 
-  const isApiKey = onlineMode === "api-key" || modelMode === "api-key";
-  const models = isApiKey
-    ? (modelsData?.[`${apiProvider}Models`] || PROVIDER_MODELS[apiProvider] || ["custom-model"])
-    : ANTIGRAVITY_MODELS;
-  const localModels = localMode === "lm-studio"
-    ? (modelsData?.lmStudioModels || ["local-model"])
-    : (modelsData?.ollamaModels || ["llama3:8b", "qwen2.5:14b", "mistral:7b"]);
-
-  const chip = (active: boolean, onClick: () => void, label: string) => (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{ ...S.chipBase, ...(active ? S.chipActive : {}) }}
-    >
-      {label}
-    </button>
-  );
-
-  const tabs = [
-    { id: "engine", label: "🧠 AI Engine" },
-    { id: "voice", label: "🗣 Voice" },
-    { id: "system", label: "⚙ System" },
-  ] as const;
-
   return (
-    <div style={S.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={S.modal}>
+    <div className="glass-modal-overlay">
+      <div className="glass-modal-container">
         {/* Header */}
-        <div style={S.header}>
-          <span style={S.headerTitle}>⚙ SETTINGS — U.L.T.R.O.N. v51</span>
-          <button style={S.closeBtn} onClick={onClose} title="Close (Esc)">✕</button>
+        <div className="glass-modal-header">
+          <div className="modal-title">
+            <span className="glow-text">U.L.T.R.O.N. ARCHITECTURE CONFIG</span>
+            <span className="version-badge">v9.4.6</span>
+          </div>
+          <button type="button" className="close-btn" onClick={onClose}>
+            ✕
+          </button>
         </div>
 
-        {/* Tab bar */}
-        <div style={{ display: "flex", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
-          {tabs.map((t) => (
+        {/* Navigation Tabs */}
+        <div className="tab-nav">
+          {[
+            { id: "engine", label: "AI Brain" },
+            { id: "omniroute", label: "OmniRoute" },
+            { id: "opendesign", label: "Nexu OpenDesign" },
+            { id: "coworker", label: "Accomplish Coworker" },
+            { id: "openjarvis", label: "OpenJarvis" },
+            { id: "screenpipe", label: "Screenpipe 24/7" },
+            { id: "freellm", label: "Free APIs" },
+            { id: "mcp", label: "MCP Hub" },
+            { id: "voice", label: "Fish Voices" },
+            { id: "system", label: "System" },
+          ].map((tab) => (
             <button
-              key={t.id}
+              key={tab.id}
               type="button"
-              onClick={() => setActiveTab(t.id)}
-              style={{
-                flex: 1, padding: "10px 8px",
-                background: activeTab === t.id ? "rgba(255,255,255,0.06)" : "transparent",
-                border: "none",
-                borderBottom: activeTab === t.id ? "2px solid rgba(255,255,255,0.6)" : "2px solid transparent",
-                color: activeTab === t.id ? "#e0e0e0" : "#555",
-                fontSize: 11, fontWeight: "bold", letterSpacing: "0.08em",
-                cursor: "pointer", transition: "all 0.15s",
-                fontFamily: "'Courier New', monospace",
-              }}
+              className={`tab-btn ${activeTab === tab.id ? "active" : ""}`}
+              onClick={() => setActiveTab(tab.id as any)}
             >
-              {t.label}
+              {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Body */}
-        <div style={S.body}>
-
-          {/* ── AI ENGINE TAB ───────────────────────────── */}
+        {/* Tab Contents */}
+        <div className="modal-body">
           {activeTab === "engine" && (
-            <>
-              {/* Routing strategy */}
-              <div style={S.section}>
-                <span style={S.sectionLabel}>Routing Mode</span>
-                <div style={S.row}>
-                  {chip(modelMode === "auto", () => onEngineChange("auto"), "Auto (Smart)")}
-                  {chip(modelMode === "antigravity", () => onEngineChange("antigravity"), "Antigravity Only")}
-                  {chip(modelMode === "api-key", () => { onEngineChange("api-key"); onOnlineModeChange("api-key"); }, "API Key Only")}
-                  {chip(modelMode === "ollama", () => onEngineChange("ollama"), "Ollama Only")}
-                </div>
-                <p style={{ fontSize: 10, color: "#444", lineHeight: 1.5, margin: 0 }}>
-                  {modelMode === "auto" && "Auto tries Antigravity (free) → API Key → Local in order."}
-                  {modelMode === "antigravity" && "Uses the free Antigravity bridge. Requires agy CLI installed."}
-                  {modelMode === "api-key" && "Uses your cloud API key directly. Most reliable."}
-                  {modelMode === "ollama" && "Runs fully offline. Requires Ollama running locally."}
-                </p>
-              </div>
-
-              {/* Online engine */}
-              <div style={S.section}>
-                <span style={S.sectionLabel}>Online Engine</span>
-                <div style={S.row}>
-                  {chip(!isApiKey, () => { onOnlineModeChange("antigravity"); if (modelMode === "api-key") onEngineChange("auto"); }, "Antigravity (Free)")}
-                  {chip(isApiKey, () => { onOnlineModeChange("api-key"); if (modelMode !== "ollama" && modelMode !== "lm-studio") onEngineChange("api-key"); }, "API Key")}
-                </div>
-
-                {isApiKey ? (
-                  <>
-                    <div>
-                      <span style={S.label}>PROVIDER</span>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-                        {PROVIDERS.map((p) => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => onApiProviderChange(p.id)}
-                            title={p.hint}
-                            style={{
-                              padding: "7px 8px", borderRadius: 7, fontSize: 10, fontWeight: "bold",
-                              cursor: "pointer", letterSpacing: "0.06em", textAlign: "center",
-                              fontFamily: "'Courier New', monospace",
-                              border: apiProvider === p.id ? "1px solid rgba(255,255,255,0.5)" : "1px solid rgba(255,255,255,0.08)",
-                              background: apiProvider === p.id ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.03)",
-                              color: apiProvider === p.id ? "#fff" : "#666",
-                              transition: "all 0.15s",
-                            }}
-                          >
-                            {p.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <span style={S.label}>API KEY ({apiProvider.toUpperCase()})</span>
-                      <div style={{ position: "relative" }}>
-                        <input
-                          type={showKey ? "text" : "password"}
-                          value={apiKey}
-                          onChange={(e) => onApiKeyChange(e.target.value)}
-                          placeholder={`Paste your ${apiProvider} API key...`}
-                          style={{ ...S.input, paddingRight: 52 }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowKey(!showKey)}
-                          style={{
-                            position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-                            background: "transparent", border: "none", color: "#555",
-                            fontSize: 11, cursor: "pointer",
-                          }}
-                        >
-                          {showKey ? "HIDE" : "SHOW"}
-                        </button>
-                      </div>
-                      {apiKey && (
-                        <p style={{ fontSize: 10, color: "#00aa66", marginTop: 4 }}>✓ Key saved locally</p>
-                      )}
-                    </div>
-
-                    {apiProvider === "custom" && (
-                      <div>
-                        <span style={S.label}>CUSTOM BASE URL</span>
-                        <input
-                          type="text"
-                          value={apiBaseUrl}
-                          onChange={(e) => onApiBaseUrlChange(e.target.value)}
-                          placeholder="https://your-api.com/v1/chat/completions"
-                          style={S.input}
-                        />
-                      </div>
-                    )}
-
-                    <div>
-                      <span style={S.label}>MODEL</span>
-                      <select value={selectedModelName} onChange={(e) => onModelChange(e.target.value)} style={S.select}>
-                        {models.map((m: string) => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <span style={S.label}>ANTIGRAVITY MODEL</span>
-                    <select value={selectedModelName} onChange={(e) => onModelChange(e.target.value)} style={S.select}>
-                      {ANTIGRAVITY_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              {/* Local engine */}
-              <div style={S.section}>
-                <span style={S.sectionLabel}>Local / Offline Engine</span>
-                <div style={S.row}>
-                  {chip(localMode === "ollama", () => onLocalModeChange("ollama"), "🦙 Ollama")}
-                  {chip(localMode === "lm-studio", () => onLocalModeChange("lm-studio"), "🖥 LM Studio")}
-                </div>
-                <div>
-                  <span style={S.label}>LOCAL MODEL</span>
-                  <select value={selectedLocalModelName} onChange={(e) => onLocalModelChange(e.target.value)} style={S.select}>
-                    {localModels.map((m: string) => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-                <p style={{ fontSize: 10, color: "#444", lineHeight: 1.5, margin: 0 }}>
-                  {localMode === "ollama" ? "Requires Ollama running at localhost:11434." : "Requires LM Studio server running at localhost:1234."}
-                </p>
-              </div>
-            </>
-          )}
-
-          {/* ── VOICE TAB ───────────────────────────────── */}
-          {activeTab === "voice" && (
-            <>
-              <div style={S.section}>
-                <span style={S.sectionLabel}>Voice Persona</span>
-                <div style={S.row}>
-                  {chip(voiceProfile === "jarvis", () => onVoiceProfileChange("jarvis"), "👔 J.A.R.V.I.S.")}
-                  {chip(voiceProfile === "friday", () => onVoiceProfileChange("friday"), "👩 F.R.I.D.A.Y.")}
-                  {chip(voiceProfile === "edith", () => onVoiceProfileChange("edith"), "👓 E.D.I.T.H.")}
-                  {chip(voiceProfile === "off", () => onVoiceProfileChange("off"), "🔇 OFF")}
-                </div>
-                <p style={{ fontSize: 10, color: "#444", lineHeight: 1.5, margin: 0 }}>
-                  {voiceProfile === "jarvis" && "Calm, precise, British-accented male voice. Classic Stark AI."}
-                  {voiceProfile === "friday" && "Warm, Irish-accented female voice. Friendly and responsive."}
-                  {voiceProfile === "edith" && "Sharp, confident female voice. Strategic intelligence persona."}
-                  {voiceProfile === "off" && "Voice output disabled. Silent telemetry mode."}
-                </p>
-              </div>
-
-              <div style={S.section}>
-                <span style={S.sectionLabel}>Auto-Speak Settings</span>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div>
-                    <span style={{ fontSize: 12, color: "#ccc", display: "block" }}>Speak typed responses aloud</span>
-                    <span style={{ fontSize: 10, color: "#444" }}>ULTRON will read out AI replies when you type messages</span>
-                  </div>
+            <div className="config-section">
+              <label className="section-title">ACTIVE AI ENGINE MODE</label>
+              <div className="chip-grid">
+                {[
+                  { id: "auto", label: "⚡ AUTO (OmniRoute)" },
+                  { id: "antigravity", label: "🚀 ANTIGRAVITY" },
+                  { id: "api-key", label: "🔑 API KEYS" },
+                  { id: "ollama", label: "🦙 OLLAMA" },
+                  { id: "lm-studio", label: "💻 LM STUDIO" },
+                ].map((m) => (
                   <button
+                    key={m.id}
                     type="button"
-                    onClick={() => onSpeakOnTypingChange(!speakOnTyping)}
-                    style={{
-                      width: 44, height: 24, borderRadius: 12,
-                      background: speakOnTyping ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.1)",
-                      border: "1px solid rgba(255,255,255,0.2)",
-                      cursor: "pointer", position: "relative", flexShrink: 0,
-                      transition: "all 0.2s",
-                    }}
+                    className={`chip-btn ${modelMode === m.id ? "active" : ""}`}
+                    onClick={() => onEngineChange(m.id as any)}
                   >
-                    <span style={{
-                      position: "absolute", top: 2,
-                      left: speakOnTyping ? 22 : 2,
-                      width: 18, height: 18, borderRadius: "50%",
-                      background: speakOnTyping ? "#000" : "#888",
-                      transition: "left 0.2s",
-                    }} />
+                    {m.label}
                   </button>
-                </div>
+                ))}
               </div>
-            </>
-          )}
 
-          {/* ── SYSTEM TAB ──────────────────────────────── */}
-          {activeTab === "system" && (
-            <>
-              {sysInfo && (
-                <div style={S.section}>
-                  <span style={S.sectionLabel}>Hardware</span>
-                  <div style={{ fontSize: 11, color: "#888", lineHeight: 2, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-                    <span style={{ color: "#555" }}>CPU</span>
-                    <span style={{ color: "#ccc" }}>{sysInfo.cpuModel?.split(" ").slice(0, 4).join(" ")}</span>
-                    <span style={{ color: "#555" }}>Cores</span>
-                    <span style={{ color: "#ccc" }}>{sysInfo.cpuCores}</span>
-                    <span style={{ color: "#555" }}>RAM Free</span>
-                    <span style={{ color: "#ccc" }}>{sysInfo.freeMemMb} MB / {sysInfo.totalMemMb} MB</span>
-                    <span style={{ color: "#555" }}>AI Tier</span>
-                    <span style={{ color: "#e0e0e0", fontWeight: "bold" }}>{sysInfo.tierBadge}</span>
+              {modelMode === "api-key" && (
+                <div className="input-group mt-4">
+                  <label className="input-label">CLOUD API PROVIDER</label>
+                  <select
+                    className="glass-input"
+                    value={apiProvider}
+                    onChange={(e) => onApiProviderChange(e.target.value)}
+                  >
+                    {PROVIDERS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label} - {p.hint}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label className="input-label mt-3">API KEY(S) (Comma-separated for multi-key load balancing)</label>
+                  <div className="key-input-wrapper">
+                    <input
+                      type={showKey ? "text" : "password"}
+                      className="glass-input"
+                      placeholder="sk-... (enter multiple keys separated by commas)"
+                      value={apiKey}
+                      onChange={(e) => onApiKeyChange(e.target.value)}
+                    />
+                    <button type="button" className="eye-btn" onClick={() => setShowKey(!showKey)}>
+                      {showKey ? "🙈" : "👁️"}
+                    </button>
                   </div>
                 </div>
               )}
+            </div>
+          )}
 
-              <div style={S.section}>
-                <span style={S.sectionLabel}>In-App Updater</span>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                  <div>
-                    <span style={{ fontSize: 12, color: "#ccc", display: "block" }}>Current Version: v51.0.0</span>
-                    <span style={{ fontSize: 10, color: "#444" }}>Check official repository for new releases</span>
+          {activeTab === "omniroute" && (
+            <div className="config-section">
+              <label className="section-title">OMNIROUTE INTELLIGENT AI PROXY & ROUTER</label>
+              <p className="section-desc">
+                OmniRoute load balances multiple paid API keys and free endpoints while routing fast quick responses to cloud APIs and background heavy tasks to local Ollama / LM Studio models.
+              </p>
+              <div className="glass-card">
+                <div className="card-header">⚡ QUICK CHAT RESPONSES</div>
+                <div className="card-sub">Uses Cloud APIs & Antigravity Bridge for sub-second responses.</div>
+              </div>
+              <div className="glass-card mt-3">
+                <div className="card-header">🦙 BACKGROUND AUTONOMOUS TASKS</div>
+                <div className="card-sub">Routes pondering and memory indexing to local models (Ollama/LM Studio) to save credits.</div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "opendesign" && (
+            <div className="config-section">
+              <label className="section-title">NEXU OPENDESIGN UI/UX CANVAS ENGINE</label>
+              <p className="section-desc">
+                Generates liquid glassmorphism design tokens, wireframe component cards, and HUD elements on demand.
+              </p>
+              <div className="resource-list">
+                {openDesignComponents.map((c) => (
+                  <div key={c.id} className="resource-item">
+                    <div className="res-title">
+                      {c.name} <span className="speed-tag">{c.category.toUpperCase()}</span>
+                    </div>
+                    <div className="res-desc">{c.description}</div>
+                    <div className="res-meta">JSX: {c.jsxCode}</div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleCheckUpdate}
-                    disabled={updateStatus === "checking"}
-                    style={{ ...S.footerBtn, flex: "none", padding: "6px 14px", fontSize: 10 }}
-                  >
-                    {updateStatus === "checking" ? "Checking..." : "⚡ CHECK FOR UPDATES"}
-                  </button>
-                </div>
-                {updateStatus === "up-to-date" && (
-                  <p style={{ fontSize: 11, color: "#44bb44", margin: 0 }}>✅ U.L.T.R.O.N. is running the latest verified version (v51.5.3).</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "coworker" && (
+            <div className="config-section">
+              <label className="section-title">ACCOMPLISH AI AUTONOMOUS COWORKER JOBS</label>
+              <p className="section-desc">
+                End-to-end multi-step task decomposition, autonomous worker loops, and artifact generation.
+              </p>
+              <div className="resource-list">
+                {coworkerTasks.map((t) => (
+                  <div key={t.id} className="resource-item">
+                    <div className="res-title">
+                      {t.title} <span className="speed-tag">{t.status.toUpperCase()}</span>
+                    </div>
+                    <div className="res-desc">Goal: {t.goal}</div>
+                    <div className="res-meta">Steps Completed: {t.steps.filter((s: any) => s.status === "completed").length} / {t.steps.length}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "openjarvis" && (
+            <div className="config-section">
+              <label className="section-title">OPENJARVIS COMPUTER AUTOMATION & SYSTEM CONTROL</label>
+              <p className="section-desc">
+                Autonomous system execution, desktop automation, app control, and self-healing workflow loops.
+              </p>
+              <div className="resource-list">
+                {jarvisHistory.length === 0 ? (
+                  <div className="glass-card">No recent computer actions logged.</div>
+                ) : (
+                  jarvisHistory.map((item) => (
+                    <div key={item.id} className="resource-item">
+                      <div className="res-title">
+                        {item.description} <span className="speed-tag">{item.status.toUpperCase()}</span>
+                      </div>
+                      <div className="res-desc">Command: {item.command}</div>
+                      {item.result && <div className="res-meta">Result: {item.result}</div>}
+                    </div>
+                  ))
                 )}
-                {updateStatus === "available" && (
-                  <div style={{ background: "rgba(255, 170, 48, 0.1)", border: "1px solid rgba(255, 170, 48, 0.4)", borderRadius: 6, padding: 10, marginTop: 8 }}>
-                    <p style={{ fontSize: 11, color: "#ffaa30", margin: "0 0 8px" }}>🚀 New release available: {latestVer}</p>
-                    <a
-                      href="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Installer.exe"
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ ...S.footerBtn, display: "inline-block", textDecoration: "none", fontSize: 10, padding: "6px 12px", background: "var(--accent-amber)", color: "#000" }}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "screenpipe" && (
+            <div className="config-section">
+              <label className="section-title">SCREENPIPE 24/7 CONTINUOUS SCREEN & AUDIO OCR MEMORY</label>
+              <p className="section-desc">
+                Screenpipe continuously indexes screen text (OCR) and audio transcripts locally so Jarvis always knows what you are working on.
+              </p>
+              <input
+                type="text"
+                className="glass-input mb-3"
+                placeholder="Search screen OCR history & transcripts..."
+                value={screenpipeQuery}
+                onChange={(e) => setScreenpipeQuery(e.target.value)}
+              />
+              <div className="resource-list">
+                {screenpipeHistory.map((frame) => (
+                  <div key={frame.id} className="resource-item">
+                    <div className="res-title">
+                      {frame.appName} — {frame.windowTitle}
+                    </div>
+                    <div className="res-desc">OCR: {frame.ocrText}</div>
+                    {frame.audioTranscript && <div className="res-meta">Audio: {frame.audioTranscript}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "freellm" && (
+            <div className="config-section">
+              <label className="section-title">FREE LLM API RESOURCES DIRECTORY</label>
+              <p className="section-desc">Zero-cost LLM API resources powered by free tier endpoints.</p>
+              <div className="resource-list">
+                {FREE_LLM_RESOURCES.map((r) => (
+                  <div key={r.id} className="resource-item">
+                    <div className="res-title">
+                      {r.name} <span className="speed-tag">{r.speed}</span>
+                    </div>
+                    <div className="res-desc">{r.description}</div>
+                    <div className="res-meta">
+                      Limit: {r.rateLimit} | Requires Key: {r.requiresKey ? "Yes" : "No (Bundled Free)"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "mcp" && (
+            <div className="config-section">
+              <label className="section-title">MODEL CONTEXT PROTOCOL (MCP) AUTO-SPIN-UP HUB</label>
+              <p className="section-desc">
+                Ultron automatically detects missing MCP servers and spins them up on demand!
+              </p>
+              <div className="mcp-grid">
+                {mcpServers.map((s) => (
+                  <div key={s.id} className="mcp-card">
+                    <div className="mcp-name">{s.name}</div>
+                    <div className="mcp-status">
+                      Status: <span className={`status-${s.status}`}>{s.status.toUpperCase()}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="mcp-action-btn"
+                      onClick={() => handleSpinUpMcp(s.id)}
                     >
-                      Download & Install Update &rarr;
-                    </a>
+                      {s.status === "running" ? "RESTART SERVER" : "SPIN UP MCP"}
+                    </button>
                   </div>
-                )}
-                {updateStatus === "error" && (
-                  <p style={{ fontSize: 11, color: "#bb4444", margin: 0 }}>⚠️ Could not check for updates. Check internet connection.</p>
-                )}
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "voice" && (
+            <div className="config-section">
+              <label className="section-title">FISH STUDIO VOICE ENGINE</label>
+              <p className="section-desc">
+                Ultra-realistic synthetic voice personas for Jarvis, Edith, and Friday with zero-download offline fallback.
+              </p>
+
+              <div className="toggle-row">
+                <span>ENABLE FISH STUDIO SYNTHESIS</span>
+                <input
+                  type="checkbox"
+                  checked={useFishStudio}
+                  onChange={(e) => handleToggleFish(e.target.checked)}
+                />
               </div>
 
-              <div style={S.section}>
-                <span style={S.sectionLabel}>Memory Management</span>
-                <p style={{ fontSize: 10, color: "#444", lineHeight: 1.5, margin: 0 }}>
-                  SQZ rolling deduplication is active. Prune old scratchpad data and run SQLite VACUUM to reclaim space.
-                </p>
-                <button
-                  type="button"
-                  onClick={onOptimizeMemory}
-                  style={{ ...S.footerBtn, flex: "none", width: "100%", textAlign: "center" as const }}
-                >
-                  ⚡ OPTIMIZE & VACUUM DATABASE
-                </button>
-                {memOptResult && (
-                  <p style={{ fontSize: 10, color: "#aaa", textAlign: "center", margin: 0 }}>{memOptResult}</p>
-                )}
-              </div>
+              {useFishStudio && (
+                <div className="input-group mt-3">
+                  <label className="input-label">FISH AUDIO API KEY (Optional)</label>
+                  <input
+                    type="password"
+                    className="glass-input"
+                    placeholder="Enter Fish Audio key or leave blank for free tier"
+                    value={fishApiKey}
+                    onChange={(e) => handleSaveFishKey(e.target.value)}
+                  />
+                </div>
+              )}
 
-              <div style={S.section}>
-                <span style={S.sectionLabel}>Onboarding & Diagnostics</span>
-                <button
-                  type="button"
-                  onClick={() => { onOpenBenchmark(); onClose(); }}
-                  style={{ ...S.footerBtn, flex: "none", width: "100%", textAlign: "center" as const }}
-                >
-                  ⚙ RE-RUN SETUP WIZARD
-                </button>
+              <label className="input-label mt-4">ACTIVE PERSONA</label>
+              <div className="chip-grid">
+                {[
+                  { id: "jarvis", label: "🎩 J.A.R.V.I.S. (British Male)" },
+                  { id: "edith", label: "🕶️ E.D.I.T.H. (Tactical Female)" },
+                  { id: "friday", label: "☘️ F.R.I.D.A.Y. (Irish Female)" },
+                  { id: "off", label: "🔇 MUTE VOICE" },
+                ].map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    className={`chip-btn ${voiceProfile === v.id ? "active" : ""}`}
+                    onClick={() => onVoiceProfileChange(v.id)}
+                  >
+                    {v.label}
+                  </button>
+                ))}
               </div>
+            </div>
+          )}
 
-              <div style={{ ...S.section, textAlign: "center" as const }}>
-                <span style={{ fontSize: 10, color: "#333", letterSpacing: "0.12em" }}>
-                  U.L.T.R.O.N. v51 · Neural OS · Google DeepMind Antigravity AI
-                </span>
-              </div>
-            </>
+          {activeTab === "system" && (
+            <div className="config-section">
+              <label className="section-title">SYSTEM DIAGNOSTICS & MEMORY</label>
+              <button type="button" className="action-btn" onClick={onOptimizeMemory}>
+                🧠 OPTIMIZE MEMORY & DEDUP CONTEXT
+              </button>
+              {memOptResult && <div className="opt-result mt-2">{memOptResult}</div>}
+              <button type="button" className="action-btn mt-3" onClick={onOpenBenchmark}>
+                📊 RUN NEURAL BENCHMARK
+              </button>
+            </div>
           )}
         </div>
 
         {/* Footer */}
-        <div style={S.footer}>
-          <button type="button" style={S.footerBtn} onClick={onClose}>CANCEL</button>
-          <button type="button" style={{ ...S.footerBtn, ...S.primaryBtn }} onClick={onClose}>
-            ✓ SAVE & CLOSE
+        <div className="glass-modal-footer">
+          <button type="button" className="save-btn" onClick={onClose}>
+            CONFIRM & APPLY
           </button>
         </div>
       </div>

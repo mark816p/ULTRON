@@ -1,5 +1,7 @@
+/** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ["never-forget-engine", "better-sqlite3"],
+  output: 'standalone',
+  reactStrictMode: true,
 };
 
 export default nextConfig;

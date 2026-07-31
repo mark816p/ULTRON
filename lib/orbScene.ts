@@ -13,7 +13,7 @@ export interface OrbSceneApi {
   zoomIn(): void;
   zoomOut(): void;
   resetView(): void;
-  setAIState(state: "idle" | "thinking" | "speaking" | "pondering"): void;
+  setAIState(state: "idle" | "thinking" | "speaking" | "pondering" | "error"): void;
   setThoughtWords(words: string[]): void;
   /** Optional 3D hand-depth awareness: factor 0=far, 1=very close. */
   setDepthFactor(factor: number): void;
@@ -704,11 +704,11 @@ export function createOrbScene(container: HTMLElement): OrbSceneApi {
   let rafId = 0;
   let disposed = false;
 
-  let aiState: "idle" | "thinking" | "speaking" | "pondering" = "idle";
+  let aiState: "idle" | "thinking" | "speaking" | "pondering" | "error" = "idle";
   let speedMultiplier = 1.0;
   let targetColorHex = 0xffaa30;
 
-  function setAIState(state: "idle" | "thinking" | "speaking" | "pondering") {
+  function setAIState(state: "idle" | "thinking" | "speaking" | "pondering" | "error") {
     aiState = state;
     if (state === "idle") {
       speedMultiplier = 1.0;
@@ -719,6 +719,9 @@ export function createOrbScene(container: HTMLElement): OrbSceneApi {
     } else if (state === "speaking") {
       speedMultiplier = 1.8;
       targetColorHex = 0x00ff66; // Emerald Green
+    } else if (state === "error") {
+      speedMultiplier = 0.8;
+      targetColorHex = 0xff3333; // Red
     }
   }
 
