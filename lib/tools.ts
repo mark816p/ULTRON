@@ -16,6 +16,11 @@ export interface ToolResult {
   error?: string;
 }
 
+/**
+ * Central tool execution registry for U.L.T.R.O.N. v9.4.6.
+ * Provides web search, system diagnostics, OpenJarvis OS control,
+ * Screenpipe timeline OCR, Accomplish Coworker, OpenDesign, and NeverForget memory engine integration.
+ */
 export class UltronTools {
   private gowaUrl: string;
 

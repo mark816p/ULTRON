@@ -143,23 +143,36 @@ export class NeverForgetEngine {
   }
 
   /**
-   * Fast full-text & semantic keyword search across indexed memories
+   * Fast full-text & semantic keyword search across indexed memories with multi-term relevance scoring
    */
   public searchMemories(query: string, limit: number = 10): MemoryItem[] {
-    const lower = query.toLowerCase();
-    const results: MemoryItem[] = [];
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return [];
+
+    const scored: { item: MemoryItem; score: number }[] = [];
 
     for (const memories of this.store.values()) {
       for (const item of memories) {
-        if (item.content.toLowerCase().includes(lower)) {
-          results.push(item);
+        const text = item.content.toLowerCase();
+        let matchCount = 0;
+        for (const term of terms) {
+          if (text.includes(term)) {
+            matchCount++;
+          }
+        }
+        if (matchCount > 0) {
+          const termScore = matchCount / terms.length;
+          const importance = item.importanceScore || 0.5;
+          const score = termScore * 2.0 + importance;
+          scored.push({ item, score });
         }
       }
     }
 
-    return results
-      .sort((a, b) => (b.importanceScore || 0) - (a.importanceScore || 0) || b.timestamp - a.timestamp)
-      .slice(0, limit);
+    return scored
+      .sort((a, b) => b.score - a.score || b.item.timestamp - a.item.timestamp)
+      .slice(0, limit)
+      .map(entry => entry.item);
   }
 
   /**
