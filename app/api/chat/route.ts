@@ -54,23 +54,26 @@ export async function POST(req: NextRequest) {
       isBackgroundTask = false,
     } = body;
 
-    if (!message) {
-      return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    if (!message || typeof message !== "string" || !message.trim()) {
+      return NextResponse.json({ error: "Message must be a non-empty string" }, { status: 400 });
     }
+
+    const cleanMessage = message.trim();
+    const cleanSessionId = typeof sessionId === "string" && sessionId.trim() ? sessionId.trim() : "default_session";
 
     const screenContext = screenpipeEngine.getLatestScreenContext();
     const augmentedSystemPrompt = `${SYSTEM_INSTRUCTIONS}\n\n${screenContext}`;
 
     if (memoryEngine) {
-      await memoryEngine.remember(sessionId, "user", message);
+      await memoryEngine.remember(cleanSessionId, "user", cleanMessage);
     }
 
     let systemPrompt = augmentedSystemPrompt;
-    let recentMsgs = [...history, { role: "user", content: message }];
+    let recentMsgs = [...history, { role: "user", content: cleanMessage }];
     let dedupStats = null;
 
     if (memoryEngine) {
-      const prepared = memoryEngine.prepareContext(sessionId, augmentedSystemPrompt, recentMsgs);
+      const prepared = memoryEngine.prepareContext(cleanSessionId, augmentedSystemPrompt, recentMsgs);
       systemPrompt = prepared.systemPrompt;
       recentMsgs = prepared.messages;
       dedupStats = prepared.dedupStats;
