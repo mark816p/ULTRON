@@ -836,29 +836,31 @@
       window.open(url, '_blank');
     }
 
+    function remapLegacyTag(tag) {
+      if (!tag || tag === 'latest') return 'v9.4.6';
+      const clean = String(tag).replace(/^v/, '');
+      const parts = clean.split('.').map(Number);
+      const major = parts[0] || 0;
+      const patch = parts[2] || 0;
+      if (major === 9 && parts[1] === 4) return tag.startsWith('v') ? tag : `v${tag}`;
+      if (major >= 51 && patch >= 3) return 'v9.4.6';
+      if (major >= 51 && patch === 2) return 'v9.4.5';
+      if (major >= 51 && patch === 1) return 'v9.4.4';
+      if (major >= 51 && patch === 0) return 'v9.4.3';
+      if (major >= 49) return 'v9.4.2';
+      if (major >= 45) return 'v9.4.1';
+      if (major >= 44) return 'v9.4.0';
+      if (major >= 42) return 'v9.3.0';
+      if (major >= 39) return 'v9.2.0';
+      return 'v9.1.0';
+    }
+
     async function loadReleases() {
       try {
         const res = await fetch(`https://api.github.com/repos/${REPO}/releases`);
         if (!res.ok) return;
         const releases = await res.json();
         if (!Array.isArray(releases) || releases.length === 0) return;
-
-        // Sort releases strictly by numerical semantic version descending (v44 -> v43 -> ... -> v1.0.0)
-        releases.sort((a, b) => {
-          const parseVer = (tag) => {
-            const match = (tag || '').match(/(\d+)\.?(\d*)\.?(\d*)/);
-            if (!match) return [0, 0, 0];
-            return [parseInt(match[1]||0, 10), parseInt(match[2]||0, 10), parseInt(match[3]||0, 10)];
-          };
-          const [a1, a2, a3] = parseVer(a.tag_name);
-          const [b1, b2, b3] = parseVer(b.tag_name);
-          if (a1 !== b1) return b1 - a1;
-          if (a2 !== b2) return b2 - a2;
-          return b3 - a3;
-        });
-
-        const stableReleases = releases.filter(r => !r.prerelease && !r.draft);
-        const latestStableTag = stableReleases[0]?.tag_name || 'v43.0.0';
 
         const oses = ['win', 'mac', 'nix'];
         oses.forEach(os => {
@@ -869,21 +871,27 @@
           // Clear existing options
           sel.innerHTML = '';
 
-          // Add Latest as first option (always points to the newest release)
+          // Add Latest as first option
           const latestOpt = document.createElement('option');
           const latestUrl = `https://github.com/${REPO}/releases/latest/download/${FILE[os]}`;
           latestOpt.value = latestUrl;
-          latestOpt.textContent = `⚡ Latest (${latestStableTag} — always up to date)`;
+          latestOpt.textContent = `⚡ Latest — v9.4.6 — Always Up to Date`;
           sel.appendChild(latestOpt);
 
-          // Add each release
+          const seen = new Set();
+          seen.add('v9.4.6');
+
+          // Add each release mapped to v9.4.6 system without brackets
           releases.forEach(rel => {
-            const opt = document.createElement('option');
-            const tag = rel.tag_name;
-            const url = `https://github.com/${REPO}/releases/download/${tag}/${FILE[os]}`;
-            opt.value = url;
-            opt.textContent = `${tag}`;
-            sel.appendChild(opt);
+            const mappedTag = remapLegacyTag(rel.tag_name);
+            if (!seen.has(mappedTag)) {
+              seen.add(mappedTag);
+              const opt = document.createElement('option');
+              const url = `https://github.com/${REPO}/releases/download/${rel.tag_name}/${FILE[os]}`;
+              opt.value = url;
+              opt.textContent = `${mappedTag} — Release`;
+              sel.appendChild(opt);
+            }
           });
 
           // Sync download button to current selection
