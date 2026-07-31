@@ -46,7 +46,7 @@ try {
             $seenTags[$mappedTag] = $true
             $releases += [PSCustomObject]@{
                 TagName = $mappedTag
-                Name = "$mappedTag (Release)"
+                Name = "$mappedTag — Release"
                 RawTag = $rel.tag_name
                 Prerelease = $rel.prerelease
                 Draft = $rel.draft
@@ -61,13 +61,13 @@ try {
 # Fallback default versions if API returns empty
 if ($releases.Count -eq 0) {
     $releases = @(
-        [PSCustomObject]@{ TagName = "v9.4.6"; Name = "v9.4.6 (Latest Release)"; Prerelease = $false },
-        [PSCustomObject]@{ TagName = "v9.4.5"; Name = "v9.4.5"; Prerelease = $false },
-        [PSCustomObject]@{ TagName = "v9.4.4"; Name = "v9.4.4"; Prerelease = $false },
-        [PSCustomObject]@{ TagName = "v9.4.3"; Name = "v9.4.3"; Prerelease = $false },
-        [PSCustomObject]@{ TagName = "v9.4.2"; Name = "v9.4.2"; Prerelease = $false },
-        [PSCustomObject]@{ TagName = "v9.4.1"; Name = "v9.4.1"; Prerelease = $false },
-        [PSCustomObject]@{ TagName = "v9.4.0"; Name = "v9.4.0"; Prerelease = $false }
+        [PSCustomObject]@{ TagName = "v9.4.6"; Name = "v9.4.6 — Latest Release"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v9.4.5"; Name = "v9.4.5 — Hologram Stage"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v9.4.4"; Name = "v9.4.4 — Accomplish Coworker"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v9.4.3"; Name = "v9.4.3 — OpenJarvis Control"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v9.4.2"; Name = "v9.4.2 — Fish Voices"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v9.4.1"; Name = "v9.4.1 — MediaPipe & VAD"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v9.4.0"; Name = "v9.4.0 — Core OS Launch"; Prerelease = $false }
     )
 }
 

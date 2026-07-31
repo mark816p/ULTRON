@@ -52,13 +52,13 @@ function remapLegacyTag(tag) {
 
 function getDefaultVersionList() {
   return [
-    { tag: 'v9.4.6', name: 'v9.4.6 (Latest Unified Release)', rawTag: 'latest' },
-    { tag: 'v9.4.5', name: 'v9.4.5 (Advanced Hologram Stage)', rawTag: 'v51.5.2' },
-    { tag: 'v9.4.4', name: 'v9.4.4 (Accomplish AI Coworker)', rawTag: 'v51.5.1' },
-    { tag: 'v9.4.3', name: 'v9.4.3 (OpenJarvis Desktop Control)', rawTag: 'v51.5.0' },
-    { tag: 'v9.4.2', name: 'v9.4.2 (Fish Studio Voices)', rawTag: 'v49.0.0' },
-    { tag: 'v9.4.1', name: 'v9.4.1 (MediaPipe & VAD)', rawTag: 'v45.0.0' },
-    { tag: 'v9.4.0', name: 'v9.4.0 (Core OS Launch)', rawTag: 'v44.0.0' },
+    { tag: 'v9.4.6', name: 'v9.4.6 — Latest Unified Release', rawTag: 'latest' },
+    { tag: 'v9.4.5', name: 'v9.4.5 — Advanced Hologram Stage', rawTag: 'v51.5.2' },
+    { tag: 'v9.4.4', name: 'v9.4.4 — Accomplish AI Coworker', rawTag: 'v51.5.1' },
+    { tag: 'v9.4.3', name: 'v9.4.3 — OpenJarvis Desktop Control', rawTag: 'v51.5.0' },
+    { tag: 'v9.4.2', name: 'v9.4.2 — Fish Studio Voices', rawTag: 'v49.0.0' },
+    { tag: 'v9.4.1', name: 'v9.4.1 — MediaPipe & VAD Engine', rawTag: 'v45.0.0' },
+    { tag: 'v9.4.0', name: 'v9.4.0 — Core OS Launch', rawTag: 'v44.0.0' },
   ];
 }
 
@@ -82,14 +82,14 @@ ipcMain.handle('get-releases', async () => {
             const mapped = [];
             
             // Force v9.4.6 at top
-            mapped.push({ tag: 'v9.4.6', name: 'v9.4.6 (Latest Unified Release)', rawTag: 'latest' });
+            mapped.push({ tag: 'v9.4.6', name: 'v9.4.6 — Latest Unified Release', rawTag: 'latest' });
             seen.add('v9.4.6');
 
             for (const r of releases) {
               const mappedTag = remapLegacyTag(r.tag_name);
               if (!seen.has(mappedTag)) {
                 seen.add(mappedTag);
-                mapped.push({ tag: mappedTag, name: `${mappedTag} (Release)`, rawTag: r.tag_name });
+                mapped.push({ tag: mappedTag, name: `${mappedTag} — Release`, rawTag: r.tag_name });
               }
             }
             resolve(mapped);
