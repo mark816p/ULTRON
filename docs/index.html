@@ -1411,49 +1411,44 @@
           // Compute Hero Anchor 3D World Position
           const heroWorld = getAnchorWorldPos();
 
-          // Side Gutter Trajectory
-          const gutterOffset = window.innerWidth < 1000 ? 0 : 4.5;
+          // ── C1-Continuous Smoothstep Trajectory (Zero Jerk / Zero Bounces) ──
+          function smoothstep(val) {
+            const v = Math.max(0, Math.min(1, val));
+            return v * v * (3 - 2 * v);
+          }
+
+          const p = Math.max(0, Math.min(1, currentProgress));
           let posX, posY, posZ, scale, rotX, rotY;
 
-          if (currentProgress <= 0.18) {
-            // Stage 0 -> 1: Docks 100% inside Hero Stage Anchor at top of page and detaches smoothly on scroll
-            const t = currentProgress / 0.18;
-            posX = heroWorld.x * (1 - t) + (gutterOffset > 0 ? gutterOffset : 0) * t;
-            posY = heroWorld.y * (1 - t) + (heroWorld.y - 0.5) * t;
-            posZ = 0;
+          if (p <= 0.35) {
+            const t = smoothstep(p / 0.35);
+            posX = heroWorld.x * (1 - t) + (gutterOffset > 0 ? -gutterOffset : 0) * t;
+            posY = heroWorld.y * (1 - t) + (-0.25) * t;
+            posZ = t * 0.2;
             scale = 1.0;
-            rotX = t * 0.2;
-            rotY = time * 0.4 + t * Math.PI * 0.4;
-          } else if (currentProgress <= 0.65) {
-            // Stage 2: Download Section (Glides smoothly across to Left Side Gutter)
-            const t = (currentProgress - 0.18) / 0.47;
-            posX = (gutterOffset > 0 ? gutterOffset : 0) * (1 - t) + (gutterOffset > 0 ? -gutterOffset : 0) * t;
-            posY = -0.2 - t * 0.3;
-            posZ = t * 0.3;
-            scale = 1.0;
-            rotX = 0.2 + t * 0.3;
-            rotY = time * 0.4 + Math.PI * 0.4 + t * Math.PI;
+            rotX = t * 0.25;
+            rotY = time * 0.3 + t * Math.PI;
           } else {
-            // Stage 3: Features Bento & Tech Strip Section (Stays in Right Gutter, Fades out before Footer)
-            const t = (currentProgress - 0.65) / 0.35;
+            const t = smoothstep((p - 0.35) / 0.65);
             posX = (gutterOffset > 0 ? -gutterOffset : 0) * (1 - t) + (gutterOffset > 0 ? gutterOffset : 0) * t;
-            posY = -0.5 - t * 0.3;
-            posZ = 0.3;
-            scale = 1.0 - t * 0.4; // Shrinks down smoothly
-            rotX = 0.5 - t * 0.2;
-            rotY = time * 0.4 + Math.PI * 1.4 + t * Math.PI * 0.6;
+            posY = -0.25 - t * 0.55;
+            posZ = 0.2;
+            scale = 1.0 - t * 0.35;
+            rotX = 0.25 + t * 0.25;
+            rotY = time * 0.3 + Math.PI + t * Math.PI;
           }
 
           // Smoothly fade out 3D canvas opacity as scroll enters footer
-          if (currentProgress > 0.75) {
-            const fade = Math.max(0, 1 - (currentProgress - 0.75) / 0.25);
+          if (p > 0.78) {
+            const fade = Math.max(0, 1 - (p - 0.78) / 0.22);
             canvas.style.opacity = String(0.85 * fade);
           } else {
             canvas.style.opacity = '0.85';
           }
 
-          ultronGroup.position.set(posX, posY + Math.sin(time * 1.8) * 0.1, posZ);
-          ultronGroup.rotation.set(rotX, rotY, Math.sin(time * 1.2) * 0.08);
+          // Damped, silky floating motion
+          ultronGroup.position.set(posX, posY + Math.sin(time * 1.2) * 0.04, posZ);
+          ultronGroup.rotation.set(rotX, rotY, Math.sin(time * 0.8) * 0.04);
           ultronGroup.scale.setScalar(scale);
 
           renderer.render(scene, camera);
