@@ -17,22 +17,22 @@ Antigravity acts as the central pair-programmer and autonomous agent standard. I
 
 ```mermaid
 graph TD
-    User([User Voice & UI Input]) --> Handy[Handy Speech Engine & VAD]
-    User --> ChatUI[KokonutUI Liquid Glass HUD]
+    User([User Voice & UI Input]) --> VAD[VAD Speech Engine]
+    User --> ChatUI[Liquid Glass HUD]
     
-    Handy --> OmniRoute[OmniRoute Router & Proxy]
+    VAD --> OmniRoute[OmniRoute Router]
     ChatUI --> OmniRoute
 
-    OmniRoute -->|Interactive Chat| CloudAPI[Free LLM Directory & Antigravity Bridge]
+    OmniRoute -->|Interactive Chat| CloudAPI[Cloud LLM Bridge]
     OmniRoute -->|Background Heavy Work| LocalBionic[Ollama / LM Studio Local Models]
 
-    OmniRoute --> OpenJarvis[OpenJarvis Desktop Automation]
-    OmniRoute --> Accomplish[Accomplish AI Coworker Loop]
-    OmniRoute --> Screenpipe[Screenpipe 24/7 OCR & Audio Indexer]
-    OmniRoute --> OpenDesign[Nexu OpenDesign Canvas System]
+    OmniRoute --> Automation[Desktop System Automation]
+    OmniRoute --> Coworker[Autonomous AI Coworker]
+    OmniRoute --> Screenpipe[24/7 Screen OCR & Audio Indexer]
+    OmniRoute --> OpenDesign[OpenDesign Canvas System]
     OmniRoute --> MCP[MCP Hub Auto-Spin-Up]
     
-    Fish[Fish Studio Synthesis] <-- Voice Persona --> User
+    VoiceEngine[Voice Persona Engine] <-- Voice Persona --> User
 ```
 
 ---

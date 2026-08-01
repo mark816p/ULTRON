@@ -11,28 +11,27 @@
 
 <p align="center">
   <strong style="font-size: 18px; color: #38bdf8;">Universal Sentient AI Operating System & Holographic Interface</strong><br>
-  <em>Powered by Nexu OpenDesign Canvas, Accomplish AI Coworker, OpenJarvis, Screenpipe 24/7 Context, Fish Studio Voices, OmniRoute LLM Proxy, Free LLM API Resources, MCP Hub, and Handy Voice Control.</em>
+  <em>Powered by OpenDesign Canvas, Autonomous AI Coworker, System Automation, 24/7 Screen OCR, Voice Synthesis, OmniRoute Multi-Brain Router, and MCP Protocol Hub.</em>
 </p>
 
 ---
 
 </div>
 
-## 🌐 Integrated Feature Repositories & Capabilities (v9.4.6.1)
+## ⚡ Core Native Functions (v9.4.6.1)
 
-U.L.T.R.O.N. v9.4.6.1 unifies capabilities from major open-source AI projects into a cohesive desktop operating system:
+U.L.T.R.O.N. v9.4.6.1 includes native built-in operating functions:
 
-| Project Repository | Integrated Feature in U.L.T.R.O.N. v9.4.6.1 |
+| Function | Native Capability Description |
 |---|---|
-| 🎨 [nexu-io/open-design](https://github.com/nexu-io/open-design) | **AI UI/UX Canvas Engine**: Dynamic glassmorphism design tokens, wireframe component cards, HUD element synthesis (`🎨`). |
-| 🤖 [accomplish-ai/coworker](https://github.com/accomplish-ai/coworker) | **Autonomous AI Coworker**: End-to-end multi-step task decomposition, worker loop execution, step verification, and artifact generation (`🤖`). |
-| 🤖 [OpenJarvis](https://github.com/open-jarvis/OpenJarvis) | **Autonomous Computer Control**: Self-healing system execution, desktop automation, app launcher, and workflow triggers (`⚡`). |
-| 📸 [Screenpipe](https://github.com/screenpipe/screenpipe) | **24/7 Screen & Audio Memory**: Continuous screen OCR, speech-to-text audio indexing, local context memory search, and real-time screen awareness (`📷`). |
-| ⚡ [OmniRoute](https://github.com/diegosouzapw/OmniRoute) | **Multi-Provider AI Proxy**: Multi-API key load balancing with key rotation cooldowns, latency telemetry tracking, cloud fast API responses for interactive chat, and local model routing (**Ollama** / **LM Studio**). |
-| 🎁 [free-llm-api-resources](https://github.com/cheahjs/free-llm-api-resources) | **Free LLM API Directory**: Zero-cost public API endpoints (Gemini 2.0 Flash Free Tier, Groq, Cerebras, DeepSeek R1/V3, SambaNova, Together AI, Cloudflare Workers AI). |
-| 🐟 **Fish Studio** | **Realistic Persona Synthesis**: Synthetic voice synthesis for **Jarvis**, **Edith**, and **Friday** with built-in zero-download offline fallback. |
-| 🛠️ **MCP Hub** | **Dynamic Auto-Spin-Up**: Detects missing tools and automatically spins up Model Context Protocol servers on demand (`@modelcontextprotocol/server-filesystem`, `fetch`, `memory`, `git`). |
-| 🎙️ [Handy](https://github.com/cjpais/Handy) | **Hands-Free Speech Engine**: Continuous background wake word listening (`"Jarvis"`, `"Edith"`, `"Friday"`, `"Ultron"`), VAD audio waveform spectrum output, and push-to-talk speech control. |
+| 🎨 **OpenDesign Canvas** | **AI UI/UX Canvas Engine**: Dynamic glassmorphism design tokens, wireframe component cards, and HUD element synthesis. |
+| 🤖 **Autonomous AI Coworker** | **End-to-End Worker Loop**: Goal decomposition, multi-step execution, verification, and artifact creation. |
+| 🖥️ **System Automation** | **Desktop Computer Control**: Terminal command execution, app launcher, desktop automation, and system diagnostics. |
+| 📹 **24/7 Screen Memory** | **Screen & Audio OCR Timeline**: Continuous local screen capture, speech-to-text audio indexing, and contextual search. |
+| 🌐 **OmniRoute Failover** | **Multi-Brain Router**: Automatic circuit-breaker failover cascading across cloud LLMs (Gemini, OpenRouter, Groq, DeepSeek) and local hardware models (Ollama, LM Studio). |
+| 🗣️ **Voice Personas** | **Persona Synthesis**: Realistic voice synthesis for **J.A.R.V.I.S.**, **E.D.I.T.H.**, and **F.R.I.D.A.Y.** with acoustic telemetry feedback. |
+| 🔌 **MCP Protocol Hub** | **Dynamic Server Spin-Up**: Automatic auto-start for Model Context Protocol servers (`filesystem`, `fetch`, `memory`, `git`). |
+| 🎙️ **Always-On VAD Engine** | **Hands-Free Speech**: Continuous wake-word listening (*"Ultron"*, *"Jarvis"*), VAD spectrum output, and voice telemetry. |
 
 ---
 
@@ -44,7 +43,7 @@ Comprehensive developer architecture and protocol documentation is located in [A
 ## 📦 Installer Package Artifacts (v9.4.6.1)
 
 - **Windows**: `ULTRON-Setup.exe` (v9.4.6.1 NSIS Installer, x64)
-- **macOS**: `ULTRON-Setup.dmg` (v9.4.6.1 Disk Image)
+- **macOS**: `ULTRON-Setup.dmg` (v9.4.6.1 Universal Image)
 - **Linux**: `ULTRON-Setup.AppImage` (v9.4.6.1 Executable)
 
 ---
@@ -59,12 +58,17 @@ cd ULTRON
 # Install dependencies
 npm install
 
-# Run web dev mode
+# Run web development server
 npm run dev
 
-# Run native desktop mode (Electron v9.4.6.1)
-npm run app
+# Run native desktop mode (Electron)
+npm run desktop
 
-# Build fast desktop installer
-npm run build:installer
+# Build production artifacts
+npm run build
 ```
+
+---
+
+## 📜 License
+MIT License &copy; 2026 U.L.T.R.O.N. Systems.
