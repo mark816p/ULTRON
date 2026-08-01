@@ -319,7 +319,13 @@
       overflow: hidden;
       white-space: nowrap;
       position: relative;
+      z-index: 15;
       margin-bottom: 90px;
+      padding: 10px 0;
+      background: rgba(3, 3, 8, 0.7);
+      backdrop-filter: var(--glass-backdrop);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
       -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
     }
@@ -336,11 +342,12 @@
       font-size: 12px;
       font-weight: 600;
       color: var(--accent-cyan);
-      background: rgba(0, 240, 255, 0.05);
-      border: 1px solid rgba(0, 240, 255, 0.2);
+      background: rgba(10, 10, 20, 0.92);
+      border: 1px solid rgba(0, 240, 255, 0.35);
       padding: 8px 18px;
       border-radius: 999px;
-      backdrop-filter: var(--glass-backdrop);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
     }
 
     /* ── DOWNLOAD SECTION (HIERARCHY ORDER #1) ── */
@@ -1409,7 +1416,7 @@
           particleGroup.rotation.y += 0.003;
 
           // Side Gutter Trajectory
-          const gutterOffset = window.innerWidth < 1000 ? 0 : 4.5;
+          const gutterOffset = window.innerWidth < 1000 ? 0 : 5.2;
 
           // Compute Hero Anchor 3D World Position
           const heroWorld = getAnchorWorldPos();
