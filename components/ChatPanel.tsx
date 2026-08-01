@@ -28,7 +28,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "U.L.T.R.O.N. v9.4.6 active. Nexu OpenDesign UI canvas, Accomplish AI Coworker, OpenJarvis system automation, Screenpipe 24/7 OCR, Fish Studio voices & OmniRoute initialized. Speak 'Jarvis' or type a command.",
+      content: "U.L.T.R.O.N. v9.4.6.1 active. Nexu OpenDesign UI canvas, Accomplish AI Coworker, OpenJarvis system automation, Screenpipe 24/7 OCR, Fish Studio voices & OmniRoute initialized. Speak 'Jarvis' or type a command.",
       engine: "system",
       timestamp: new Date().toLocaleTimeString(),
     },
@@ -209,7 +209,7 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
         <div className="hud-bar">
           <div className="hud-title">
             <span className="pulse-led" />
-            <span>U.L.T.R.O.N. CORE v9.4.6</span>
+            <span>U.L.T.R.O.N. CORE v9.4.6.1</span>
           </div>
           <div className="waveform-bar">
             {audioWaveform.map((val, idx) => (

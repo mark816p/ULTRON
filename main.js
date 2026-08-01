@@ -56,7 +56,7 @@ function writeErrorPage(errorText) {
 <html>
 <head><meta charset="utf-8"><title>U.L.T.R.O.N. Diagnostics</title></head>
 <body style="background:#0c0c0c;color:#e6e6e6;font-family:sans-serif;padding:50px;text-align:center;margin:0;">
-  <h2 style="color:#ffffff;margin-bottom:12px;">U.L.T.R.O.N. Neural Bridge Diagnostics v9.4.6</h2>
+  <h2 style="color:#ffffff;margin-bottom:12px;">U.L.T.R.O.N. Neural Bridge Diagnostics v9.4.6.1</h2>
   <p style="color:#aaaaaa;margin-bottom:20px;">Server initialization on port ${PORT} encountered an issue.</p>
   <pre style="background:#1a1a1a;padding:15px;border-radius:6px;display:inline-block;color:#ff4444;
     text-align:left;white-space:pre-wrap;word-break:break-all;max-width:85%;font-size:12px;">${errorText.slice(0, 4000)}</pre>
@@ -87,7 +87,7 @@ function writeLoadingPage() {
 </head>
 <body>
   <div class="ring"></div>
-  <div class="title">U.L.T.R.O.N. v9.4.6</div>
+  <div class="title">U.L.T.R.O.N. v9.4.6.1</div>
   <div class="sub">INITIALIZING ACCOMPLISH AI COWORKER, OPENJARVIS & SCREENPIPE...</div>
 </body>
 </html>`;
@@ -182,7 +182,7 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 920,
-    title: 'U.L.T.R.O.N. v9.4.6 Sentient Holographic AI Orb & Coworker Operating System',
+    title: 'U.L.T.R.O.N. v9.4.6.1 Sentient Holographic AI Orb & Coworker Operating System',
     icon: path.join(__dirname, 'public/favicon.ico'),
     backgroundColor: '#030308',
     autoHideMenuBar: true,

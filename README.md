@@ -1,9 +1,9 @@
 <div align="center">
 
-# 🔮 U.L.T.R.O.N. v9.4.6
+# 🔮 U.L.T.R.O.N. v9.4.6.1
 ### Sentient Holographic AI Orb, OpenDesign Canvas, Coworker & Operating System
 
-[![Version](https://img.shields.io/badge/Version-v9.4.6-00f0ff?style=for-the-badge&logo=electron&logoColor=white)](https://github.com/mark816p/ULTRON)
+[![Version](https://img.shields.io/badge/Version-v9.4.6.1-00f0ff?style=for-the-badge&logo=electron&logoColor=white)](https://github.com/mark816p/ULTRON)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![Electron](https://img.shields.io/badge/Electron-Native-47848F?style=for-the-badge&logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Three.js](https://img.shields.io/badge/Three.js-WebGL-black?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org/)
@@ -18,11 +18,11 @@
 
 </div>
 
-## 🌐 Integrated Feature Repositories & Capabilities (v9.4.6)
+## 🌐 Integrated Feature Repositories & Capabilities (v9.4.6.1)
 
-U.L.T.R.O.N. v9.4.6 unifies capabilities from major open-source AI projects into a cohesive desktop operating system:
+U.L.T.R.O.N. v9.4.6.1 unifies capabilities from major open-source AI projects into a cohesive desktop operating system:
 
-| Project Repository | Integrated Feature in U.L.T.R.O.N. v9.4.6 |
+| Project Repository | Integrated Feature in U.L.T.R.O.N. v9.4.6.1 |
 |---|---|
 | 🎨 [nexu-io/open-design](https://github.com/nexu-io/open-design) | **AI UI/UX Canvas Engine**: Dynamic glassmorphism design tokens, wireframe component cards, HUD element synthesis (`🎨`). |
 | 🤖 [accomplish-ai/coworker](https://github.com/accomplish-ai/coworker) | **Autonomous AI Coworker**: End-to-end multi-step task decomposition, worker loop execution, step verification, and artifact generation (`🤖`). |
@@ -41,11 +41,11 @@ Comprehensive developer architecture and protocol documentation is located in [A
 
 ---
 
-## 📦 Installer Package Artifacts (v9.4.6)
+## 📦 Installer Package Artifacts (v9.4.6.1)
 
-- **Windows**: `ULTRON-Setup.exe` (v9.4.6 NSIS Installer, x64)
-- **macOS**: `ULTRON-Setup.dmg` (v9.4.6 Disk Image)
-- **Linux**: `ULTRON-Setup.AppImage` (v9.4.6 Executable)
+- **Windows**: `ULTRON-Setup.exe` (v9.4.6.1 NSIS Installer, x64)
+- **macOS**: `ULTRON-Setup.dmg` (v9.4.6.1 Disk Image)
+- **Linux**: `ULTRON-Setup.AppImage` (v9.4.6.1 Executable)
 
 ---
 
@@ -62,7 +62,7 @@ npm install
 # Run web dev mode
 npm run dev
 
-# Run native desktop mode (Electron v9.4.6)
+# Run native desktop mode (Electron v9.4.6.1)
 npm run app
 
 # Build fast desktop installer

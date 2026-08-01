@@ -165,14 +165,53 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
 
             {step === 2 && (
               <div className="step-content">
-                <h3 className="step-title">🌐 SELECT YOUR AI MIND & BACKEND</h3>
+                <h3 className="step-title">🌐 SELECT YOUR AI MIND & OMNIROUTE BACKEND</h3>
                 <p className="step-desc">
-                  Choose your primary cloud bridge AND your pre-installed local on-device model for offline failover!
+                  U.L.T.R.O.N. v9.4.6.1 features <strong>OmniRoute Multi-Brain Failover</strong>. Tick active cloud and local LLM backends to cascade inference automatically if a provider rate-limits or goes offline!
                 </p>
+
+                {/* OMNIROUTE FEATURE BANNER & PRESETS */}
+                <div style={{ background: "rgba(0, 240, 255, 0.08)", border: "1px solid rgba(0, 240, 255, 0.3)", padding: "12px 14px", borderRadius: "10px", marginBottom: "14px" }}>
+                  <div style={{ fontSize: "11px", color: "#00f0ff", fontWeight: "bold", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>⚡ OMNIROUTE 1-CLICK ROUTING PRESETS:</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedEngine("auto");
+                        setActiveBrains(["antigravity", "ollama"]);
+                      }}
+                      style={{ background: "rgba(0, 255, 102, 0.15)", border: "1px solid #00ff66", color: "#00ff66", fontSize: "11px", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", flex: 1 }}
+                    >
+                      🔄 Auto-Duo (Cloud ➔ Local)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedEngine("auto");
+                        setActiveBrains(["groq", "gemini", "deepseek", "antigravity", "ollama"]);
+                      }}
+                      style={{ background: "rgba(255, 170, 48, 0.15)", border: "1px solid #ffaa30", color: "#ffaa30", fontSize: "11px", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", flex: 1 }}
+                    >
+                      🚀 High Performance Turbo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedEngine("ollama");
+                        setActiveBrains(["ollama", "lm-studio"]);
+                      }}
+                      style={{ background: "rgba(168, 85, 247, 0.15)", border: "1px solid #a855f7", color: "#a855f7", fontSize: "11px", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", flex: 1 }}
+                    >
+                      🔒 100% Offline Local
+                    </button>
+                  </div>
+                </div>
 
                 <div style={{ marginBottom: "14px" }}>
                   <label style={{ fontSize: "11px", fontWeight: "bold", color: "#00ff66", display: "block", marginBottom: "6px" }}>
-                    ⚡ ROUTING STRATEGY (DUO MODE):
+                    ⚡ PRIMARY ROUTING STRATEGY:
                   </label>
                   <select
                     value={selectedEngine}

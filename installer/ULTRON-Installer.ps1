@@ -17,13 +17,13 @@ Write-Host "====================================================================
 Write-Host " Fetching available versions from GitHub repository..." -ForegroundColor Yellow
 
 function ConvertTo-UltronVersion ($tag) {
-    if (-not $tag -or $tag -eq "latest") { return "v9.4.6" }
+    if (-not $tag -or $tag -eq "latest") { return "v9.4.6.1" }
     $clean = $tag -replace '^v', ''
     $parts = $clean.Split('.')
     [int]$major = 0; if ($parts.Length -gt 0) { [int]::TryParse($parts[0], [ref]$major) | Out-Null }
     [int]$patch = 0; if ($parts.Length -gt 2) { [int]::TryParse($parts[2], [ref]$patch) | Out-Null }
     if ($major -eq 9 -and $parts.Length -gt 1 -and $parts[1] -eq '4') { return if ($tag.StartsWith('v')) { $tag } else { "v$tag" } }
-    if ($major -ge 51 -and $patch -ge 3) { return "v9.4.6" }
+    if ($major -ge 51 -and $patch -ge 3) { return "v9.4.6.1" }
     if ($major -ge 51 -and $patch -eq 2) { return "v9.4.5" }
     if ($major -ge 51 -and $patch -eq 1) { return "v9.4.4" }
     if ($major -ge 51 -and $patch -eq 0) { return "v9.4.3" }
@@ -61,7 +61,7 @@ try {
 # Fallback default versions if API returns empty
 if ($releases.Count -eq 0) {
     $releases = @(
-        [PSCustomObject]@{ TagName = "v9.4.6"; Name = "v9.4.6 — Latest Release"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v9.4.6.1"; Name = "v9.4.6.1 — Latest Release"; Prerelease = $false },
         [PSCustomObject]@{ TagName = "v9.4.5"; Name = "v9.4.5 — Hologram Stage"; Prerelease = $false },
         [PSCustomObject]@{ TagName = "v9.4.4"; Name = "v9.4.4 — Accomplish Coworker"; Prerelease = $false },
         [PSCustomObject]@{ TagName = "v9.4.3"; Name = "v9.4.3 — OpenJarvis Control"; Prerelease = $false },
@@ -196,7 +196,7 @@ try {
 } catch {
     Write-Host " [!] Standard asset download failed. Attempting fallback bundle..." -ForegroundColor Yellow
     # Fallback to current release tag asset
-    $fallbackUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/v9.4.6/ULTRON-Setup.exe"
+    $fallbackUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/v9.4.6.1/ULTRON-Setup.exe"
     try {
         (New-Object System.Net.WebClient).DownloadFile($fallbackUrl, $targetFile)
         Write-Host " [✓] Fallback download successful!" -ForegroundColor Green
