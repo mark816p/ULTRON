@@ -18,7 +18,7 @@ echo " [➔] Fetching available versions from GitHub repository..."
 echo ""
 
 # Release version registry (v9.6.7 system)
-RELEASES=("v9.6.7" "v9.6.7" "v9.4.4" "v9.4.3" "v9.4.2" "v9.4.1" "v9.4.0")
+RELEASES=("v9.6.7")
 
 LATEST_TAG="${RELEASES[0]}"
 

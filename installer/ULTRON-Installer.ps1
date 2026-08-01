@@ -17,22 +17,7 @@ Write-Host "====================================================================
 Write-Host " Fetching available versions from GitHub repository..." -ForegroundColor Yellow
 
 function ConvertTo-UltronVersion ($tag) {
-    if (-not $tag -or $tag -eq "latest") { return "v9.6.7" }
-    $clean = $tag -replace '^v', ''
-    $parts = $clean.Split('.')
-    [int]$major = 0; if ($parts.Length -gt 0) { [int]::TryParse($parts[0], [ref]$major) | Out-Null }
-    [int]$patch = 0; if ($parts.Length -gt 2) { [int]::TryParse($parts[2], [ref]$patch) | Out-Null }
-    if ($major -eq 9 -and $parts.Length -gt 1 -and $parts[1] -eq '4') { return if ($tag.StartsWith('v')) { $tag } else { "v$tag" } }
-    if ($major -ge 51 -and $patch -ge 3) { return "v9.6.7" }
-    if ($major -ge 51 -and $patch -eq 2) { return "v9.6.7" }
-    if ($major -ge 51 -and $patch -eq 1) { return "v9.4.4" }
-    if ($major -ge 51 -and $patch -eq 0) { return "v9.4.3" }
-    if ($major -ge 49) { return "v9.4.2" }
-    if ($major -ge 45) { return "v9.4.1" }
-    if ($major -ge 44) { return "v9.4.0" }
-    if ($major -ge 42) { return "v9.3.0" }
-    if ($major -ge 39) { return "v9.2.0" }
-    return "v9.1.0"
+    return "v9.6.7"
 }
 
 $releases = @()
