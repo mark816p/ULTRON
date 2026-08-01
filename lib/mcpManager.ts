@@ -49,6 +49,10 @@ export class McpManager {
       "-y",
       "@modelcontextprotocol/server-everything",
     ]);
+    this.registerBlueprint("git", "MCP Git Server", "npx", [
+      "-y",
+      "@idosal/git-mcp",
+    ]);
   }
 
   public registerBlueprint(id: string, name: string, command: string, args: string[]) {
@@ -127,6 +131,12 @@ export class McpManager {
           { name: "create_entities", description: "Save graph memory entities", serverId },
           { name: "search_nodes", description: "Query graph memory nodes", serverId },
         ];
+      } else if (serverId === "git") {
+        config.tools = [
+          { name: "git_status", description: "Get git status", serverId },
+          { name: "git_commit", description: "Commit changes", serverId },
+          { name: "git_add", description: "Add files to staging", serverId },
+        ];
       } else {
         config.tools = [
           { name: `${serverId}_action`, description: `Execute ${serverId} action`, serverId },
@@ -158,6 +168,8 @@ export class McpManager {
       targetServerId = "memory";
     } else if (toolName.includes("fetch") || toolName.includes("web") || toolName.includes("html")) {
       targetServerId = "fetch";
+    } else if (toolName.includes("git") || toolName.includes("repo") || toolName.includes("commit")) {
+      targetServerId = "git";
     }
 
     // Auto spin up if not running

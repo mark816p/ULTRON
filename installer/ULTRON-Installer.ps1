@@ -17,7 +17,7 @@ Write-Host "====================================================================
 Write-Host " Fetching available versions from GitHub repository..." -ForegroundColor Yellow
 
 function ConvertTo-UltronVersion ($tag) {
-    return "v9.6.7"
+    return "v9.6.8"
 }
 
 $releases = @()
@@ -46,8 +46,8 @@ try {
 # Fallback default versions if API returns empty
 if ($releases.Count -eq 0) {
     $releases = @(
-        [PSCustomObject]@{ TagName = "v9.6.7"; Name = "v9.6.7 — Latest Release"; Prerelease = $false },
-        [PSCustomObject]@{ TagName = "v9.6.7"; Name = "v9.6.7 — Hologram Stage"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v9.6.8"; Name = "v9.6.8 — Latest Release"; Prerelease = $false },
+        [PSCustomObject]@{ TagName = "v9.6.8"; Name = "v9.6.8 — Hologram Stage"; Prerelease = $false },
         [PSCustomObject]@{ TagName = "v9.4.4"; Name = "v9.4.4 — Accomplish Coworker"; Prerelease = $false },
         [PSCustomObject]@{ TagName = "v9.4.3"; Name = "v9.4.3 — OpenJarvis Control"; Prerelease = $false },
         [PSCustomObject]@{ TagName = "v9.4.2"; Name = "v9.4.2 — Fish Voices"; Prerelease = $false },
@@ -181,7 +181,7 @@ try {
 } catch {
     Write-Host " [!] Standard asset download failed. Attempting fallback bundle..." -ForegroundColor Yellow
     # Fallback to current release tag asset
-    $fallbackUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/v9.6.7/ULTRON-Setup.exe"
+    $fallbackUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/v9.6.8/ULTRON-Setup.exe"
     try {
         (New-Object System.Net.WebClient).DownloadFile($fallbackUrl, $targetFile)
         Write-Host " [✓] Fallback download successful!" -ForegroundColor Green
