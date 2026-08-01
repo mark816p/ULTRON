@@ -32,10 +32,10 @@
         "repo": "ULTRON"
       }
     ],
-    "artifactName": "ULTRON-Setup.exe",
     "extraMetadata": {
       "version": "9.6.9"
     },
+    "artifactName": "ULTRON-Setup.${ext}",
     "files": [
       "next.config.mjs",
       ".next/**/*",
