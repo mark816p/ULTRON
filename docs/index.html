@@ -670,9 +670,6 @@
   <!-- Small Opaque Orange Cursor Dot & Card Fill Element -->
   <div id="cursor-follower"></div>
 
-  <!-- Scroll-Driven 3D Ultron Model Canvas -->
-  <canvas id="scroll-ultron-canvas"></canvas>
-
   <!-- Ambient Light Mesh & Grid Overlay -->
   <div class="ambient-container">
     <div class="ambient-light light-1"></div>
@@ -714,9 +711,11 @@
         An Iron Man–inspired sentient holographic operating network. Wake-word activated, continuously listening, reasoning locally and via cloud with zero task limits.
       </p>
 
-      <!-- 3D Interactive WebGL Holographic Orb Stage -->
+      <!-- 3D Interactive WebGL Holographic Orb Stage (Header Only) -->
       <div class="orb-stage-wrapper">
-        <div id="hero-orb-anchor" style="width: 320px; height: 320px; margin: 0 auto;"></div>
+        <div id="hero-orb-anchor" style="width: 320px; height: 320px; margin: 0 auto; position: relative;">
+          <canvas id="hero-orb-canvas" width="320" height="320" style="width: 320px; height: 320px; border-radius: 50%; cursor: grab; display: block;"></canvas>
+        </div>
 
         <div class="telemetry-float tf-1">
           <span style="color:#00ff88">●</span> WAKE_WORD: "ULTRON" [LISTENING]
@@ -1170,15 +1169,13 @@
       animateCursor();
     })();
 
-    // ── SCROLL-DRIVEN 3D ULTRON APP ORB ENGINE ──
-    (function initScroll3DUltron() {
-      const canvas = document.getElementById('scroll-ultron-canvas');
-      const anchor = document.getElementById('hero-orb-anchor');
-      if (!canvas || !anchor) return;
+    // ── Dedicated Header 3D WebGL Holographic Orb Engine ──
+    (function initHeader3DHeroOrb() {
+      const canvas = document.getElementById('hero-orb-canvas');
+      if (!canvas) return;
 
-      let scene, camera, renderer, ultronGroup, coreMesh, wireGlobeMesh, ring1, ring2, ring3, particleGroup;
-      let targetProgress = 0;
-      let currentProgress = 0;
+      let scene, camera, renderer, ultronGroup;
+      let ring1, ring2, ring3, coreMesh, particleGroup, outerShell;
 
       function setupThree() {
         if (typeof THREE === 'undefined') {
@@ -1187,8 +1184,8 @@
         }
 
         scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 0, 10);
+        camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+        camera.position.set(0, 0, 9.5);
 
         canvas.addEventListener('webglcontextlost', (e) => {
           e.preventDefault();
@@ -1201,10 +1198,9 @@
         }, false);
 
         renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(320, 320);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // ── EXACT APP HOLOGRAPHIC 3D ORB ASSEMBLY (lib/orbScene.ts) ──
         ultronGroup = new THREE.Group();
         scene.add(ultronGroup);
 
@@ -1247,7 +1243,7 @@
           return new THREE.BufferGeometry().setFromPoints(pts);
         }
 
-        const outerShell = new THREE.Group();
+        outerShell = new THREE.Group();
         const R1 = 2.0;
 
         // 30 Latitude rings
@@ -1265,7 +1261,7 @@
           outerShell.add(new THREE.Line(meridian(R1, lon), lineMat(isMajor ? C_MID : C_FAINT, isMajor ? 0.6 : 0.12)));
         }
 
-        // 4 Bright Cross Meridians (the signature plus shape)
+        // 4 Bright Cross Meridians
         const CROSS_LINES = 14;
         const CROSS_SPREAD = 0.22;
         for (let i = 0; i < 4; i++) {
@@ -1331,118 +1327,24 @@
         }
         ultronGroup.add(particleGroup);
 
-        // ── Deterministic Screen to 3D World Mapping ──
-        function getAnchorWorldPos() {
-          const rect = anchor.getBoundingClientRect();
-          const aspect = window.innerWidth / window.innerHeight;
-          const vFovRad = (camera.fov * Math.PI) / 180;
-          const visibleHeight = 2 * Math.tan(vFovRad / 2) * camera.position.z;
-          const visibleWidth = visibleHeight * aspect;
-
-          const normX = (rect.left + rect.width / 2) / window.innerWidth - 0.5;
-          const normY = (rect.top + rect.height / 2) / window.innerHeight - 0.5;
-
-          return {
-            x: normX * visibleWidth,
-            y: -normY * visibleHeight
-          };
-        }
-
-        // Track Scroll Position
-        function onScroll() {
-          const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-          targetProgress = maxScroll > 0 ? window.scrollY / maxScroll : 0;
-        }
-        window.addEventListener('scroll', onScroll, { passive: true });
-        onScroll();
-
-        // Animation & Interpolation Loop
+        // Animation Loop
         let time = 0;
-        const tfBadges = document.querySelectorAll('.telemetry-float');
-
         function animate() {
           requestAnimationFrame(animate);
           time += 0.014;
 
-          // Silk-smooth spring physics
-          currentProgress += (targetProgress - currentProgress) * 0.025;
+          ring1.rotation.z += 0.01;
+          ring2.rotation.z -= 0.012;
+          ring3.rotation.z += 0.008;
+          if (outerShell) outerShell.rotation.y += 0.005;
+          particleGroup.rotation.y += 0.004;
 
-          // Telemetry float badges auto-fade out when orb leaves Hero stage
-          if (currentProgress <= 0.12) {
-            const badgeFade = 1 - (currentProgress / 0.12);
-            tfBadges.forEach(tf => {
-              tf.style.opacity = String(badgeFade);
-              tf.style.transform = `scale(${0.85 + 0.15 * badgeFade})`;
-            });
-          } else {
-            tfBadges.forEach(tf => {
-              tf.style.opacity = '0';
-              tf.style.transform = 'scale(0.85)';
-            });
-          }
-
-          // Continuous 3D rotation
-          ring1.rotation.z += 0.008;
-          ring2.rotation.z -= 0.01;
-          ring3.rotation.z += 0.006;
-          if (outerShell) outerShell.rotation.y += 0.004;
-          particleGroup.rotation.y += 0.003;
-
-          // Side Gutter Trajectory
-          const gutterOffset = window.innerWidth < 1000 ? 0 : 5.2;
-
-          // Compute Hero Anchor 3D World Position
-          const heroWorld = getAnchorWorldPos();
-
-          // ── C1-Continuous Smoothstep Trajectory (Zero Jerk / Zero Bounces) ──
-          function smoothstep(val) {
-            const v = Math.max(0, Math.min(1, val));
-            return v * v * (3 - 2 * v);
-          }
-
-          const p = Math.max(0, Math.min(1, currentProgress));
-          let posX, posY, posZ, scale, rotX, rotY;
-
-          if (p <= 0.35) {
-            const t = smoothstep(p / 0.35);
-            posX = heroWorld.x * (1 - t) + (gutterOffset > 0 ? -gutterOffset : 0) * t;
-            posY = heroWorld.y * (1 - t) + (-0.25) * t;
-            posZ = t * 0.2;
-            scale = 1.0;
-            rotX = t * 0.25;
-            rotY = time * 0.3 + t * Math.PI;
-          } else {
-            const t = smoothstep((p - 0.35) / 0.65);
-            posX = (gutterOffset > 0 ? -gutterOffset : 0) * (1 - t) + (gutterOffset > 0 ? gutterOffset : 0) * t;
-            posY = -0.25 - t * 0.55;
-            posZ = 0.2;
-            scale = 1.0 - t * 0.35;
-            rotX = 0.25 + t * 0.25;
-            rotY = time * 0.3 + Math.PI + t * Math.PI;
-          }
-
-          // Smoothly fade out 3D canvas opacity as scroll enters footer
-          if (p > 0.78) {
-            const fade = Math.max(0, 1 - (p - 0.78) / 0.22);
-            canvas.style.opacity = String(0.85 * fade);
-          } else {
-            canvas.style.opacity = '0.85';
-          }
-
-          // Damped, silky floating motion
-          ultronGroup.position.set(posX, posY + Math.sin(time * 1.2) * 0.04, posZ);
-          ultronGroup.rotation.set(rotX, rotY, Math.sin(time * 0.8) * 0.04);
-          ultronGroup.scale.setScalar(scale);
+          ultronGroup.position.y = Math.sin(time * 1.5) * 0.08;
+          ultronGroup.rotation.y = time * 0.25;
 
           renderer.render(scene, camera);
         }
         animate();
-
-        window.addEventListener('resize', () => {
-          camera.aspect = window.innerWidth / window.innerHeight;
-          camera.updateProjectionMatrix();
-          renderer.setSize(window.innerWidth, window.innerHeight);
-        });
       }
 
       setupThree();
