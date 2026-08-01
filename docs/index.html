@@ -1337,17 +1337,21 @@
         }
         ultronGroup.add(particleGroup);
 
-        // Helper to convert screen coordinates to 3D World position
-        function screenToWorld(screenX, screenY, cameraZ) {
-          const vec = new THREE.Vector3(
-            (screenX / window.innerWidth) * 2 - 1,
-            -(screenY / window.innerHeight) * 2 + 1,
-            0.5
-          );
-          vec.unproject(camera);
-          const dir = vec.sub(camera.position).normalize();
-          const distance = (cameraZ - 0) / dir.z;
-          return camera.position.clone().add(dir.multiplyScalar(-distance));
+        // ── Deterministic Screen to 3D World Mapping ──
+        function getAnchorWorldPos() {
+          const rect = anchor.getBoundingClientRect();
+          const aspect = window.innerWidth / window.innerHeight;
+          const vFovRad = (camera.fov * Math.PI) / 180;
+          const visibleHeight = 2 * Math.tan(vFovRad / 2) * camera.position.z;
+          const visibleWidth = visibleHeight * aspect;
+
+          const normX = (rect.left + rect.width / 2) / window.innerWidth - 0.5;
+          const normY = (rect.top + rect.height / 2) / window.innerHeight - 0.5;
+
+          return {
+            x: normX * visibleWidth,
+            y: -normY * visibleHeight
+          };
         }
 
         // Track Scroll Position
@@ -1373,30 +1377,27 @@
           if (outerShell) outerShell.rotation.y += 0.005;
           particleGroup.rotation.y += 0.004;
 
-          // Compute Hero Anchor World Center Position
-          const anchorRect = anchor.getBoundingClientRect();
-          const anchorCenterX = anchorRect.left + anchorRect.width / 2;
-          const anchorCenterY = anchorRect.top + anchorRect.height / 2;
-          const heroWorldPos = screenToWorld(anchorCenterX, anchorCenterY, camera.position.z);
+          // Compute Hero Anchor 3D World Position
+          const heroWorld = getAnchorWorldPos();
 
           // Side Gutter Trajectory
           const gutterOffset = window.innerWidth < 1000 ? 0 : 4.5;
           let posX, posY, posZ, scale, rotX, rotY;
 
-          if (currentProgress <= 0.15) {
-            // Stage 0 -> 1: Blends 100% inside Hero Stage Anchor and detaches smoothly
-            const t = currentProgress / 0.15;
-            posX = heroWorldPos.x * (1 - t) + (gutterOffset > 0 ? gutterOffset : 0) * t;
-            posY = heroWorldPos.y * (1 - t) + (0.5 - t * 0.5) * t;
+          if (currentProgress <= 0.18) {
+            // Stage 0 -> 1: Docks 100% inside Hero Stage Anchor at top of page and detaches smoothly on scroll
+            const t = currentProgress / 0.18;
+            posX = heroWorld.x * (1 - t) + (gutterOffset > 0 ? gutterOffset : 0) * t;
+            posY = heroWorld.y * (1 - t) + (heroWorld.y - 0.5) * t;
             posZ = 0;
             scale = 1.0;
             rotX = t * 0.2;
             rotY = time * 0.4 + t * Math.PI * 0.4;
           } else if (currentProgress <= 0.65) {
             // Stage 2: Download Section (Glides smoothly across to Left Side Gutter)
-            const t = (currentProgress - 0.15) / 0.5;
+            const t = (currentProgress - 0.18) / 0.47;
             posX = (gutterOffset > 0 ? gutterOffset : 0) * (1 - t) + (gutterOffset > 0 ? -gutterOffset : 0) * t;
-            posY = 0.0 - t * 0.4;
+            posY = -0.2 - t * 0.4;
             posZ = t * 0.3;
             scale = 1.0;
             rotX = 0.2 + t * 0.3;
@@ -1405,7 +1406,7 @@
             // Stage 3: Features Bento & Footer Section (Right Gutter to Center Bottom)
             const t = (currentProgress - 0.65) / 0.35;
             posX = (gutterOffset > 0 ? -gutterOffset : 0) * (1 - t) + (gutterOffset > 0 ? gutterOffset * (1 - t) : 0) * t;
-            posY = -0.4 - t * 1.6;
+            posY = -0.6 - t * 1.6;
             posZ = 0.3 + t * 0.4;
             scale = 1.0 + t * 0.25;
             rotX = 0.5 - t * 0.3;
