@@ -606,7 +606,8 @@
       height: 100vh;
       pointer-events: none;
       z-index: 1; /* Positioned behind text wrapper */
-      opacity: 0.38; /* Soft subtle depth glow so text never blends */
+      opacity: 0.85; /* Vibrant, bright holographic depth */
+      filter: drop-shadow(0 0 30px rgba(255, 170, 48, 0.4));
     }
 
     /* ── SMOOTH TRAILING OPAQUE ORANGE CURSOR DOT & CARD FILL ENGINE ── */
@@ -1369,7 +1370,7 @@
           ring1.rotation.z += 0.01;
           ring2.rotation.z -= 0.012;
           ring3.rotation.z += 0.008;
-          wireGlobeMesh.rotation.y += 0.005;
+          if (outerShell) outerShell.rotation.y += 0.005;
           particleGroup.rotation.y += 0.004;
 
           // Compute Hero Anchor World Center Position
