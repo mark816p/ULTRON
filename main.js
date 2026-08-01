@@ -88,7 +88,7 @@ function writeLoadingPage() {
 <body>
   <div class="ring"></div>
   <div class="title">U.L.T.R.O.N. v9.4.6.1</div>
-  <div class="sub">INITIALIZING ACCOMPLISH AI COWORKER, OPENJARVIS & SCREENPIPE...</div>
+  <div class="sub">INITIALIZING AUTONOMOUS COWORKER, SYSTEM AUTOMATION & OCR MEMORY...</div>
 </body>
 </html>`;
   const tmpFile = path.join(os.tmpdir(), 'ultron-loading.html');

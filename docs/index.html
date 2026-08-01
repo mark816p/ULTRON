@@ -891,8 +891,8 @@
       <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
         <button class="btn btn-ghost" onclick="simTrigger('wake')">🎙️ Say "Ultron"</button>
         <button class="btn btn-ghost" onclick="simTrigger('memory')">🧠 Query Vector Memory</button>
-        <button class="btn btn-ghost" onclick="simTrigger('openjarvis')">🖥️ Trigger OpenJarvis</button>
-        <button class="btn btn-ghost" onclick="simTrigger('screenpipe')">📹 Scan Screen OCR</button>
+        <button class="btn btn-ghost" onclick="simTrigger('automation')">🖥️ Trigger Desktop Action</button>
+        <button class="btn btn-ghost" onclick="simTrigger('ocr')">📹 Scan Screen OCR</button>
       </div>
 
       <div class="sim-console" id="sim-output">
@@ -1034,13 +1034,13 @@
       } else if (type === 'memory') {
         out.innerHTML = `[${ts}] [MEMORY] FTS5 query executed across 4,210 indexed entries.<br>` +
                         `[${ts}] [SQZ] Deduplication active — 92% token compression.<br>` +
-                        `[${ts}] [VECTOR] Memory context ready for OmniRoute LLM engine.`;
-      } else if (type === 'openjarvis') {
-        out.innerHTML = `[${ts}] [OPENJARVIS] Automation pipeline triggered: "System Diagnostic"<br>` +
+                        `[${ts}] [VECTOR] Memory context ready for LLM engine.`;
+      } else if (type === 'automation') {
+        out.innerHTML = `[${ts}] [SYSTEM] Desktop action pipeline triggered: "System Diagnostic"<br>` +
                         `[${ts}] [EXEC] PowerShell command ran cleanly (0 errors).<br>` +
                         `[${ts}] [RESULT] Active process telemetry captured.`;
-      } else if (type === 'screenpipe') {
-        out.innerHTML = `[${ts}] [SCREENPIPE] OCR timeline scanned active window context.<br>` +
+      } else if (type === 'ocr') {
+        out.innerHTML = `[${ts}] [SCREEN_OCR] Timeline scanned active window context.<br>` +
                         `[${ts}] [OCR] Extracted: "U.L.T.R.O.N. v9.4.6.1 Sentient Holographic AI Orb"<br>` +
                         `[${ts}] [CONTEXT] Active workspace updated.`;
       }
