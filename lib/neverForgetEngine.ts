@@ -67,7 +67,7 @@ export class NeverForgetEngine {
         allMemories.push(...memories);
       }
       const payload = JSON.stringify({
-        version: "4.6.7",
+        version: "9.6.7",
         updatedAt: Date.now(),
         memories: allMemories,
       }, null, 2);

@@ -15,12 +15,12 @@ describe("NeverForgetEngine Memory & Persistence System", () => {
 
   test("should remember messages and calculate token estimates", async () => {
     const engine = new NeverForgetEngine({ dbPath: testDbPath, maxWindowSize: 10 });
-    await engine.remember("session-1", "user", "Initialize Ultron v4.6.7 core protocols.");
+    await engine.remember("session-1", "user", "Initialize Ultron v9.6.7 core protocols.");
     await engine.remember("session-1", "assistant", "Ultron online and operating.");
 
     const search = engine.searchMemories("protocols");
     expect(search.length).toBe(1);
-    expect(search[0].content).toContain("v4.6.7");
+    expect(search[0].content).toContain("v9.6.7");
   });
 
   test("should deduplicate context with prepareContext", async () => {

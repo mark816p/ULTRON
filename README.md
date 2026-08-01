@@ -1,9 +1,9 @@
 <div align="center">
 
-# 🔮 U.L.T.R.O.N. v4.6.7
+# 🔮 U.L.T.R.O.N. v9.6.7
 ### Sentient Holographic AI Orb, OpenDesign Canvas, Coworker & Operating System
 
-[![Version](https://img.shields.io/badge/Version-v4.6.7-00f0ff?style=for-the-badge&logo=electron&logoColor=white)](https://github.com/mark816p/ULTRON)
+[![Version](https://img.shields.io/badge/Version-v9.6.7-00f0ff?style=for-the-badge&logo=electron&logoColor=white)](https://github.com/mark816p/ULTRON)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![Electron](https://img.shields.io/badge/Electron-Native-47848F?style=for-the-badge&logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Three.js](https://img.shields.io/badge/Three.js-WebGL-black?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org/)
@@ -18,9 +18,9 @@
 
 </div>
 
-## ⚡ Core Native Functions (v4.6.7)
+## ⚡ Core Native Functions (v9.6.7)
 
-U.L.T.R.O.N. v4.6.7 includes native built-in operating functions:
+U.L.T.R.O.N. v9.6.7 includes native built-in operating functions:
 
 | Function | Native Capability Description |
 |---|---|
@@ -40,11 +40,11 @@ Comprehensive developer architecture and protocol documentation is located in [A
 
 ---
 
-## 📦 Installer Package Artifacts (v4.6.7)
+## 📦 Installer Package Artifacts (v9.6.7)
 
-- **Windows**: `ULTRON-Setup.exe` (v4.6.7 NSIS Installer, x64)
-- **macOS**: `ULTRON-Setup.dmg` (v4.6.7 Universal Image)
-- **Linux**: `ULTRON-Setup.AppImage` (v4.6.7 Executable)
+- **Windows**: `ULTRON-Setup.exe` (v9.6.7 NSIS Installer, x64)
+- **macOS**: `ULTRON-Setup.dmg` (v9.6.7 Universal Image)
+- **Linux**: `ULTRON-Setup.AppImage` (v9.6.7 Executable)
 
 ---
 

@@ -167,7 +167,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
               <div className="step-content">
                 <h3 className="step-title">🌐 SELECT YOUR AI MIND & OMNIROUTE BACKEND</h3>
                 <p className="step-desc">
-                  U.L.T.R.O.N. v4.6.7 features <strong>OmniRoute Multi-Brain Failover</strong>. Tick active cloud and local LLM backends to cascade inference automatically if a provider rate-limits or goes offline!
+                  U.L.T.R.O.N. v9.6.7 features <strong>OmniRoute Multi-Brain Failover</strong>. Tick active cloud and local LLM backends to cascade inference automatically if a provider rate-limits or goes offline!
                 </p>
 
                 {/* OMNIROUTE FEATURE BANNER & PRESETS */}

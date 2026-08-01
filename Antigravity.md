@@ -1,7 +1,7 @@
 # 🪐 ANTIGRAVITY.md — Sentient AI Operating System Architecture & Developer Guide
 
 > **U.L.T.R.O.N. Autonomous Operating System Architecture Reference**  
-> *Universal Logistical Tactical & Reactive Operating Network (v4.6.7)*
+> *Universal Logistical Tactical & Reactive Operating Network (v9.6.7)*
 
 ---
 
@@ -135,4 +135,4 @@ npm run build:installer   # Produces ULTRON-Setup.exe (NSIS Fast Compression, AS
    - Provides a client-side recovery UI with 1-click neural link reloading and cache reset.
 
 ---
-*U.L.T.R.O.N. Architecture Standard v4.6.7 • Built for Antigravity Protocol*
+*U.L.T.R.O.N. Architecture Standard v9.6.7 • Built for Antigravity Protocol*

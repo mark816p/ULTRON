@@ -37,7 +37,7 @@ export default function GlobalError({
               width: "100%",
             }}
           >
-            <h2 style={{ color: "#ffaa30", marginBottom: "12px" }}>U.L.T.R.O.N. v4.6.7 SYSTEM RECOVERY</h2>
+            <h2 style={{ color: "#ffaa30", marginBottom: "12px" }}>U.L.T.R.O.N. v9.6.7 SYSTEM RECOVERY</h2>
             <p style={{ color: "#aaa", fontSize: "14px", marginBottom: "20px" }}>
               An exception occurred during client initialization. Reconnect to restore full functionality.
             </p>
