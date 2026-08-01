@@ -556,6 +556,10 @@
 
     /* ── FOOTER ── */
     footer {
+      position: relative;
+      z-index: 20;
+      background: rgba(3, 3, 8, 0.92);
+      backdrop-filter: var(--glass-backdrop);
       border-top: 1px solid var(--border-subtle);
       padding: 56px 24px;
       display: flex;
@@ -1397,20 +1401,28 @@
             // Stage 2: Download Section (Glides smoothly across to Left Side Gutter)
             const t = (currentProgress - 0.18) / 0.47;
             posX = (gutterOffset > 0 ? gutterOffset : 0) * (1 - t) + (gutterOffset > 0 ? -gutterOffset : 0) * t;
-            posY = -0.2 - t * 0.4;
+            posY = -0.2 - t * 0.3;
             posZ = t * 0.3;
             scale = 1.0;
             rotX = 0.2 + t * 0.3;
             rotY = time * 0.4 + Math.PI * 0.4 + t * Math.PI;
           } else {
-            // Stage 3: Features Bento & Footer Section (Right Gutter to Center Bottom)
+            // Stage 3: Features Bento & Tech Strip Section (Stays in Right Gutter, Fades out before Footer)
             const t = (currentProgress - 0.65) / 0.35;
-            posX = (gutterOffset > 0 ? -gutterOffset : 0) * (1 - t) + (gutterOffset > 0 ? gutterOffset * (1 - t) : 0) * t;
-            posY = -0.6 - t * 1.6;
-            posZ = 0.3 + t * 0.4;
-            scale = 1.0 + t * 0.25;
-            rotX = 0.5 - t * 0.3;
+            posX = (gutterOffset > 0 ? -gutterOffset : 0) * (1 - t) + (gutterOffset > 0 ? gutterOffset : 0) * t;
+            posY = -0.5 - t * 0.3;
+            posZ = 0.3;
+            scale = 1.0 - t * 0.4; // Shrinks down smoothly
+            rotX = 0.5 - t * 0.2;
             rotY = time * 0.4 + Math.PI * 1.4 + t * Math.PI * 0.6;
+          }
+
+          // Smoothly fade out 3D canvas opacity as scroll enters footer
+          if (currentProgress > 0.75) {
+            const fade = Math.max(0, 1 - (currentProgress - 0.75) / 0.25);
+            canvas.style.opacity = String(0.85 * fade);
+          } else {
+            canvas.style.opacity = '0.85';
           }
 
           ultronGroup.position.set(posX, posY + Math.sin(time * 1.8) * 0.1, posZ);
