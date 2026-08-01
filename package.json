@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "app": "electron .",
-    "build:installer": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --publish=never",
+    "build:installer": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win dir --publish=never",
     "build:installer:publish": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --publish=always"
   },
   "build": {
@@ -16,7 +16,9 @@
     "productName": "ULTRON",
     "asar": true,
     "npmRebuild": false,
-    "compression": "fast",
+    "win": {
+      "target": ["dir", "zip"]
+    },
     "publish": [
       {
         "provider": "github",
