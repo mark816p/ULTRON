@@ -1,6 +1,6 @@
 {
   "name": "ultron-orb-ui",
-  "version": "9.4.6.1",
+  "version": "9.4.5",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -26,7 +26,7 @@
     ],
     "artifactName": "ULTRON-Setup.exe",
     "extraMetadata": {
-      "version": "9.4.6.1"
+      "version": "9.4.5"
     },
     "files": [
       "next.config.mjs",

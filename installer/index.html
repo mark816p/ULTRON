@@ -326,7 +326,7 @@
       <p>AUTONOMOUS NEURAL DESKTOP COMPANION</p>
       <div class="status-pill">
         <span class="status-dot"></span>
-        INSTALLER v9.4.6.1 &nbsp;&middot;&nbsp; FETCHING RELEASES
+        INSTALLER v9.4.5 &nbsp;&middot;&nbsp; FETCHING RELEASES
       </div>
     </div>
 
@@ -359,7 +359,7 @@
 
     <!-- Footer -->
     <div class="footer">
-      <span class="footer-ver">v9.4.6.1</span>
+      <span class="footer-ver">v9.4.5</span>
       <a class="footer-link" onclick="openGitHub()">View all releases on GitHub ↗</a>
     </div>
   </div>
@@ -391,13 +391,13 @@
     }
 
     function remapLegacyTag(tag) {
-      if (!tag || tag === 'latest') return 'v9.4.6.1';
+      if (!tag || tag === 'latest') return 'v9.4.5';
       const clean = String(tag).replace(/^v/, '');
       const parts = clean.split('.').map(Number);
       const major = parts[0] || 0;
       const patch = parts[2] || 0;
       if (major === 9 && parts[1] === 4) return tag.startsWith('v') ? tag : `v${tag}`;
-      if (major >= 51 && patch >= 3) return 'v9.4.6.1';
+      if (major >= 51 && patch >= 3) return 'v9.4.5';
       if (major >= 51 && patch === 2) return 'v9.4.5';
       if (major >= 51 && patch === 1) return 'v9.4.4';
       if (major >= 51 && patch === 0) return 'v9.4.3';
@@ -416,9 +416,9 @@
       const seen = new Set();
       const listEntries = [];
 
-      // Always put v9.4.6.1 as the top recommended choice
-      listEntries.push({ tag: 'latest', displayTag: 'v9.4.6.1 — Latest', sub: 'Always downloads the newest v9.4.6.1 release' });
-      seen.add('v9.4.6.1');
+      // Always put v9.4.5 as the top recommended choice
+      listEntries.push({ tag: 'latest', displayTag: 'v9.4.5 — Latest', sub: 'Always downloads the newest v9.4.5 release' });
+      seen.add('v9.4.5');
 
       if (Array.isArray(releases)) {
         releases.forEach(r => {
@@ -451,7 +451,7 @@
 
       // Update status pill
       document.querySelector('.status-pill').innerHTML =
-        '<span class="status-dot"></span> INSTALLER v9.4.6.1 &nbsp;&middot;&nbsp; ' +
+        '<span class="status-dot"></span> INSTALLER v9.4.5 &nbsp;&middot;&nbsp; ' +
         listEntries.length + ' VERSION' + (listEntries.length !== 1 ? 'S' : '') + ' AVAILABLE';
     }
 

@@ -17,7 +17,7 @@ export interface ToolResult {
 }
 
 /**
- * Central tool execution registry for U.L.T.R.O.N. v9.4.6.1.
+ * Central tool execution registry for U.L.T.R.O.N. v9.4.5.
  * Provides web search, system diagnostics, OpenJarvis OS control,
  * Screenpipe timeline OCR, Accomplish Coworker, OpenDesign, and NeverForget memory engine integration.
  */

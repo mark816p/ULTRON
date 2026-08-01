@@ -45,7 +45,7 @@ export class AccomplishCoworkerEngine {
           actionType: "research",
           commandOrPrompt: "screenpipe_get_context",
           status: "completed",
-          output: "Captured active workspace text: ULTRON v9.4.6.1 Neural Client",
+          output: "Captured active workspace text: ULTRON v9.4.5 Neural Client",
           timestamp: Date.now() - 300000,
         },
         {

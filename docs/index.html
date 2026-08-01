@@ -609,30 +609,26 @@
       opacity: 0.38; /* Soft subtle depth glow so text never blends */
     }
 
-    /* ── SMOOTH TRAILING CURSOR POINTER ── */
+    /* ── SMOOTH TRAILING OPAQUE ORANGE CURSOR DOT & CARD FILL ENGINE ── */
     #cursor-follower {
       position: fixed;
       top: 0;
       left: 0;
-      width: 34px;
-      height: 34px;
-      border: 1.5px solid var(--accent-amber);
+      width: 10px;
+      height: 10px;
+      background: #ffaa30;
       border-radius: 50%;
       pointer-events: none;
       z-index: 9999;
-      box-shadow: 0 0 20px var(--accent-amber-glow), inset 0 0 10px rgba(255, 170, 48, 0.2);
-    }
-    #cursor-dot {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 6px;
-      height: 6px;
-      background: var(--accent-cyan);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 10000;
-      box-shadow: 0 0 10px var(--accent-cyan);
+      box-shadow: 0 0 14px rgba(255, 170, 48, 0.95);
+      transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                  height 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-radius 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                  background 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                  border 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                  opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 1;
     }
 
     /* ── RESPONSIVE ── */
@@ -642,16 +638,14 @@
       .nav-links { display: none; }
       .hero h1 { font-size: 42px; }
       .orb-stage-wrapper { height: 280px; }
-      #hero-orb-canvas { width: 260px; height: 260px; }
-      #scroll-ultron-canvas { opacity: 0.25; }
+      #scroll-ultron-canvas { opacity: 0.85; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Custom Smooth Trailing Cursor Rings -->
+  <!-- Small Opaque Orange Cursor Dot & Card Fill Element -->
   <div id="cursor-follower"></div>
-  <div id="cursor-dot"></div>
 
   <!-- Scroll-Driven 3D Ultron Model Canvas -->
   <canvas id="scroll-ultron-canvas"></canvas>
@@ -685,7 +679,7 @@
     <section class="hero">
       <div class="shimmer-badge">
         <span class="status-dot"></span>
-        <span>NEURAL OS v9.4.6.1 &nbsp;&middot;&nbsp; UNIFIED ARCHITECTURE</span>
+        <span>NEURAL OS v9.4.5 &nbsp;&middot;&nbsp; UNIFIED ARCHITECTURE</span>
       </div>
       
       <h1>
@@ -699,7 +693,7 @@
 
       <!-- 3D Interactive WebGL Holographic Orb Stage -->
       <div class="orb-stage-wrapper">
-        <canvas id="hero-orb-canvas" width="320" height="320"></canvas>
+        <div id="hero-orb-anchor" style="width: 320px; height: 320px; margin: 0 auto;"></div>
 
         <div class="telemetry-float tf-1">
           <span style="color:#00ff88">●</span> WAKE_WORD: "ULTRON" [LISTENING]
@@ -756,8 +750,8 @@
             <div style="margin-bottom: 20px;">
               <label style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-cyan); display: block; margin-bottom: 6px;">SELECT VERSION (DEFAULT: LATEST):</label>
               <select id="win-ver" style="width: 100%; padding: 10px 14px; border-radius: 10px; background: rgba(18, 18, 28, 0.95); color: #fff; border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px; cursor: pointer;">
-                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.exe">⚡ Latest — v9.4.6.1 — Always Up to Date</option>
-                <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.6.1/ULTRON-Setup.exe">v9.4.6.1 — Unified Neural OS</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.exe">⚡ Latest — v9.4.5 — Always Up to Date</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.5/ULTRON-Setup.exe">v9.4.5 — Unified Neural OS</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.5/ULTRON-Setup.exe">v9.4.5 — Advanced Hologram &amp; Screenpipe Sync</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.4/ULTRON-Setup.exe">v9.4.4 — Accomplish AI Coworker &amp; OmniRoute</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.3/ULTRON-Setup.exe">v9.4.3 — OpenJarvis Desktop Automation</option>
@@ -788,8 +782,8 @@
             <div style="margin-bottom: 20px;">
               <label style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-cyan); display: block; margin-bottom: 6px;">SELECT VERSION (DEFAULT: LATEST):</label>
               <select id="mac-ver" style="width: 100%; padding: 10px 14px; border-radius: 10px; background: rgba(18, 18, 28, 0.95); color: #fff; border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px; cursor: pointer;">
-                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.dmg">⚡ Latest — v9.4.6.1 — Always Up to Date</option>
-                <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.6.1/ULTRON-Setup.dmg">v9.4.6.1 — Unified Neural OS</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.dmg">⚡ Latest — v9.4.5 — Always Up to Date</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.5/ULTRON-Setup.dmg">v9.4.5 — Unified Neural OS</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.5/ULTRON-Setup.dmg">v9.4.5 — Advanced Hologram &amp; Screenpipe Sync</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.4/ULTRON-Setup.dmg">v9.4.4 — Accomplish AI Coworker &amp; OmniRoute</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.3/ULTRON-Setup.dmg">v9.4.3 — OpenJarvis Desktop Automation</option>
@@ -820,8 +814,8 @@
             <div style="margin-bottom: 20px;">
               <label style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-cyan); display: block; margin-bottom: 6px;">SELECT VERSION (DEFAULT: LATEST):</label>
               <select id="nix-ver" style="width: 100%; padding: 10px 14px; border-radius: 10px; background: rgba(18, 18, 28, 0.95); color: #fff; border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px; cursor: pointer;">
-                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.AppImage">⚡ Latest — v9.4.6.1 — Always Up to Date</option>
-                <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.6.1/ULTRON-Setup.AppImage">v9.4.6.1 — Unified Neural OS</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.AppImage">⚡ Latest — v9.4.5 — Always Up to Date</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.5/ULTRON-Setup.AppImage">v9.4.5 — Unified Neural OS</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.5/ULTRON-Setup.AppImage">v9.4.5 — Advanced Hologram &amp; Screenpipe Sync</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.4/ULTRON-Setup.AppImage">v9.4.4 — Accomplish AI Coworker &amp; OmniRoute</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.3/ULTRON-Setup.AppImage">v9.4.3 — OpenJarvis Desktop Automation</option>
@@ -933,7 +927,7 @@
       <a href="https://github.com/mark816p/ULTRON/issues" target="_blank">Report Issue</a>
       <a href="#download">Downloads</a>
     </div>
-    <p style="font-size: 14px; color: #ccc; max-width: 820px; text-align: center; line-height: 1.6; margin: 0 auto;">U.L.T.R.O.N. Neural OS &copy; 2026 &middot; System Architecture v9.4.6.1 &middot; Infinite Autonomous Capabilities</p>
+    <p style="font-size: 14px; color: #ccc; max-width: 820px; text-align: center; line-height: 1.6; margin: 0 auto;">U.L.T.R.O.N. Neural OS &copy; 2026 &middot; System Architecture v9.4.5 &middot; Infinite Autonomous Capabilities</p>
     <p style="margin-top: 4px; font-size: 12px; color: var(--accent-cyan); opacity: 0.8;">Holographic orb visual concept inspired by Sagar Tamang.</p>
     <p style="margin-top: 6px; font-size: 12px; opacity: 0.65; max-width: 720px; text-align: center; line-height: 1.5;">Disclaimer: U.L.T.R.O.N. is an autonomous AI system provided &ldquo;as is&rdquo; without warranty of any kind. The creators and contributors assume no liability or responsibility for any system operations, file modifications, data loss, or autonomous actions executed by the software.</p>
   </footer>
@@ -1035,13 +1029,13 @@
     }
 
     function remapLegacyTag(tag) {
-      if (!tag || tag === 'latest') return 'v9.4.6.1';
+      if (!tag || tag === 'latest') return 'v9.4.5';
       const clean = String(tag).replace(/^v/, '');
       const parts = clean.split('.').map(Number);
       const major = parts[0] || 0;
       const patch = parts[2] || 0;
       if (major === 9 && parts[1] === 4) return tag.startsWith('v') ? tag : `v${tag}`;
-      if (major >= 51 && patch >= 3) return 'v9.4.6.1';
+      if (major >= 51 && patch >= 3) return 'v9.4.5';
       if (major >= 51 && patch === 2) return 'v9.4.5';
       if (major >= 51 && patch === 1) return 'v9.4.4';
       if (major >= 51 && patch === 0) return 'v9.4.3';
@@ -1071,11 +1065,11 @@
           const latestOpt = document.createElement('option');
           const latestUrl = `https://github.com/${REPO}/releases/latest/download/${FILE[os]}`;
           latestOpt.value = latestUrl;
-          latestOpt.textContent = `⚡ Latest — v9.4.6.1 — Always Up to Date`;
+          latestOpt.textContent = `⚡ Latest — v9.4.5 — Always Up to Date`;
           sel.appendChild(latestOpt);
 
           const seen = new Set();
-          seen.add('v9.4.6.1');
+          seen.add('v9.4.5');
 
           releases.forEach(rel => {
             const mappedTag = remapLegacyTag(rel.tag_name);
@@ -1115,27 +1109,62 @@
       observer.observe(el);
     });
 
-    // ── 0.5s Spring Trailing Cursor Follower ──
+    // ── 0.5s Spring Trailing Opaque Orange Cursor Dot & Card Fill Engine ──
     (function initTrailingCursor() {
       const follower = document.getElementById('cursor-follower');
-      const dot = document.getElementById('cursor-dot');
-      if (!follower || !dot) return;
+      if (!follower) return;
 
       let mouseX = window.innerWidth / 2;
       let mouseY = window.innerHeight / 2;
       let followerX = mouseX;
       let followerY = mouseY;
+      let hoveredCard = null;
 
       window.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
-        dot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
       }, { passive: true });
 
+      function setupCardHoverListeners() {
+        const cards = document.querySelectorAll('.bento-card, .dl-card, .glass-panel, .btn, .shimmer-badge, .tech-pill, .marquee-pill');
+        cards.forEach(card => {
+          card.addEventListener('mouseenter', () => {
+            hoveredCard = card;
+          });
+          card.addEventListener('mouseleave', () => {
+            if (hoveredCard === card) hoveredCard = null;
+          });
+        });
+      }
+      setupCardHoverListeners();
+
       function animateCursor() {
-        // 0.5s delayed spring damping factor (0.075)
-        followerX += (mouseX - followerX) * 0.075;
-        followerY += (mouseY - followerY) * 0.075;
+        if (hoveredCard) {
+          const rect = hoveredCard.getBoundingClientRect();
+          const targetX = rect.left + rect.width / 2;
+          const targetY = rect.top + rect.height / 2;
+
+          followerX += (targetX - followerX) * 0.15;
+          followerY += (targetY - followerY) * 0.15;
+
+          const radius = getComputedStyle(hoveredCard).borderRadius || '16px';
+          follower.style.width = `${rect.width}px`;
+          follower.style.height = `${rect.height}px`;
+          follower.style.borderRadius = radius;
+          follower.style.background = 'rgba(255, 170, 48, 0.14)';
+          follower.style.border = '1px solid rgba(255, 170, 48, 0.5)';
+          follower.style.boxShadow = '0 0 35px rgba(255, 170, 48, 0.3)';
+        } else {
+          followerX += (mouseX - followerX) * 0.085;
+          followerY += (mouseY - followerY) * 0.085;
+
+          follower.style.width = '10px';
+          follower.style.height = '10px';
+          follower.style.borderRadius = '50%';
+          follower.style.background = '#ffaa30';
+          follower.style.border = 'none';
+          follower.style.boxShadow = '0 0 14px rgba(255, 170, 48, 0.95)';
+        }
 
         follower.style.transform = `translate3d(${followerX}px, ${followerY}px, 0) translate(-50%, -50%)`;
         requestAnimationFrame(animateCursor);
@@ -1143,12 +1172,13 @@
       animateCursor();
     })();
 
-    // ── SCROLL-DRIVEN 3D ULTRON MODEL ENGINE ──
+    // ── SCROLL-DRIVEN 3D ULTRON APP ORB ENGINE ──
     (function initScroll3DUltron() {
       const canvas = document.getElementById('scroll-ultron-canvas');
-      if (!canvas) return;
+      const anchor = document.getElementById('hero-orb-anchor');
+      if (!canvas || !anchor) return;
 
-      let scene, camera, renderer, ultronGroup, coreMesh, geodesicMesh, ring1, ring2, ring3, particleGroup;
+      let scene, camera, renderer, ultronGroup, coreMesh, wireGlobeMesh, ring1, ring2, ring3, particleGroup;
       let targetProgress = 0;
       let currentProgress = 0;
 
@@ -1160,58 +1190,71 @@
 
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 0, 12);
+        camera.position.set(0, 0, 10);
 
         renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // ── 3D ULTRON MODEL ASSEMBLY ──
+        // ── APP HOLOGRAPHIC 3D ORB ASSEMBLY (Matching App orbScene.ts) ──
         ultronGroup = new THREE.Group();
         scene.add(ultronGroup);
 
-        // Core glowing sphere
-        const coreGeo = new THREE.SphereGeometry(1.2, 32, 32);
+        // Glowing Inner Core
+        const coreGeo = new THREE.SphereGeometry(1.0, 32, 32);
         const coreMat = new THREE.MeshBasicMaterial({ color: 0xffaa30, wireframe: false });
         coreMesh = new THREE.Mesh(coreGeo, coreMat);
         ultronGroup.add(coreMesh);
 
-        // Geodesic outer wireframe icosahedron
-        const icoGeo = new THREE.IcosahedronGeometry(2.3, 2);
-        const icoMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true, transparent: true, opacity: 0.35 });
-        geodesicMesh = new THREE.Mesh(icoGeo, icoMat);
-        ultronGroup.add(geodesicMesh);
+        // Dense Latitude & Longitude Wireframe Sphere (App Orb Shell)
+        const wireGeo = new THREE.SphereGeometry(2.1, 30, 24);
+        const wireMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true, transparent: true, opacity: 0.55 });
+        wireGlobeMesh = new THREE.Mesh(wireGeo, wireMat);
+        ultronGroup.add(wireGlobeMesh);
 
-        // Concentric cybernetic rings
+        // Concentric Equatorial Rings
         function createCyberRing(radius, color, rotX, rotY) {
           const ringGeo = new THREE.TorusGeometry(radius, 0.03, 16, 100);
-          const ringMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.65 });
+          const ringMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.7 });
           const ring = new THREE.Mesh(ringGeo, ringMat);
           ring.rotation.x = rotX;
           ring.rotation.y = rotY;
           return ring;
         }
 
-        ring1 = createCyberRing(2.8, 0xffaa30, Math.PI / 3, 0);
-        ring2 = createCyberRing(3.3, 0x00f0ff, -Math.PI / 4, Math.PI / 6);
-        ring3 = createCyberRing(3.8, 0xa855f7, Math.PI / 6, -Math.PI / 4);
+        ring1 = createCyberRing(2.6, 0xffaa30, Math.PI / 3, 0);
+        ring2 = createCyberRing(3.1, 0x00f0ff, -Math.PI / 4, Math.PI / 6);
+        ring3 = createCyberRing(3.6, 0xa855f7, Math.PI / 6, -Math.PI / 4);
         ultronGroup.add(ring1);
         ultronGroup.add(ring2);
         ultronGroup.add(ring3);
 
-        // Orbiting particle debris
+        // Orbiting Debris Particles
         particleGroup = new THREE.Group();
-        const pGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+        const pGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
         for (let i = 0; i < 24; i++) {
           const pMat = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xffaa30 : 0x00f0ff });
           const pMesh = new THREE.Mesh(pGeo, pMat);
           const theta = Math.random() * Math.PI * 2;
           const phi = (Math.random() - 0.5) * Math.PI;
-          const r = 3.0 + Math.random() * 1.4;
+          const r = 2.8 + Math.random() * 1.2;
           pMesh.position.set(r * Math.cos(theta) * Math.cos(phi), r * Math.sin(phi), r * Math.sin(theta) * Math.cos(phi));
           particleGroup.add(pMesh);
         }
         ultronGroup.add(particleGroup);
+
+        // Helper to convert screen coordinates to 3D World position
+        function screenToWorld(screenX, screenY, cameraZ) {
+          const vec = new THREE.Vector3(
+            (screenX / window.innerWidth) * 2 - 1,
+            -(screenY / window.innerHeight) * 2 + 1,
+            0.5
+          );
+          vec.unproject(camera);
+          const dir = vec.sub(camera.position).normalize();
+          const distance = (cameraZ - 0) / dir.z;
+          return camera.position.clone().add(dir.multiplyScalar(-distance));
+        }
 
         // Track Scroll Position
         function onScroll() {
@@ -1221,57 +1264,61 @@
         window.addEventListener('scroll', onScroll, { passive: true });
         onScroll();
 
-        // Render & Interpolation Animation Loop
+        // Animation & Interpolation Loop
         let time = 0;
         function animate() {
           requestAnimationFrame(animate);
-          time += 0.012;
+          time += 0.014;
 
-          // Smooth lerp for scroll progress (gentle fluid physics)
-          currentProgress += (targetProgress - currentProgress) * 0.035;
+          currentProgress += (targetProgress - currentProgress) * 0.04;
 
-          // Continuous ring rotation
-          ring1.rotation.z += 0.008;
-          ring2.rotation.z -= 0.01;
-          ring3.rotation.z += 0.006;
-          geodesicMesh.rotation.y += 0.004;
-          particleGroup.rotation.y += 0.003;
+          // Continuous 3D rotation
+          ring1.rotation.z += 0.01;
+          ring2.rotation.z -= 0.012;
+          ring3.rotation.z += 0.008;
+          wireGlobeMesh.rotation.y += 0.005;
+          particleGroup.rotation.y += 0.004;
 
-          // Stay in outer side gutters so model NEVER overlaps or blends with center text
-          const gutterOffset = window.innerWidth < 1000 ? 0 : 4.6;
+          // Compute Hero Anchor World Center Position
+          const anchorRect = anchor.getBoundingClientRect();
+          const anchorCenterX = anchorRect.left + anchorRect.width / 2;
+          const anchorCenterY = anchorRect.top + anchorRect.height / 2;
+          const heroWorldPos = screenToWorld(anchorCenterX, anchorCenterY, camera.position.z);
+
+          // Side Gutter Trajectory
+          const gutterOffset = window.innerWidth < 1000 ? 0 : 4.5;
           let posX, posY, posZ, scale, rotX, rotY;
 
-          if (currentProgress <= 0.3) {
-            // Stage 1: Hero Section (Gutter Right)
-            const t = currentProgress / 0.3;
-            posX = gutterOffset > 0 ? gutterOffset : 0;
-            posY = 0.5 - t * 0.5;
+          if (currentProgress <= 0.15) {
+            // Stage 0 -> 1: Blends 100% inside Hero Stage Anchor and detaches smoothly
+            const t = currentProgress / 0.15;
+            posX = heroWorldPos.x * (1 - t) + (gutterOffset > 0 ? gutterOffset : 0) * t;
+            posY = heroWorldPos.y * (1 - t) + (0.5 - t * 0.5) * t;
             posZ = 0;
-            scale = 0.9 + t * 0.1;
+            scale = 1.0;
             rotX = t * 0.2;
             rotY = time * 0.4 + t * Math.PI * 0.4;
-          } else if (currentProgress <= 0.7) {
-            // Stage 2: Download Section (Gutter Left)
-            const t = (currentProgress - 0.3) / 0.4;
-            posX = gutterOffset > 0 ? -gutterOffset : 0;
-            posY = 0.0 - t * 0.3;
+          } else if (currentProgress <= 0.65) {
+            // Stage 2: Download Section (Glides smoothly across to Left Side Gutter)
+            const t = (currentProgress - 0.15) / 0.5;
+            posX = (gutterOffset > 0 ? gutterOffset : 0) * (1 - t) + (gutterOffset > 0 ? -gutterOffset : 0) * t;
+            posY = 0.0 - t * 0.4;
             posZ = t * 0.3;
-            scale = 1.0 - t * 0.1;
+            scale = 1.0;
             rotX = 0.2 + t * 0.3;
             rotY = time * 0.4 + Math.PI * 0.4 + t * Math.PI;
           } else {
-            // Stage 3: Features & Footer Section (Gutter Right / Center Bottom)
-            const t = (currentProgress - 0.7) / 0.3;
-            posX = gutterOffset > 0 ? gutterOffset * (1 - t) : 0;
-            posY = -0.3 - t * 1.8;
-            posZ = 0.3 + t * 0.5;
-            scale = 0.9 + t * 0.3;
+            // Stage 3: Features Bento & Footer Section (Right Gutter to Center Bottom)
+            const t = (currentProgress - 0.65) / 0.35;
+            posX = (gutterOffset > 0 ? -gutterOffset : 0) * (1 - t) + (gutterOffset > 0 ? gutterOffset * (1 - t) : 0) * t;
+            posY = -0.4 - t * 1.6;
+            posZ = 0.3 + t * 0.4;
+            scale = 1.0 + t * 0.25;
             rotX = 0.5 - t * 0.3;
             rotY = time * 0.4 + Math.PI * 1.4 + t * Math.PI * 0.6;
           }
 
-          // Apply gentle 3D sine floating
-          ultronGroup.position.set(posX, posY + Math.sin(time * 1.8) * 0.12, posZ);
+          ultronGroup.position.set(posX, posY + Math.sin(time * 1.8) * 0.1, posZ);
           ultronGroup.rotation.set(rotX, rotY, Math.sin(time * 1.2) * 0.08);
           ultronGroup.scale.setScalar(scale);
 
