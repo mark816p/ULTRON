@@ -627,6 +627,7 @@
                   background 0.35s cubic-bezier(0.16, 1, 0.3, 1),
                   border 0.35s cubic-bezier(0.16, 1, 0.3, 1),
                   box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                  backdrop-filter 0.35s cubic-bezier(0.16, 1, 0.3, 1),
                   opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
       opacity: 1;
     }
@@ -1151,9 +1152,10 @@
           follower.style.width = `${rect.width}px`;
           follower.style.height = `${rect.height}px`;
           follower.style.borderRadius = radius;
-          follower.style.background = 'rgba(255, 170, 48, 0.14)';
-          follower.style.border = '1px solid rgba(255, 170, 48, 0.5)';
-          follower.style.boxShadow = '0 0 35px rgba(255, 170, 48, 0.3)';
+          follower.style.background = 'rgba(255, 170, 48, 0.32)';
+          follower.style.border = '1.5px solid rgba(255, 170, 48, 0.85)';
+          follower.style.boxShadow = '0 0 45px rgba(255, 170, 48, 0.55), inset 0 0 25px rgba(255, 170, 48, 0.25)';
+          follower.style.backdropFilter = 'blur(12px)';
         } else {
           followerX += (mouseX - followerX) * 0.085;
           followerY += (mouseY - followerY) * 0.085;
@@ -1164,6 +1166,7 @@
           follower.style.background = '#ffaa30';
           follower.style.border = 'none';
           follower.style.boxShadow = '0 0 14px rgba(255, 170, 48, 0.95)';
+          follower.style.backdropFilter = 'none';
         }
 
         follower.style.transform = `translate3d(${followerX}px, ${followerY}px, 0) translate(-50%, -50%)`;
