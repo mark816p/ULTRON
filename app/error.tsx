@@ -52,7 +52,7 @@ export default function Error({
           NEURAL LINK RECOVERY
         </h2>
         <p style={{ color: "#8b92a5", fontSize: "14px", marginBottom: "24px", lineHeight: "1.6" }}>
-          U.L.T.R.O.N. v9.6.2 encountered a transient component state anomaly. Click below to self-heal and reconnect the interface.
+          U.L.T.R.O.N. v4.6.7 encountered a transient component state anomaly. Click below to self-heal and reconnect the interface.
         </p>
 
         <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>

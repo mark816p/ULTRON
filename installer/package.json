@@ -1,6 +1,6 @@
 {
   "name": "ultron-bootstrapper",
-  "version": "9.6.2",
+  "version": "4.6.7",
   "description": "U.L.T.R.O.N. Universal Neural Client Bootstrapper",
   "main": "main.js",
   "private": true,

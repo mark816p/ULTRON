@@ -56,7 +56,7 @@ function writeErrorPage(errorText) {
 <html>
 <head><meta charset="utf-8"><title>U.L.T.R.O.N. Diagnostics</title></head>
 <body style="background:#0c0c0c;color:#e6e6e6;font-family:sans-serif;padding:50px;text-align:center;margin:0;">
-  <h2 style="color:#ffffff;margin-bottom:12px;">U.L.T.R.O.N. Neural Bridge Diagnostics v9.6.2</h2>
+  <h2 style="color:#ffffff;margin-bottom:12px;">U.L.T.R.O.N. Neural Bridge Diagnostics v4.6.7</h2>
   <p style="color:#aaaaaa;margin-bottom:20px;">Server initialization on port ${PORT} encountered an issue.</p>
   <pre style="background:#1a1a1a;padding:15px;border-radius:6px;display:inline-block;color:#ff4444;
     text-align:left;white-space:pre-wrap;word-break:break-all;max-width:85%;font-size:12px;">${errorText.slice(0, 4000)}</pre>
@@ -87,7 +87,7 @@ function writeLoadingPage() {
 </head>
 <body>
   <div class="ring"></div>
-  <div class="title">U.L.T.R.O.N. v9.6.2</div>
+  <div class="title">U.L.T.R.O.N. v4.6.7</div>
   <div class="sub">INITIALIZING AUTONOMOUS COWORKER, SYSTEM AUTOMATION & OCR MEMORY...</div>
 </body>
 </html>`;
@@ -182,7 +182,7 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 920,
-    title: 'U.L.T.R.O.N. v9.6.2 Sentient Holographic AI Orb & Coworker Operating System',
+    title: 'U.L.T.R.O.N. v4.6.7 Sentient Holographic AI Orb & Coworker Operating System',
     icon: path.join(__dirname, 'public/favicon.ico'),
     backgroundColor: '#030308',
     autoHideMenuBar: true,
@@ -202,11 +202,36 @@ async function createWindow() {
     mainWindow = null;
   });
 
+  // Self-Healing Electron Renderer Crash Recovery
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error(`[U.L.T.R.O.N.] Renderer process gone (${details.reason}). Triggering self-healing recovery...`);
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.loadURL(`http://127.0.0.1:${PORT}`).catch(() => {
+          mainWindow.reload();
+        });
+      }
+    }, 500);
+  });
+
+  mainWindow.on('unresponsive', () => {
+    console.warn('[U.L.T.R.O.N.] Renderer window unresponsive. Reloading renderer...');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.reload();
+    }
+  });
+
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
     if (validatedURL && (validatedURL.startsWith('file://') || validatedURL === 'about:blank')) return;
     console.error(`[U.L.T.R.O.N.] Page failed to load: ${errorDescription} (${errorCode}) at ${validatedURL}`);
-    const errUrl = writeErrorPage(`Navigation failed: ${errorDescription} (code ${errorCode})\nURL: ${validatedURL}`);
-    mainWindow.loadURL(errUrl).catch(console.error);
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.loadURL(`http://127.0.0.1:${PORT}`).catch(() => {
+          const errUrl = writeErrorPage(`Navigation failed: ${errorDescription} (code ${errorCode})\nURL: ${validatedURL}`);
+          mainWindow.loadURL(errUrl).catch(console.error);
+        });
+      }
+    }, 1000);
   });
 
   try {

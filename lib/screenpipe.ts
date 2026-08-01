@@ -42,8 +42,8 @@ export class ScreenpipeEngine {
         id: "frame_3",
         timestamp: now - 15000,
         appName: "ULTRON Desktop Client",
-        windowTitle: "U.L.T.R.O.N. v9.6.2 Sentient Holographic AI Orb",
-        ocrText: "U.L.T.R.O.N. v9.6.2 OpenJarvis, Screenpipe, Fish Voices, OmniRoute & MCP active",
+        windowTitle: "U.L.T.R.O.N. v4.6.7 Sentient Holographic AI Orb",
+        ocrText: "U.L.T.R.O.N. v4.6.7 OpenJarvis, Screenpipe, Fish Voices, OmniRoute & MCP active",
         audioTranscript: "Jarvis analyze my screen and open the browser",
         tags: ["ultron", "system", "active"],
       },
@@ -56,7 +56,7 @@ export class ScreenpipeEngine {
       timestamp: Date.now(),
       appName: appName || "Desktop Workstation",
       windowTitle: windowTitle || "Active Workspace",
-      ocrText: ocrText || "ULTRON Autonomous Operating Network v9.6.2",
+      ocrText: ocrText || "ULTRON Autonomous Operating Network v4.6.7",
       tags: ["active_context"],
     };
 

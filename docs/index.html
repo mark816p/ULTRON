@@ -263,7 +263,7 @@
       box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 240, 255, 0.1);
       pointer-events: none;
       white-space: nowrap;
-      transition: transform 0.3s ease;
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .tf-1 { top: 18%; left: 4%; border-left: 3px solid #00ff88; animation: floatSlow 6s ease-in-out infinite; }
     .tf-2 { bottom: 20%; right: 4%; border-left: 3px solid var(--accent-cyan); animation: floatSlow 5s ease-in-out infinite reverse; }
@@ -695,7 +695,7 @@
     <section class="hero">
       <div class="shimmer-badge">
         <span class="status-dot"></span>
-        <span>NEURAL OS v9.6.2 &nbsp;&middot;&nbsp; UNIFIED ARCHITECTURE</span>
+        <span>NEURAL OS v4.6.7 &nbsp;&middot;&nbsp; UNIFIED ARCHITECTURE</span>
       </div>
       
       <h1>
@@ -766,9 +766,9 @@
             <div style="margin-bottom: 20px;">
               <label style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-cyan); display: block; margin-bottom: 6px;">SELECT VERSION (DEFAULT: LATEST):</label>
               <select id="win-ver" style="width: 100%; padding: 10px 14px; border-radius: 10px; background: rgba(18, 18, 28, 0.95); color: #fff; border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px; cursor: pointer;">
-                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.exe">⚡ Latest — v9.6.2 — Always Up to Date</option>
-                <option value="https://github.com/mark816p/ULTRON/releases/download/v9.6.2/ULTRON-Setup.exe">v9.6.2 — Unified Neural OS</option>
-                <option value="https://github.com/mark816p/ULTRON/releases/download/v9.6.2/ULTRON-Setup.exe">v9.6.2 — Advanced Hologram &amp; Screenpipe Sync</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.exe">⚡ Latest — v4.6.7 — Always Up to Date</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/download/v4.6.7/ULTRON-Setup.exe">v4.6.7 — Unified Neural OS</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/download/v4.6.7/ULTRON-Setup.exe">v4.6.7 — Advanced Hologram &amp; Screenpipe Sync</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.4/ULTRON-Setup.exe">v9.4.4 — Accomplish AI Coworker &amp; OmniRoute</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.3/ULTRON-Setup.exe">v9.4.3 — OpenJarvis Desktop Automation</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.2/ULTRON-Setup.exe">v9.4.2 — Fish Studio Voice Synthesis</option>
@@ -798,9 +798,9 @@
             <div style="margin-bottom: 20px;">
               <label style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-cyan); display: block; margin-bottom: 6px;">SELECT VERSION (DEFAULT: LATEST):</label>
               <select id="mac-ver" style="width: 100%; padding: 10px 14px; border-radius: 10px; background: rgba(18, 18, 28, 0.95); color: #fff; border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px; cursor: pointer;">
-                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.dmg">⚡ Latest — v9.6.2 — Always Up to Date</option>
-                <option value="https://github.com/mark816p/ULTRON/releases/download/v9.6.2/ULTRON-Setup.dmg">v9.6.2 — Unified Neural OS</option>
-                <option value="https://github.com/mark816p/ULTRON/releases/download/v9.6.2/ULTRON-Setup.dmg">v9.6.2 — Advanced Hologram &amp; Screenpipe Sync</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.dmg">⚡ Latest — v4.6.7 — Always Up to Date</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/download/v4.6.7/ULTRON-Setup.dmg">v4.6.7 — Unified Neural OS</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/download/v4.6.7/ULTRON-Setup.dmg">v4.6.7 — Advanced Hologram &amp; Screenpipe Sync</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.4/ULTRON-Setup.dmg">v9.4.4 — Accomplish AI Coworker &amp; OmniRoute</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.3/ULTRON-Setup.dmg">v9.4.3 — OpenJarvis Desktop Automation</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.2/ULTRON-Setup.dmg">v9.4.2 — Fish Studio Voice Synthesis</option>
@@ -830,9 +830,9 @@
             <div style="margin-bottom: 20px;">
               <label style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-cyan); display: block; margin-bottom: 6px;">SELECT VERSION (DEFAULT: LATEST):</label>
               <select id="nix-ver" style="width: 100%; padding: 10px 14px; border-radius: 10px; background: rgba(18, 18, 28, 0.95); color: #fff; border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 12px; cursor: pointer;">
-                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.AppImage">⚡ Latest — v9.6.2 — Always Up to Date</option>
-                <option value="https://github.com/mark816p/ULTRON/releases/download/v9.6.2/ULTRON-Setup.AppImage">v9.6.2 — Unified Neural OS</option>
-                <option value="https://github.com/mark816p/ULTRON/releases/download/v9.6.2/ULTRON-Setup.AppImage">v9.6.2 — Advanced Hologram &amp; Screenpipe Sync</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/latest/download/ULTRON-Setup.AppImage">⚡ Latest — v4.6.7 — Always Up to Date</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/download/v4.6.7/ULTRON-Setup.AppImage">v4.6.7 — Unified Neural OS</option>
+                <option value="https://github.com/mark816p/ULTRON/releases/download/v4.6.7/ULTRON-Setup.AppImage">v4.6.7 — Advanced Hologram &amp; Screenpipe Sync</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.4/ULTRON-Setup.AppImage">v9.4.4 — Accomplish AI Coworker &amp; OmniRoute</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.3/ULTRON-Setup.AppImage">v9.4.3 — OpenJarvis Desktop Automation</option>
                 <option value="https://github.com/mark816p/ULTRON/releases/download/v9.4.2/ULTRON-Setup.AppImage">v9.4.2 — Fish Studio Voice Synthesis</option>
@@ -943,7 +943,7 @@
       <a href="https://github.com/mark816p/ULTRON/issues" target="_blank">Report Issue</a>
       <a href="#download">Downloads</a>
     </div>
-    <p style="font-size: 14px; color: #ccc; max-width: 820px; text-align: center; line-height: 1.6; margin: 0 auto;">U.L.T.R.O.N. Neural OS &copy; 2026 &middot; System Architecture v9.6.2 &middot; Infinite Autonomous Capabilities</p>
+    <p style="font-size: 14px; color: #ccc; max-width: 820px; text-align: center; line-height: 1.6; margin: 0 auto;">U.L.T.R.O.N. Neural OS &copy; 2026 &middot; System Architecture v4.6.7 &middot; Infinite Autonomous Capabilities</p>
     <p style="margin-top: 4px; font-size: 12px; color: var(--accent-cyan); opacity: 0.8;">Holographic orb visual concept inspired by Sagar Tamang.</p>
     <p style="margin-top: 6px; font-size: 12px; opacity: 0.65; max-width: 720px; text-align: center; line-height: 1.5;">Disclaimer: U.L.T.R.O.N. is an autonomous AI system provided &ldquo;as is&rdquo; without warranty of any kind. The creators and contributors assume no liability or responsibility for any system operations, file modifications, data loss, or autonomous actions executed by the software.</p>
   </footer>
@@ -1045,14 +1045,14 @@
     }
 
     function remapLegacyTag(tag) {
-      if (!tag || tag === 'latest') return 'v9.6.2';
+      if (!tag || tag === 'latest') return 'v4.6.7';
       const clean = String(tag).replace(/^v/, '');
       const parts = clean.split('.').map(Number);
       const major = parts[0] || 0;
       const patch = parts[2] || 0;
       if (major === 9 && parts[1] === 4) return tag.startsWith('v') ? tag : `v${tag}`;
-      if (major >= 51 && patch >= 3) return 'v9.6.2';
-      if (major >= 51 && patch === 2) return 'v9.6.2';
+      if (major >= 51 && patch >= 3) return 'v4.6.7';
+      if (major >= 51 && patch === 2) return 'v4.6.7';
       if (major >= 51 && patch === 1) return 'v9.4.4';
       if (major >= 51 && patch === 0) return 'v9.4.3';
       if (major >= 49) return 'v9.4.2';
@@ -1081,11 +1081,11 @@
           const latestOpt = document.createElement('option');
           const latestUrl = `https://github.com/${REPO}/releases/latest/download/${FILE[os]}`;
           latestOpt.value = latestUrl;
-          latestOpt.textContent = `⚡ Latest — v9.6.2 — Always Up to Date`;
+          latestOpt.textContent = `⚡ Latest — v4.6.7 — Always Up to Date`;
           sel.appendChild(latestOpt);
 
           const seen = new Set();
-          seen.add('v9.6.2');
+          seen.add('v4.6.7');
 
           releases.forEach(rel => {
             const mappedTag = remapLegacyTag(rel.tag_name);
@@ -1210,6 +1210,16 @@
         camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
         camera.position.set(0, 0, 10);
 
+        canvas.addEventListener('webglcontextlost', (e) => {
+          e.preventDefault();
+          console.warn('[U.L.T.R.O.N.] WebGL context lost. Triggering self-healing recovery...');
+        }, false);
+
+        canvas.addEventListener('webglcontextrestored', () => {
+          console.log('[U.L.T.R.O.N.] WebGL context restored.');
+          setupThree();
+        }, false);
+
         renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -1233,7 +1243,7 @@
           });
         }
 
-        function latRing(radius, lat, segs = 90) {
+        function latRing(radius, lat, segs = 160) {
           const r = radius * Math.cos(lat);
           const y = radius * Math.sin(lat);
           const pts = [];
@@ -1244,7 +1254,7 @@
           return new THREE.BufferGeometry().setFromPoints(pts);
         }
 
-        function meridian(radius, lon, segs = 90) {
+        function meridian(radius, lon, segs = 160) {
           const pts = [];
           for (let i = 0; i <= segs; i++) {
             const lat = (i / segs) * Math.PI - Math.PI / 2;
@@ -1286,7 +1296,7 @@
             const falloff = 1 - Math.abs(t) * 0.7;
             const opacity = 0.85 * falloff;
             const color = Math.abs(t) < 0.3 ? C_BRIGHT : C_MID;
-            outerShell.add(new THREE.Line(meridian(R1, lon + offset, 120), lineMat(color, opacity)));
+            outerShell.add(new THREE.Line(meridian(R1, lon + offset, 160), lineMat(color, opacity)));
           }
         }
 
@@ -1299,20 +1309,20 @@
           const falloff = 1 - Math.abs(t) * 0.65;
           const opacity = 0.8 * falloff;
           const color = Math.abs(t) < 0.3 ? C_BRIGHT : C_MID;
-          outerShell.add(new THREE.Line(latRing(R1, offset, 120), lineMat(color, opacity)));
+          outerShell.add(new THREE.Line(latRing(R1, offset, 160), lineMat(color, opacity)));
         }
 
         ultronGroup.add(outerShell);
 
         // Inner Glowing Core
-        const coreGeo = new THREE.SphereGeometry(0.9, 32, 32);
+        const coreGeo = new THREE.SphereGeometry(0.9, 48, 48);
         const coreMat = new THREE.MeshBasicMaterial({ color: C_BRIGHT, wireframe: false });
         coreMesh = new THREE.Mesh(coreGeo, coreMat);
         ultronGroup.add(coreMesh);
 
         // Orbiting Cybernetic Ring Gimbals
         function createCyberRing(radius, color, rotX, rotY) {
-          const ringGeo = new THREE.TorusGeometry(radius, 0.025, 16, 100);
+          const ringGeo = new THREE.TorusGeometry(radius, 0.025, 24, 160);
           const ringMat = lineMat(color, 0.75);
           const ring = new THREE.Mesh(ringGeo, ringMat);
           ring.rotation.x = rotX;
@@ -1368,18 +1378,35 @@
 
         // Animation & Interpolation Loop
         let time = 0;
+        const tfBadges = document.querySelectorAll('.telemetry-float');
+
         function animate() {
           requestAnimationFrame(animate);
           time += 0.014;
 
-          currentProgress += (targetProgress - currentProgress) * 0.04;
+          // Silk-smooth spring physics
+          currentProgress += (targetProgress - currentProgress) * 0.025;
+
+          // Telemetry float badges auto-fade out when orb leaves Hero stage
+          if (currentProgress <= 0.12) {
+            const badgeFade = 1 - (currentProgress / 0.12);
+            tfBadges.forEach(tf => {
+              tf.style.opacity = String(badgeFade);
+              tf.style.transform = `scale(${0.85 + 0.15 * badgeFade})`;
+            });
+          } else {
+            tfBadges.forEach(tf => {
+              tf.style.opacity = '0';
+              tf.style.transform = 'scale(0.85)';
+            });
+          }
 
           // Continuous 3D rotation
-          ring1.rotation.z += 0.01;
-          ring2.rotation.z -= 0.012;
-          ring3.rotation.z += 0.008;
-          if (outerShell) outerShell.rotation.y += 0.005;
-          particleGroup.rotation.y += 0.004;
+          ring1.rotation.z += 0.008;
+          ring2.rotation.z -= 0.01;
+          ring3.rotation.z += 0.006;
+          if (outerShell) outerShell.rotation.y += 0.004;
+          particleGroup.rotation.y += 0.003;
 
           // Compute Hero Anchor 3D World Position
           const heroWorld = getAnchorWorldPos();

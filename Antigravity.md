@@ -1,7 +1,7 @@
 # 🪐 ANTIGRAVITY.md — Sentient AI Operating System Architecture & Developer Guide
 
 > **U.L.T.R.O.N. Autonomous Operating System Architecture Reference**  
-> *Universal Logistical Tactical & Reactive Operating Network (v9.6.2)*
+> *Universal Logistical Tactical & Reactive Operating Network (v4.6.7)*
 
 ---
 
@@ -101,4 +101,38 @@ npm run build:installer   # Produces ULTRON-Setup.exe (NSIS Fast Compression, AS
 4. **Verification**: Always verify changes by running `npm run build`.
 
 ---
-*U.L.T.R.O.N. Architecture Standard v9.6.2 • Built for Antigravity Protocol*
+
+## 🛡️ 6. Comprehensive Diagnostic Summary: Self-Healing Renderer & Load Fail Protections
+
+### 🚨 6.1 Root Cause Diagnosis of Chromium/Electron Load Failures (`This page couldn't load`)
+
+#### Root Cause 1: WebGL GPU Process Context Loss
+- **Symptom**: Black screen error displaying Chromium's default `This page couldn't load` dialog with `Reload` / `Back` buttons.
+- **Mechanism**: When high-DPI viewports, tab switching, or GPU memory exhaustion occur, Chromium's GPU renderer process terminates or drops the WebGL context (`webglcontextlost`). If unhandled in JS, Three.js animation frames throw uncaught exceptions, causing Chromium to terminate the renderer process (`render-process-gone`).
+
+#### Root Cause 2: Unhandled Renderer Process Termination in Electron
+- **Mechanism**: By default, when Chromium's renderer process encounters an uncaught native exception or crashes, Electron emits `render-process-gone` or `did-fail-load`. Without explicit event listeners in `main.js` and `installer/main.js`, Electron falls back to Chrome's native error page.
+
+#### Root Cause 3: Unhandled Promise Rejections & Hydration Exceptions
+- **Mechanism**: Pre-hydration access to browser-only APIs (`SpeechRecognition`, `getUserMedia`, `localStorage`) on insecure origins or during headless startup throws uncaught client-side React exceptions.
+
+---
+
+### 🔒 6.2 Permanent Multi-Tier Self-Healing Implementation
+
+1. **Tier 1: Electron Main Process Auto-Recovery (`main.js` & `installer/main.js`)**:
+   - Implemented `render-process-gone` and `unresponsive` event listeners.
+   - When a renderer process crash or freeze is detected, Electron automatically re-initializes `http://127.0.0.1:${PORT}` or reloads the active URL within 500ms, completely bypassing Chrome's error screen.
+
+2. **Tier 2: WebGL Context Loss Recovery (`docs/index.html`)**:
+   - Attached `webglcontextlost` and `webglcontextrestored` listeners to WebGL canvases.
+   - Invokes `event.preventDefault()` to prevent Chromium GPU renderer process termination and automatically re-binds 3D rendering upon context restoration.
+
+3. **Tier 3: Deterministic Screen-to-3D Projection**:
+   - Replaced fragile unprojection math with exact perspective frustum mapping (`getAnchorWorldPos()`), preventing `(0, 0)` calculation overflows.
+
+4. **Tier 4: React Root Error Boundaries (`app/global-error.tsx` & `app/error.tsx`)**:
+   - Provides a client-side recovery UI with 1-click neural link reloading and cache reset.
+
+---
+*U.L.T.R.O.N. Architecture Standard v4.6.7 • Built for Antigravity Protocol*

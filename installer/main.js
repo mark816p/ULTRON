@@ -26,20 +26,31 @@ function createWindow() {
 
   win.loadFile('index.html');
   win.setMenuBarVisibility(false);
+
+  win.webContents.on('render-process-gone', () => {
+    console.warn('[U.L.T.R.O.N. Installer] Renderer process crashed. Self-healing reload triggered...');
+    setTimeout(() => {
+      if (win && !win.isDestroyed()) win.loadFile('index.html');
+    }, 500);
+  });
+
+  win.on('unresponsive', () => {
+    if (win && !win.isDestroyed()) win.reload();
+  });
 }
 
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => app.quit());
 
 function remapLegacyTag(tag) {
-  if (!tag || tag === 'latest') return 'v9.6.2';
+  if (!tag || tag === 'latest') return 'v4.6.7';
   const clean = String(tag).replace(/^v/, '');
   const parts = clean.split('.').map(Number);
   const major = parts[0] || 0;
   const patch = parts[2] || 0;
   if (major === 9 && parts[1] === 4) return tag.startsWith('v') ? tag : `v${tag}`;
-  if (major >= 51 && patch >= 3) return 'v9.6.2';
-  if (major >= 51 && patch === 2) return 'v9.6.2';
+  if (major >= 51 && patch >= 3) return 'v4.6.7';
+  if (major >= 51 && patch === 2) return 'v4.6.7';
   if (major >= 51 && patch === 1) return 'v9.4.4';
   if (major >= 51 && patch === 0) return 'v9.4.3';
   if (major >= 49) return 'v9.4.2';
@@ -52,8 +63,8 @@ function remapLegacyTag(tag) {
 
 function getDefaultVersionList() {
   return [
-    { tag: 'v9.6.2', name: 'v9.6.2 — Latest Unified Release', rawTag: 'latest' },
-    { tag: 'v9.6.2', name: 'v9.6.2 — Advanced Hologram Stage', rawTag: 'v51.5.2' },
+    { tag: 'v4.6.7', name: 'v4.6.7 — Latest Unified Release', rawTag: 'latest' },
+    { tag: 'v4.6.7', name: 'v4.6.7 — Advanced Hologram Stage', rawTag: 'v51.5.2' },
     { tag: 'v9.4.4', name: 'v9.4.4 — Accomplish AI Coworker', rawTag: 'v51.5.1' },
     { tag: 'v9.4.3', name: 'v9.4.3 — OpenJarvis Desktop Control', rawTag: 'v51.5.0' },
     { tag: 'v9.4.2', name: 'v9.4.2 — Fish Studio Voices', rawTag: 'v49.0.0' },
@@ -69,7 +80,7 @@ ipcMain.handle('get-releases', async () => {
       hostname: 'api.github.com',
       path: '/repos/mark816p/ULTRON/releases',
       method: 'GET',
-      headers: { 'User-Agent': 'ULTRON-Installer/9.6.2' },
+      headers: { 'User-Agent': 'ULTRON-Installer/4.6.7' },
     };
     const req = https.request(options, (res) => {
       let data = '';
@@ -81,9 +92,9 @@ ipcMain.handle('get-releases', async () => {
             const seen = new Set();
             const mapped = [];
             
-            // Force v9.6.2 at top
-            mapped.push({ tag: 'v9.6.2', name: 'v9.6.2 — Latest Unified Release', rawTag: 'latest' });
-            seen.add('v9.6.2');
+            // Force v4.6.7 at top
+            mapped.push({ tag: 'v4.6.7', name: 'v4.6.7 — Latest Unified Release', rawTag: 'latest' });
+            seen.add('v4.6.7');
 
             for (const r of releases) {
               const mappedTag = remapLegacyTag(r.tag_name);
@@ -127,7 +138,7 @@ ipcMain.handle('download-and-install', async (event, tag) => {
     const follow = (redirectUrl, depth = 0) => {
       if (depth > 10) return reject(new Error('Too many redirects'));
       const mod = redirectUrl.startsWith('https') ? https : http;
-      mod.get(redirectUrl, { headers: { 'User-Agent': 'ULTRON-Installer/9.6.2' } }, (res) => {
+      mod.get(redirectUrl, { headers: { 'User-Agent': 'ULTRON-Installer/4.6.7' } }, (res) => {
         if (res.statusCode === 301 || res.statusCode === 302) {
           return follow(res.headers.location, depth + 1);
         }
