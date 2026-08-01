@@ -164,7 +164,7 @@ export default function SettingsModal(props: SettingsModalProps) {
         <div className="glass-modal-header">
           <div className="modal-title">
             <span className="glow-text">U.L.T.R.O.N. ARCHITECTURE CONFIG</span>
-            <span className="version-badge">v9.4.5</span>
+            <span className="version-badge">v9.6.2</span>
           </div>
           <button type="button" className="close-btn" onClick={onClose}>
             ✕
