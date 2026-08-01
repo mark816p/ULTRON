@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   
   <style>
     :root {
@@ -596,6 +597,18 @@
     @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
     @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
+    /* ── SCROLL-DRIVEN 3D ULTRON CANVAS ── */
+    #scroll-ultron-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0.9;
+    }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 960px) {
       .bento-grid { grid-template-columns: 1fr; }
@@ -604,10 +617,14 @@
       .hero h1 { font-size: 42px; }
       .orb-stage-wrapper { height: 280px; }
       #hero-orb-canvas { width: 260px; height: 260px; }
+      #scroll-ultron-canvas { opacity: 0.5; }
     }
   </style>
 </head>
 <body>
+
+  <!-- Scroll-Driven 3D Ultron Model Canvas -->
+  <canvas id="scroll-ultron-canvas"></canvas>
 
   <!-- Ambient Light Mesh & Grid Overlay -->
   <div class="ambient-container">
@@ -1067,6 +1084,151 @@
       el.classList.add('reveal-flyin');
       observer.observe(el);
     });
+
+    // ── SCROLL-DRIVEN 3D ULTRON MODEL ENGINE ──
+    (function initScroll3DUltron() {
+      const canvas = document.getElementById('scroll-ultron-canvas');
+      if (!canvas) return;
+
+      let scene, camera, renderer, ultronGroup, coreMesh, geodesicMesh, ring1, ring2, ring3, particleGroup;
+      let targetProgress = 0;
+      let currentProgress = 0;
+
+      function setupThree() {
+        if (typeof THREE === 'undefined') {
+          setTimeout(setupThree, 200);
+          return;
+        }
+
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0, 10);
+
+        renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // ── 3D ULTRON MODEL ASSEMBLY ──
+        ultronGroup = new THREE.Group();
+        scene.add(ultronGroup);
+
+        // Core glowing sphere
+        const coreGeo = new THREE.SphereGeometry(1.2, 32, 32);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0xffaa30, wireframe: false });
+        coreMesh = new THREE.Mesh(coreGeo, coreMat);
+        ultronGroup.add(coreMesh);
+
+        // Geodesic outer wireframe icosahedron
+        const icoGeo = new THREE.IcosahedronGeometry(2.4, 2);
+        const icoMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true, transparent: true, opacity: 0.35 });
+        geodesicMesh = new THREE.Mesh(icoGeo, icoMat);
+        ultronGroup.add(geodesicMesh);
+
+        // Concentric cybernetic rings
+        function createCyberRing(radius, color, rotX, rotY) {
+          const ringGeo = new THREE.TorusGeometry(radius, 0.03, 16, 100);
+          const ringMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.75 });
+          const ring = new THREE.Mesh(ringGeo, ringMat);
+          ring.rotation.x = rotX;
+          ring.rotation.y = rotY;
+          return ring;
+        }
+
+        ring1 = createCyberRing(2.9, 0xffaa30, Math.PI / 3, 0);
+        ring2 = createCyberRing(3.4, 0x00f0ff, -Math.PI / 4, Math.PI / 6);
+        ring3 = createCyberRing(3.9, 0xa855f7, Math.PI / 6, -Math.PI / 4);
+        ultronGroup.add(ring1);
+        ultronGroup.add(ring2);
+        ultronGroup.add(ring3);
+
+        // Orbiting particle debris
+        particleGroup = new THREE.Group();
+        const pGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+        for (let i = 0; i < 30; i++) {
+          const pMat = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xffaa30 : 0x00f0ff });
+          const pMesh = new THREE.Mesh(pGeo, pMat);
+          const theta = Math.random() * Math.PI * 2;
+          const phi = (Math.random() - 0.5) * Math.PI;
+          const r = 3.2 + Math.random() * 1.5;
+          pMesh.position.set(r * Math.cos(theta) * Math.cos(phi), r * Math.sin(phi), r * Math.sin(theta) * Math.cos(phi));
+          particleGroup.add(pMesh);
+        }
+        ultronGroup.add(particleGroup);
+
+        // Track Scroll Position
+        function onScroll() {
+          const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+          targetProgress = maxScroll > 0 ? window.scrollY / maxScroll : 0;
+        }
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+
+        // Render & Interpolation Animation Loop
+        let time = 0;
+        function animate() {
+          requestAnimationFrame(animate);
+          time += 0.015;
+
+          // Smooth lerp for scroll progress
+          currentProgress += (targetProgress - currentProgress) * 0.06;
+
+          // Continuous ring rotation
+          ring1.rotation.z += 0.01;
+          ring2.rotation.z -= 0.012;
+          ring3.rotation.z += 0.008;
+          geodesicMesh.rotation.y += 0.005;
+          particleGroup.rotation.y += 0.004;
+
+          // Interpolate 3D position, rotation, and scale along scroll trajectory
+          let posX, posY, posZ, scale, rotX, rotY;
+
+          if (currentProgress <= 0.25) {
+            // Stage 1: Hero Section (Floating Top Right)
+            const t = currentProgress / 0.25;
+            posX = 2.2 - t * 1.0;
+            posY = 0.5 - t * 0.5;
+            posZ = 0;
+            scale = 1.0 + t * 0.2;
+            rotX = t * 0.3;
+            rotY = time * 0.5 + t * Math.PI * 0.5;
+          } else if (currentProgress <= 0.65) {
+            // Stage 2: Download Section (Glides across to Left Side)
+            const t = (currentProgress - 0.25) / 0.4;
+            posX = 1.2 - t * 3.4; // Moves to X: -2.2
+            posY = 0.0 - t * 0.4;
+            posZ = t * 0.5;
+            scale = 1.2 - t * 0.15;
+            rotX = 0.3 + t * 0.4;
+            rotY = time * 0.5 + Math.PI * 0.5 + t * Math.PI;
+          } else {
+            // Stage 3: Features Bento & Footer Section (Moves to Center/Right with 3D tilt)
+            const t = (currentProgress - 0.65) / 0.35;
+            posX = -2.2 + t * 2.2; // Moves to X: 0
+            posY = -0.4 - t * 0.6;
+            posZ = 0.5 + t * 0.8;
+            scale = 1.05 + t * 0.4;
+            rotX = 0.7 - t * 0.5;
+            rotY = time * 0.5 + Math.PI * 1.5 + t * Math.PI * 0.5;
+          }
+
+          // Apply floating 3D sine bobbing
+          ultronGroup.position.set(posX, posY + Math.sin(time * 2) * 0.15, posZ);
+          ultronGroup.rotation.set(rotX, rotY, Math.sin(time * 1.5) * 0.1);
+          ultronGroup.scale.setScalar(scale);
+
+          renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      }
+
+      setupThree();
+    })();
   </script>
 </body>
 </html>
