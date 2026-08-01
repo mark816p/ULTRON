@@ -205,7 +205,16 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
 
   return (
     <>
-      <div className="chat-drawer glass-panel">
+      <div
+        className="chat-drawer glass-panel"
+        onMouseMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+          e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+        }}
+      >
         <div className="hud-bar">
           <div className="hud-title">
             <span className="pulse-led" />

@@ -177,6 +177,13 @@ export default function JarvisOrb() {
     <>
       <div ref={containerRef} className="orb-root" />
 
+      {/* 3D Ambient Glow Background */}
+      <div className="ambient-glow-bg">
+        <div className="ambient-blob blob-1" />
+        <div className="ambient-blob blob-2" />
+        <div className="ambient-blob blob-3" />
+      </div>
+
       <div className="overlay-vignette" />
       <div className="overlay-grain" />
       <div className="overlay-scanlines" />
