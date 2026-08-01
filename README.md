@@ -24,7 +24,7 @@ U.L.T.R.O.N. v9.4.6.1 includes native built-in operating functions:
 
 | Function | Native Capability Description |
 |---|---|
-| 🎨 **OpenDesign Canvas** | **AI UI/UX Canvas Engine**: Dynamic glassmorphism design tokens, wireframe component cards, and HUD element synthesis. |
+| 🎨 **UI & Design Canvas** | **AI UI/UX Canvas Engine**: Dynamic glassmorphism design tokens, wireframe component cards, and HUD element synthesis. |
 | 🤖 **Autonomous AI Coworker** | **End-to-End Worker Loop**: Goal decomposition, multi-step execution, verification, and artifact creation. |
 | 🖥️ **System Automation** | **Desktop Computer Control**: Terminal command execution, app launcher, desktop automation, and system diagnostics. |
 | 📹 **24/7 Screen Memory** | **Screen & Audio OCR Timeline**: Continuous local screen capture, speech-to-text audio indexing, and contextual search. |
