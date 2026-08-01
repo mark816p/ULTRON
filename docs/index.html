@@ -1408,6 +1408,9 @@
           if (outerShell) outerShell.rotation.y += 0.004;
           particleGroup.rotation.y += 0.003;
 
+          // Side Gutter Trajectory
+          const gutterOffset = window.innerWidth < 1000 ? 0 : 4.5;
+
           // Compute Hero Anchor 3D World Position
           const heroWorld = getAnchorWorldPos();
 
