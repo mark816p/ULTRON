@@ -619,7 +619,7 @@
       background: #ffaa30;
       border-radius: 50%;
       pointer-events: none;
-      z-index: 9999;
+      z-index: 2; /* Positioned BEHIND all text content */
       box-shadow: 0 0 14px rgba(255, 170, 48, 0.95);
       transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1),
                   height 0.35s cubic-bezier(0.16, 1, 0.3, 1),
@@ -630,6 +630,16 @@
                   backdrop-filter 0.35s cubic-bezier(0.16, 1, 0.3, 1),
                   opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
       opacity: 1;
+    }
+
+    /* Elevate text and interactive elements above the cursor hover fill */
+    header, .wrapper, .bento-card, .dl-card, .glass-panel, .btn, .shimmer-badge, .tech-strip, .tech-pill, .marquee-container {
+      position: relative;
+      z-index: 10;
+    }
+    .bento-card *, .dl-card *, .glass-panel *, header *, .hero * {
+      position: relative;
+      z-index: 15;
     }
 
     /* ── RESPONSIVE ── */
@@ -1199,35 +1209,115 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // ── APP HOLOGRAPHIC 3D ORB ASSEMBLY (Matching App orbScene.ts) ──
+        // ── EXACT APP HOLOGRAPHIC 3D ORB ASSEMBLY (lib/orbScene.ts) ──
         ultronGroup = new THREE.Group();
         scene.add(ultronGroup);
 
-        // Glowing Inner Core
-        const coreGeo = new THREE.SphereGeometry(1.0, 32, 32);
-        const coreMat = new THREE.MeshBasicMaterial({ color: 0xffaa30, wireframe: false });
+        const C_BRIGHT = 0xffaa30;
+        const C_MID = 0xdd7700;
+        const C_DIM = 0x884400;
+        const C_FAINT = 0x553300;
+
+        function lineMat(color, opacity = 1) {
+          return new THREE.LineBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: opacity,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+          });
+        }
+
+        function latRing(radius, lat, segs = 90) {
+          const r = radius * Math.cos(lat);
+          const y = radius * Math.sin(lat);
+          const pts = [];
+          for (let i = 0; i <= segs; i++) {
+            const a = (i / segs) * Math.PI * 2;
+            pts.push(new THREE.Vector3(r * Math.cos(a), y, r * Math.sin(a)));
+          }
+          return new THREE.BufferGeometry().setFromPoints(pts);
+        }
+
+        function meridian(radius, lon, segs = 90) {
+          const pts = [];
+          for (let i = 0; i <= segs; i++) {
+            const lat = (i / segs) * Math.PI - Math.PI / 2;
+            pts.push(new THREE.Vector3(
+              radius * Math.cos(lat) * Math.cos(lon),
+              radius * Math.sin(lat),
+              radius * Math.cos(lat) * Math.sin(lon)
+            ));
+          }
+          return new THREE.BufferGeometry().setFromPoints(pts);
+        }
+
+        const outerShell = new THREE.Group();
+        const R1 = 2.0;
+
+        // 30 Latitude rings
+        for (let i = -15; i <= 15; i++) {
+          const lat = (i / 15) * (Math.PI / 2) * 0.95;
+          const opacity = i % 3 === 0 ? 0.55 : 0.15;
+          const color = i % 3 === 0 ? C_MID : C_FAINT;
+          outerShell.add(new THREE.Line(latRing(R1, lat), lineMat(color, opacity)));
+        }
+
+        // 24 Meridians
+        for (let i = 0; i < 24; i++) {
+          const lon = (i / 24) * Math.PI * 2;
+          const isMajor = i % 6 === 0;
+          outerShell.add(new THREE.Line(meridian(R1, lon), lineMat(isMajor ? C_MID : C_FAINT, isMajor ? 0.6 : 0.12)));
+        }
+
+        // 4 Bright Cross Meridians (the signature plus shape)
+        const CROSS_LINES = 14;
+        const CROSS_SPREAD = 0.22;
+        for (let i = 0; i < 4; i++) {
+          const lon = (i / 4) * Math.PI * 2;
+          for (let j = 0; j < CROSS_LINES; j++) {
+            const t = (j / (CROSS_LINES - 1)) * 2 - 1;
+            const offset = (t * CROSS_SPREAD) / 2;
+            const falloff = 1 - Math.abs(t) * 0.7;
+            const opacity = 0.85 * falloff;
+            const color = Math.abs(t) < 0.3 ? C_BRIGHT : C_MID;
+            outerShell.add(new THREE.Line(meridian(R1, lon + offset, 120), lineMat(color, opacity)));
+          }
+        }
+
+        // Bright Equator Band
+        const EQ_LINES = 16;
+        const EQ_SPREAD = 0.3;
+        for (let j = 0; j < EQ_LINES; j++) {
+          const t = (j / (EQ_LINES - 1)) * 2 - 1;
+          const offset = (t * EQ_SPREAD) / 2;
+          const falloff = 1 - Math.abs(t) * 0.65;
+          const opacity = 0.8 * falloff;
+          const color = Math.abs(t) < 0.3 ? C_BRIGHT : C_MID;
+          outerShell.add(new THREE.Line(latRing(R1, offset, 120), lineMat(color, opacity)));
+        }
+
+        ultronGroup.add(outerShell);
+
+        // Inner Glowing Core
+        const coreGeo = new THREE.SphereGeometry(0.9, 32, 32);
+        const coreMat = new THREE.MeshBasicMaterial({ color: C_BRIGHT, wireframe: false });
         coreMesh = new THREE.Mesh(coreGeo, coreMat);
         ultronGroup.add(coreMesh);
 
-        // Dense Latitude & Longitude Wireframe Sphere (App Orb Shell)
-        const wireGeo = new THREE.SphereGeometry(2.1, 30, 24);
-        const wireMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true, transparent: true, opacity: 0.55 });
-        wireGlobeMesh = new THREE.Mesh(wireGeo, wireMat);
-        ultronGroup.add(wireGlobeMesh);
-
-        // Concentric Equatorial Rings
+        // Orbiting Cybernetic Ring Gimbals
         function createCyberRing(radius, color, rotX, rotY) {
-          const ringGeo = new THREE.TorusGeometry(radius, 0.03, 16, 100);
-          const ringMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.7 });
+          const ringGeo = new THREE.TorusGeometry(radius, 0.025, 16, 100);
+          const ringMat = lineMat(color, 0.75);
           const ring = new THREE.Mesh(ringGeo, ringMat);
           ring.rotation.x = rotX;
           ring.rotation.y = rotY;
           return ring;
         }
 
-        ring1 = createCyberRing(2.6, 0xffaa30, Math.PI / 3, 0);
+        ring1 = createCyberRing(2.6, C_BRIGHT, Math.PI / 3, 0);
         ring2 = createCyberRing(3.1, 0x00f0ff, -Math.PI / 4, Math.PI / 6);
-        ring3 = createCyberRing(3.6, 0xa855f7, Math.PI / 6, -Math.PI / 4);
+        ring3 = createCyberRing(3.6, C_MID, Math.PI / 6, -Math.PI / 4);
         ultronGroup.add(ring1);
         ultronGroup.add(ring2);
         ultronGroup.add(ring3);
@@ -1235,8 +1325,8 @@
         // Orbiting Debris Particles
         particleGroup = new THREE.Group();
         const pGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
-        for (let i = 0; i < 24; i++) {
-          const pMat = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xffaa30 : 0x00f0ff });
+        for (let i = 0; i < 28; i++) {
+          const pMat = lineMat(i % 2 === 0 ? C_BRIGHT : 0x00f0ff, 0.85);
           const pMesh = new THREE.Mesh(pGeo, pMat);
           const theta = Math.random() * Math.PI * 2;
           const phi = (Math.random() - 0.5) * Math.PI;
