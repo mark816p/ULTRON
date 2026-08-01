@@ -649,7 +649,6 @@
       <ul class="nav-links">
         <li><a href="#download">DOWNLOAD</a></li>
         <li><a href="#features">FEATURES</a></li>
-        <li><a href="#simulator">SIMULATOR</a></li>
         <li><a href="https://github.com/mark816p/ULTRON" target="_blank">GITHUB</a></li>
       </ul>
       <a href="#download" class="btn-nav" style="text-decoration:none;">GET STARTED</a>
@@ -697,20 +696,20 @@
         <span class="marquee-pill">🎙️ Always-On Wake Word</span>
         <span class="marquee-pill">🧠 SQLite FTS5 Vector Memory</span>
         <span class="marquee-pill">⚡ Dual Cloud & Local Bionic LLMs</span>
-        <span class="marquee-pill">🖥️ OpenJarvis Computer Control</span>
-        <span class="marquee-pill">📹 Screenpipe 24/7 OCR Stream</span>
-        <span class="marquee-pill">🗣️ Fish Studio Voice Personas</span>
-        <span class="marquee-pill">🤖 Accomplish AI Coworker</span>
-        <span class="marquee-pill">🎨 Nexu OpenDesign System</span>
+        <span class="marquee-pill">🖥️ Desktop System Automation</span>
+        <span class="marquee-pill">📹 24/7 Screen OCR Stream</span>
+        <span class="marquee-pill">🗣️ Persona Voice Synthesis</span>
+        <span class="marquee-pill">🤖 Autonomous AI Coworker</span>
+        <span class="marquee-pill">🎨 UI Canvas Engine</span>
         <!-- Repeated loop -->
         <span class="marquee-pill">🎙️ Always-On Wake Word</span>
         <span class="marquee-pill">🧠 SQLite FTS5 Vector Memory</span>
         <span class="marquee-pill">⚡ Dual Cloud & Local Bionic LLMs</span>
-        <span class="marquee-pill">🖥️ OpenJarvis Computer Control</span>
-        <span class="marquee-pill">📹 Screenpipe 24/7 OCR Stream</span>
-        <span class="marquee-pill">🗣️ Fish Studio Voice Personas</span>
-        <span class="marquee-pill">🤖 Accomplish AI Coworker</span>
-        <span class="marquee-pill">🎨 Nexu OpenDesign System</span>
+        <span class="marquee-pill">🖥️ Desktop System Automation</span>
+        <span class="marquee-pill">📹 24/7 Screen OCR Stream</span>
+        <span class="marquee-pill">🗣️ Persona Voice Synthesis</span>
+        <span class="marquee-pill">🤖 Autonomous AI Coworker</span>
+        <span class="marquee-pill">🎨 UI Canvas Engine</span>
       </div>
     </div>
 
@@ -882,26 +881,6 @@
       </div>
     </section>
 
-    <!-- Interactive Simulator Section -->
-    <section id="simulator" class="simulator-section">
-      <div class="section-label">// LIVE INTERACTIVE DEMO</div>
-      <h2 class="section-title">Console Simulator</h2>
-      <p class="section-sub">Experience U.L.T.R.O.N.'s real-time telemetry, wake-word detection, and memory indexing in action.</p>
-
-      <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-        <button class="btn btn-ghost" onclick="simTrigger('wake')">🎙️ Say "Ultron"</button>
-        <button class="btn btn-ghost" onclick="simTrigger('memory')">🧠 Query Vector Memory</button>
-        <button class="btn btn-ghost" onclick="simTrigger('automation')">🖥️ Trigger Desktop Action</button>
-        <button class="btn btn-ghost" onclick="simTrigger('ocr')">📹 Scan Screen OCR</button>
-      </div>
-
-      <div class="sim-console" id="sim-output">
-        [SYSTEM] U.L.T.R.O.N. v9.4.6.1 Neural Client initialized.<br>
-        [VOICE] VAD Engine listening... (Say "Ultron")<br>
-        [MEMORY] SQLite FTS5 database mounted at ./data/ultron_memory.json (WAL mode)
-      </div>
-    </section>
-
     <!-- Tech Strip -->
     <div class="tech-strip">
       <p>// BUILT WITH & CO-CREATED BY</p>
@@ -1021,30 +1000,6 @@
       }
       animate();
     })();
-
-    // ── Interactive Console Simulator ──
-    function simTrigger(type) {
-      const out = document.getElementById('sim-output');
-      if (!out) return;
-      const ts = new Date().toLocaleTimeString();
-      if (type === 'wake') {
-        out.innerHTML = `[${ts}] [AUDIO_VAD] Wake-word "Ultron" DETECTED (Confidence 99.4%)<br>` +
-                        `[${ts}] [TELEMETRY] Acoustic HUD feedback chirp emitted.<br>` +
-                        `[${ts}] [NEURAL] Responding: "Yes, sir? Systems nominal."`;
-      } else if (type === 'memory') {
-        out.innerHTML = `[${ts}] [MEMORY] FTS5 query executed across 4,210 indexed entries.<br>` +
-                        `[${ts}] [SQZ] Deduplication active — 92% token compression.<br>` +
-                        `[${ts}] [VECTOR] Memory context ready for LLM engine.`;
-      } else if (type === 'automation') {
-        out.innerHTML = `[${ts}] [SYSTEM] Desktop action pipeline triggered: "System Diagnostic"<br>` +
-                        `[${ts}] [EXEC] PowerShell command ran cleanly (0 errors).<br>` +
-                        `[${ts}] [RESULT] Active process telemetry captured.`;
-      } else if (type === 'ocr') {
-        out.innerHTML = `[${ts}] [SCREEN_OCR] Timeline scanned active window context.<br>` +
-                        `[${ts}] [OCR] Extracted: "U.L.T.R.O.N. v9.4.6.1 Sentient Holographic AI Orb"<br>` +
-                        `[${ts}] [CONTEXT] Active workspace updated.`;
-      }
-    }
 
     // ── Dynamic GitHub Release Loader ──
     const REPO = 'mark816p/ULTRON';
