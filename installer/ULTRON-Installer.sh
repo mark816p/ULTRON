@@ -17,8 +17,8 @@ echo " [➔] OS Detected: $(uname -s) ($(uname -m))"
 echo " [➔] Fetching available versions from GitHub repository..."
 echo ""
 
-# Release version registry (v9.6.8 system)
-RELEASES=("v9.6.8")
+# Release version registry (v9.6.9 system)
+RELEASES=("v9.6.9")
 
 LATEST_TAG="${RELEASES[0]}"
 

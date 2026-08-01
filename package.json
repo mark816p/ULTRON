@@ -1,6 +1,11 @@
 {
   "name": "ultron-orb-ui",
-  "version": "9.6.8",
+  "description": "ULTRON Autonomous Sentient AI Desktop Companion",
+  "author": {
+    "name": "mark816p",
+    "email": "mark816p@github.com"
+  },
+  "version": "9.6.9",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -15,6 +20,7 @@
     "appId": "com.mark816p.ultron",
     "productName": "ULTRON",
     "asar": true,
+    "compression": "store",
     "npmRebuild": false,
     "win": {
       "target": ["dir", "zip"]
@@ -28,7 +34,7 @@
     ],
     "artifactName": "ULTRON-Setup.exe",
     "extraMetadata": {
-      "version": "9.6.8"
+      "version": "9.6.9"
     },
     "files": [
       "next.config.mjs",
@@ -69,6 +75,10 @@
         {
           "target": "nsis",
           "arch": ["x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64"]
         }
       ],
       "icon": "public/favicon.ico"
@@ -96,7 +106,8 @@
       "guid": "4A9D38C2-817B-4F29-875D-32A29C5B2A1E",
       "shortcutName": "U.L.T.R.O.N.",
       "installerSidebar": null,
-      "uninstallerSidebar": null
+      "uninstallerSidebar": null,
+      "warningsAsErrors": false
     },
     "directories": {
       "output": "dist"
