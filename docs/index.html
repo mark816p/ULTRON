@@ -605,8 +605,34 @@
       width: 100vw;
       height: 100vh;
       pointer-events: none;
-      z-index: 2;
-      opacity: 0.9;
+      z-index: 1; /* Positioned behind text wrapper */
+      opacity: 0.38; /* Soft subtle depth glow so text never blends */
+    }
+
+    /* ── SMOOTH TRAILING CURSOR POINTER ── */
+    #cursor-follower {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 34px;
+      height: 34px;
+      border: 1.5px solid var(--accent-amber);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      box-shadow: 0 0 20px var(--accent-amber-glow), inset 0 0 10px rgba(255, 170, 48, 0.2);
+    }
+    #cursor-dot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 6px;
+      height: 6px;
+      background: var(--accent-cyan);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10000;
+      box-shadow: 0 0 10px var(--accent-cyan);
     }
 
     /* ── RESPONSIVE ── */
@@ -617,11 +643,15 @@
       .hero h1 { font-size: 42px; }
       .orb-stage-wrapper { height: 280px; }
       #hero-orb-canvas { width: 260px; height: 260px; }
-      #scroll-ultron-canvas { opacity: 0.5; }
+      #scroll-ultron-canvas { opacity: 0.25; }
     }
   </style>
 </head>
 <body>
+
+  <!-- Custom Smooth Trailing Cursor Rings -->
+  <div id="cursor-follower"></div>
+  <div id="cursor-dot"></div>
 
   <!-- Scroll-Driven 3D Ultron Model Canvas -->
   <canvas id="scroll-ultron-canvas"></canvas>
@@ -1085,6 +1115,34 @@
       observer.observe(el);
     });
 
+    // ── 0.5s Spring Trailing Cursor Follower ──
+    (function initTrailingCursor() {
+      const follower = document.getElementById('cursor-follower');
+      const dot = document.getElementById('cursor-dot');
+      if (!follower || !dot) return;
+
+      let mouseX = window.innerWidth / 2;
+      let mouseY = window.innerHeight / 2;
+      let followerX = mouseX;
+      let followerY = mouseY;
+
+      window.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        dot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+      }, { passive: true });
+
+      function animateCursor() {
+        // 0.5s delayed spring damping factor (0.075)
+        followerX += (mouseX - followerX) * 0.075;
+        followerY += (mouseY - followerY) * 0.075;
+
+        follower.style.transform = `translate3d(${followerX}px, ${followerY}px, 0) translate(-50%, -50%)`;
+        requestAnimationFrame(animateCursor);
+      }
+      animateCursor();
+    })();
+
     // ── SCROLL-DRIVEN 3D ULTRON MODEL ENGINE ──
     (function initScroll3DUltron() {
       const canvas = document.getElementById('scroll-ultron-canvas');
@@ -1102,7 +1160,7 @@
 
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 0, 10);
+        camera.position.set(0, 0, 12);
 
         renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -1119,7 +1177,7 @@
         ultronGroup.add(coreMesh);
 
         // Geodesic outer wireframe icosahedron
-        const icoGeo = new THREE.IcosahedronGeometry(2.4, 2);
+        const icoGeo = new THREE.IcosahedronGeometry(2.3, 2);
         const icoMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true, transparent: true, opacity: 0.35 });
         geodesicMesh = new THREE.Mesh(icoGeo, icoMat);
         ultronGroup.add(geodesicMesh);
@@ -1127,16 +1185,16 @@
         // Concentric cybernetic rings
         function createCyberRing(radius, color, rotX, rotY) {
           const ringGeo = new THREE.TorusGeometry(radius, 0.03, 16, 100);
-          const ringMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.75 });
+          const ringMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.65 });
           const ring = new THREE.Mesh(ringGeo, ringMat);
           ring.rotation.x = rotX;
           ring.rotation.y = rotY;
           return ring;
         }
 
-        ring1 = createCyberRing(2.9, 0xffaa30, Math.PI / 3, 0);
-        ring2 = createCyberRing(3.4, 0x00f0ff, -Math.PI / 4, Math.PI / 6);
-        ring3 = createCyberRing(3.9, 0xa855f7, Math.PI / 6, -Math.PI / 4);
+        ring1 = createCyberRing(2.8, 0xffaa30, Math.PI / 3, 0);
+        ring2 = createCyberRing(3.3, 0x00f0ff, -Math.PI / 4, Math.PI / 6);
+        ring3 = createCyberRing(3.8, 0xa855f7, Math.PI / 6, -Math.PI / 4);
         ultronGroup.add(ring1);
         ultronGroup.add(ring2);
         ultronGroup.add(ring3);
@@ -1144,12 +1202,12 @@
         // Orbiting particle debris
         particleGroup = new THREE.Group();
         const pGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 24; i++) {
           const pMat = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xffaa30 : 0x00f0ff });
           const pMesh = new THREE.Mesh(pGeo, pMat);
           const theta = Math.random() * Math.PI * 2;
           const phi = (Math.random() - 0.5) * Math.PI;
-          const r = 3.2 + Math.random() * 1.5;
+          const r = 3.0 + Math.random() * 1.4;
           pMesh.position.set(r * Math.cos(theta) * Math.cos(phi), r * Math.sin(phi), r * Math.sin(theta) * Math.cos(phi));
           particleGroup.add(pMesh);
         }
@@ -1167,53 +1225,54 @@
         let time = 0;
         function animate() {
           requestAnimationFrame(animate);
-          time += 0.015;
+          time += 0.012;
 
-          // Smooth lerp for scroll progress
-          currentProgress += (targetProgress - currentProgress) * 0.06;
+          // Smooth lerp for scroll progress (gentle fluid physics)
+          currentProgress += (targetProgress - currentProgress) * 0.035;
 
           // Continuous ring rotation
-          ring1.rotation.z += 0.01;
-          ring2.rotation.z -= 0.012;
-          ring3.rotation.z += 0.008;
-          geodesicMesh.rotation.y += 0.005;
-          particleGroup.rotation.y += 0.004;
+          ring1.rotation.z += 0.008;
+          ring2.rotation.z -= 0.01;
+          ring3.rotation.z += 0.006;
+          geodesicMesh.rotation.y += 0.004;
+          particleGroup.rotation.y += 0.003;
 
-          // Interpolate 3D position, rotation, and scale along scroll trajectory
+          // Stay in outer side gutters so model NEVER overlaps or blends with center text
+          const gutterOffset = window.innerWidth < 1000 ? 0 : 4.6;
           let posX, posY, posZ, scale, rotX, rotY;
 
-          if (currentProgress <= 0.25) {
-            // Stage 1: Hero Section (Floating Top Right)
-            const t = currentProgress / 0.25;
-            posX = 2.2 - t * 1.0;
+          if (currentProgress <= 0.3) {
+            // Stage 1: Hero Section (Gutter Right)
+            const t = currentProgress / 0.3;
+            posX = gutterOffset > 0 ? gutterOffset : 0;
             posY = 0.5 - t * 0.5;
             posZ = 0;
-            scale = 1.0 + t * 0.2;
-            rotX = t * 0.3;
-            rotY = time * 0.5 + t * Math.PI * 0.5;
-          } else if (currentProgress <= 0.65) {
-            // Stage 2: Download Section (Glides across to Left Side)
-            const t = (currentProgress - 0.25) / 0.4;
-            posX = 1.2 - t * 3.4; // Moves to X: -2.2
-            posY = 0.0 - t * 0.4;
-            posZ = t * 0.5;
-            scale = 1.2 - t * 0.15;
-            rotX = 0.3 + t * 0.4;
-            rotY = time * 0.5 + Math.PI * 0.5 + t * Math.PI;
+            scale = 0.9 + t * 0.1;
+            rotX = t * 0.2;
+            rotY = time * 0.4 + t * Math.PI * 0.4;
+          } else if (currentProgress <= 0.7) {
+            // Stage 2: Download Section (Gutter Left)
+            const t = (currentProgress - 0.3) / 0.4;
+            posX = gutterOffset > 0 ? -gutterOffset : 0;
+            posY = 0.0 - t * 0.3;
+            posZ = t * 0.3;
+            scale = 1.0 - t * 0.1;
+            rotX = 0.2 + t * 0.3;
+            rotY = time * 0.4 + Math.PI * 0.4 + t * Math.PI;
           } else {
-            // Stage 3: Features Bento & Footer Section (Moves to Center/Right with 3D tilt)
-            const t = (currentProgress - 0.65) / 0.35;
-            posX = -2.2 + t * 2.2; // Moves to X: 0
-            posY = -0.4 - t * 0.6;
-            posZ = 0.5 + t * 0.8;
-            scale = 1.05 + t * 0.4;
-            rotX = 0.7 - t * 0.5;
-            rotY = time * 0.5 + Math.PI * 1.5 + t * Math.PI * 0.5;
+            // Stage 3: Features & Footer Section (Gutter Right / Center Bottom)
+            const t = (currentProgress - 0.7) / 0.3;
+            posX = gutterOffset > 0 ? gutterOffset * (1 - t) : 0;
+            posY = -0.3 - t * 1.8;
+            posZ = 0.3 + t * 0.5;
+            scale = 0.9 + t * 0.3;
+            rotX = 0.5 - t * 0.3;
+            rotY = time * 0.4 + Math.PI * 1.4 + t * Math.PI * 0.6;
           }
 
-          // Apply floating 3D sine bobbing
-          ultronGroup.position.set(posX, posY + Math.sin(time * 2) * 0.15, posZ);
-          ultronGroup.rotation.set(rotX, rotY, Math.sin(time * 1.5) * 0.1);
+          // Apply gentle 3D sine floating
+          ultronGroup.position.set(posX, posY + Math.sin(time * 1.8) * 0.12, posZ);
+          ultronGroup.rotation.set(rotX, rotY, Math.sin(time * 1.2) * 0.08);
           ultronGroup.scale.setScalar(scale);
 
           renderer.render(scene, camera);
