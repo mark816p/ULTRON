@@ -1,4 +1,5 @@
 import { AntigravityBridge, AntigravityResponse } from "./antigravityBridge";
+import { DependencyManager } from "./dependencyManager";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant" | "tool";
@@ -100,6 +101,7 @@ export class AiRouter {
               executedBrain: "antigravity",
             };
           } else if (brain === "ollama") {
+            try { await DependencyManager.ensureOllama(); } catch (e) { console.error(e); }
             const res = await this.callOpenAiCompatible(
               this.ollamaUrl,
               options.ollamaModel || fallbackModelName || this.ollamaModel,
@@ -114,6 +116,7 @@ export class AiRouter {
               executedBrain: "ollama",
             };
           } else if (brain === "lm-studio") {
+            try { await DependencyManager.ensureLMStudio(); } catch (e) { console.error(e); }
             const res = await this.callOpenAiCompatible(
               this.lmStudioUrl,
               options.lmStudioModel || fallbackModelName || this.lmStudioModel,
@@ -256,6 +259,7 @@ export class AiRouter {
           failoverReason = failoverReason ? `${failoverReason} -> ${msg}` : msg;
           // Try Ollama as secondary backup if in auto mode
           try {
+            try { await DependencyManager.ensureOllama(); } catch (e) { console.error(e); }
             const res = await this.callOpenAiCompatible(
               this.ollamaUrl,
               fallbackModelName || this.ollamaModel,
@@ -276,6 +280,7 @@ export class AiRouter {
       } else {
         // Ollama local server
         try {
+          try { await DependencyManager.ensureOllama(); } catch (e) { console.error(e); }
           const res = await this.callOpenAiCompatible(
             this.ollamaUrl,
             fallbackModelName || (preferredEngine === "ollama" ? exactModelName : undefined) || this.ollamaModel,
@@ -299,6 +304,7 @@ export class AiRouter {
           failoverReason = failoverReason ? `${failoverReason} -> ${msg}` : msg;
           // Try LM Studio as secondary backup if in auto mode
           try {
+            try { await DependencyManager.ensureLMStudio(); } catch (e) { console.error(e); }
             const res = await this.callOpenAiCompatible(
               this.lmStudioUrl,
               fallbackModelName || this.lmStudioModel,

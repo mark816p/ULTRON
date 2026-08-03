@@ -131,6 +131,41 @@ export default function ChatPanel({ sceneRef, cameraState, onToggleGestures, onO
 
       sceneRef.current?.setAIState("thinking");
 
+      if (textToSend.trim().toLowerCase().startsWith("/graphify")) {
+        const targetPath = textToSend.replace("/graphify", "").trim() || process.cwd();
+        setMessages((prev) => [...prev, {
+          role: "system",
+          content: `Extracting Graphify AST nodes from ${targetPath}...`,
+          timestamp: new Date().toLocaleTimeString(),
+        }]);
+        
+        try {
+          const res = await fetch("/api/graphify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ targetPath })
+          });
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          
+          setMessages((prev) => [...prev, {
+            role: "assistant",
+            content: `Graphify indexing complete. ${data.message}`,
+            timestamp: new Date().toLocaleTimeString(),
+          }]);
+          fetch("/api/memory-graph").then(r => r.json()).then(setMemories).catch(e=>e);
+        } catch (err: any) {
+           setMessages((prev) => [...prev, {
+            role: "system",
+            content: `Graphify error: ${err.message}`,
+            timestamp: new Date().toLocaleTimeString(),
+          }]);
+        }
+        setLoading(false);
+        sceneRef.current?.setAIState("idle");
+        return;
+      }
+
       try {
         const res = await fetch("/api/chat", {
           method: "POST",

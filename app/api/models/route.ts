@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { DependencyManager } from "../../../lib/dependencyManager";
 import { exec } from "child_process";
 import { promisify } from "util";
 
@@ -70,6 +71,7 @@ export async function GET() {
 
   // Query Ollama local server
   try {
+    try { await DependencyManager.ensureOllama(); } catch (e) { console.error(e); }
     const res = await fetch("http://127.0.0.1:11434/api/tags", {
       signal: AbortSignal.timeout(2500),
     });
@@ -83,6 +85,7 @@ export async function GET() {
 
   // Query LM Studio local server
   try {
+    try { await DependencyManager.ensureLMStudio(); } catch (e) { console.error(e); }
     const res = await fetch("http://127.0.0.1:1234/v1/models", {
       signal: AbortSignal.timeout(2500),
     });
