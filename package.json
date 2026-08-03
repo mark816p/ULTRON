@@ -5,7 +5,7 @@
     "name": "mark816p",
     "email": "mark816p@github.com"
   },
-  "version": "9.6.9",
+  "version": "9.9.1",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -23,7 +23,21 @@
     "compression": "store",
     "npmRebuild": false,
     "win": {
-      "target": ["dir", "zip"]
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/favicon.ico"
     },
     "publish": [
       {
@@ -33,7 +47,7 @@
       }
     ],
     "extraMetadata": {
-      "version": "9.6.9"
+      "version": "9.9.1"
     },
     "artifactName": "ULTRON-Setup.${ext}",
     "files": [
@@ -70,19 +84,6 @@
       "!node_modules/@next/swc-linux*/**/*",
       "!node_modules/@next/swc-darwin*/**/*"
     ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        },
-        {
-          "target": "zip",
-          "arch": ["x64"]
-        }
-      ],
-      "icon": "public/favicon.ico"
-    },
     "mac": {
       "target": [
         "dmg"
@@ -117,6 +118,7 @@
     "@mediapipe/tasks-vision": "^0.10.35",
     "electron-updater": "^6.8.9",
     "next": "^16.2.10",
+    "playwright": "^1.62.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "three": "^0.185.1"

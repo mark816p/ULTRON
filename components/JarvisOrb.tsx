@@ -5,6 +5,7 @@ import { createOrbScene, type OrbSceneApi } from "@/lib/orbScene";
 import { HandTracker, type TrackerStatus } from "@/lib/handTracker";
 import ChatPanel from "./ChatPanel";
 import OnboardingWizard from "./OnboardingWizard";
+import MemoryMapPanel from "./MemoryMapPanel";
 
 type CameraState = "off" | "starting" | "on" | "error";
 
@@ -35,11 +36,33 @@ export default function JarvisOrb() {
   const [hideUI, setHideUI] = useState(false);
   const [showWebcamFeed, setShowWebcamFeed] = useState(false);
   const [depth3dEnabled, setDepth3dEnabled] = useState(false);
+  
+  // Memory & Playwright state
+  const [showMemoryMap, setShowMemoryMap] = useState(false);
+  const [memoryNodeCount, setMemoryNodeCount] = useState(0);
+  const [playwrightStatus, setPlaywrightStatus] = useState(false);
 
   useEffect(() => {
     const isOnboarded = localStorage.getItem("ultron_onboarded");
     if (!isOnboarded) setShowWizard(true);
     if (localStorage.getItem("ultron_3d_awareness") === "true") setDepth3dEnabled(true);
+    
+    // Fetch memory graph node count
+    fetch('/api/memory-graph')
+      .then(r => r.json())
+      .then(data => {
+        setMemoryNodeCount(data.nodes?.length || 0);
+      })
+      .catch(() => {});
+
+    // Fetch Playwright status
+    fetch('/api/playwright')
+      .then(r => {
+        if (r.ok) return r.json();
+        throw new Error('Not ok');
+      })
+      .then(() => setPlaywrightStatus(true))
+      .catch(() => setPlaywrightStatus(false));
   }, []);
 
   useEffect(() => {
@@ -95,21 +118,21 @@ export default function JarvisOrb() {
     setError(null);
 
     const tracker = new HandTracker(video, overlay, {
-      onRotate: (dt, dp) => sceneRef.current?.rotateBy(dt, dp),
-      onZoom: (factor) => sceneRef.current?.zoomBy(factor),
+      onRotate: (dt, dp) => (sceneRef.current as any)?.rotateBy?.(dt, dp),
+      onZoom: (factor) => (sceneRef.current as any)?.zoomBy?.(factor),
       onStatus: setStatus,
       onDepth: (factor) => {
-        if (depth3dEnabled) sceneRef.current?.setDepthFactor(factor);
-        else sceneRef.current?.setDepthFactor(0);
+        if (depth3dEnabled) sceneRef.current?.setDepthFactor?.(factor);
+        else sceneRef.current?.setDepthFactor?.(0);
       },
       onGestureAction: (action) => {
         if (!sceneRef.current) return;
         if (action === "reset") {
-          sceneRef.current.resetView?.();
+          (sceneRef.current as any)?.resetView?.();
         } else if (action === "zoomIn") {
-          sceneRef.current.zoomIn?.();
+          (sceneRef.current as any)?.zoomIn?.();
         } else if (action === "zoomOut") {
-          sceneRef.current.zoomOut?.();
+          (sceneRef.current as any)?.zoomOut?.();
         } else if (action === "pulse") {
           sceneRef.current.setAIState?.("thinking");
           setTimeout(() => sceneRef.current?.setAIState?.("idle"), 2500);
@@ -131,7 +154,7 @@ export default function JarvisOrb() {
           : "TRACKING INIT FAILED",
       );
     }
-  }, []);
+  }, [depth3dEnabled]);
 
   const toggleGestures = useCallback(() => {
     if (trackerRef.current) stopGestures();
@@ -148,18 +171,22 @@ export default function JarvisOrb() {
         setHideUI((prev) => !prev);
         return;
       }
+      if (e.key === "m" || e.key === "M") {
+        setShowMemoryMap((prev) => !prev);
+        return;
+      }
       switch (e.key) {
         case "+":
         case "=":
-          sceneRef.current?.zoomIn();
+          (sceneRef.current as any)?.zoomIn?.();
           break;
         case "-":
         case "_":
-          sceneRef.current?.zoomOut();
+          (sceneRef.current as any)?.zoomOut?.();
           break;
         case "r":
         case "R":
-          sceneRef.current?.resetView();
+          (sceneRef.current as any)?.resetView?.();
           break;
         case "g":
         case "G":
@@ -206,6 +233,9 @@ export default function JarvisOrb() {
           setDepth3dEnabled(localStorage.getItem("ultron_3d_awareness") === "true");
         }}
       />
+      
+      {/* Memory Map Overlay */}
+      <MemoryMapPanel isOpen={showMemoryMap} onClose={() => setShowMemoryMap(false)} />
 
       {/* When hideUI is false, render all text HUD and chat panels */}
       {!hideUI && (
@@ -226,9 +256,26 @@ export default function JarvisOrb() {
               <div>
                 <span className="key">G</span> hand gestures&nbsp;&nbsp;
                 <span className="key">R</span> reset&nbsp;&nbsp;
-                <span className="key">U</span> toggle UI
+                <span className="key">U</span> toggle UI&nbsp;&nbsp;
+                <span className="key">M</span> memory map
               </div>
             )}
+          </div>
+          
+          <div className="hud" style={{ position: 'absolute', top: '100px', left: '32px' }}>
+            <div className="hud-stat" style={{ marginBottom: '12px', fontSize: '12px', letterSpacing: '2px', color: 'rgba(255, 255, 255, 0.7)' }}>
+              🧠 {memoryNodeCount} NODES
+            </div>
+            <div className="hud-stat" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', letterSpacing: '2px', color: 'rgba(255, 255, 255, 0.7)' }}>
+              <div style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: playwrightStatus ? '#00ff88' : '#444',
+                boxShadow: playwrightStatus ? '0 0 8px #00ff88' : 'none'
+              }} />
+              PLAYWRIGHT
+            </div>
           </div>
 
           <div className="hud hud-controls">
@@ -294,17 +341,20 @@ export default function JarvisOrb() {
               )}
             </div>
             <div className="hud-row">
-              <button type="button" className="hud-btn" onClick={() => sceneRef.current?.zoomIn()} aria-label="Zoom in">
+              <button type="button" className="hud-btn" onClick={() => (sceneRef.current as any)?.zoomIn?.()} aria-label="Zoom in">
                 +
               </button>
-              <button type="button" className="hud-btn" onClick={() => sceneRef.current?.zoomOut()} aria-label="Zoom out">
+              <button type="button" className="hud-btn" onClick={() => (sceneRef.current as any)?.zoomOut?.()} aria-label="Zoom out">
                 −
               </button>
-              <button type="button" className="hud-btn" onClick={() => sceneRef.current?.resetView()}>
+              <button type="button" className="hud-btn" onClick={() => (sceneRef.current as any)?.resetView?.()}>
                 RESET
               </button>
+              <button type="button" className="hud-btn" onClick={() => setShowMemoryMap(true)}>
+                🧠 MEMORY MAP
+              </button>
             </div>
-            <div className="hud-version">v9.6.7</div>
+            <div className="hud-version">v9.9.1</div>
           </div>
 
           {/* Futuristic Chat & Cognitive Control Panel */}

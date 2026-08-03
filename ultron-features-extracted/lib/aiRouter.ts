@@ -1,0 +1,523 @@
+import { AntigravityBridge, AntigravityResponse } from "./antigravityBridge";
+
+export interface ChatMessage {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+}
+
+export interface RouterOptions {
+  ollamaBaseUrl?: string;
+  ollamaModel?: string;
+  lmStudioBaseUrl?: string;
+  lmStudioModel?: string;
+  antigravityTimeoutMs?: number;
+}
+
+export interface RouterResponse {
+  content: string;
+  engine: "antigravity-cli" | "antigravity-sdk" | "api-key" | "ollama" | "lm-studio" | "omniroute";
+  thoughts?: string[];
+  failoverOccurred: boolean;
+  failoverReason?: string;
+  executedBrain?: string;
+}
+
+export interface RouteOptions {
+  onlineMode?: "antigravity" | "api-key";
+  localMode?: "ollama" | "lm-studio";
+  apiProvider?: string;
+  apiKey?: string;
+  apiBaseUrl?: string;
+  activeBrains?: string[];
+  apiKeys?: Record<string, string>;
+  ollamaModel?: string;
+  lmStudioModel?: string;
+  modelNames?: Record<string, string>; // optional per-brain model override, e.g. { anthropic: "claude-sonnet-5" }
+}
+
+export class AiRouter {
+  private antigravity: AntigravityBridge;
+  private ollamaUrl: string;
+  private ollamaModel: string;
+  private lmStudioUrl: string;
+  private lmStudioModel: string;
+  private omniRouteUrl: string;
+
+  constructor(options: RouterOptions = {}) {
+    this.antigravity = new AntigravityBridge(options.antigravityTimeoutMs || 8000);
+    this.ollamaUrl = options.ollamaBaseUrl || process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434/v1/chat/completions";
+    this.ollamaModel = options.ollamaModel || process.env.OLLAMA_MODEL || "llama3";
+    this.lmStudioUrl = options.lmStudioBaseUrl || process.env.LM_STUDIO_BASE_URL || "http://127.0.0.1:1234/v1/chat/completions";
+    this.lmStudioModel = options.lmStudioModel || process.env.LM_STUDIO_MODEL || "local-model";
+    // OmniRoute: bundled local gateway to 290+ cloud providers (90+ free tiers),
+    // spawned by main.js on startup. Speaks the same OpenAI-compatible shape
+    // as Ollama/LM Studio, so it reuses callOpenAiCompatible.
+    this.omniRouteUrl = process.env.OMNIROUTE_BASE_URL || "http://127.0.0.1:20128/v1/chat/completions";
+  }
+
+  /**
+   * Executes inference with automatic circuit-breaker failover from Online (API Key / Antigravity) to Local (Ollama / LM Studio Bionic)!
+   */
+  public async route(
+    messages: ChatMessage[],
+    systemInstructions?: string,
+    preferredEngine: "auto" | "antigravity" | "api-key" | "ollama" | "lm-studio" = "auto",
+    exactModelName?: string,
+    fallbackModelName?: string,
+    options: RouteOptions = {}
+  ): Promise<RouterResponse> {
+    const latestPrompt = messages[messages.length - 1]?.content || "";
+    let failoverOccurred = false;
+    let failoverReason = "";
+
+    const onlineMode = options.onlineMode || (preferredEngine === "api-key" ? "api-key" : "antigravity");
+    const localMode = options.localMode || (preferredEngine === "lm-studio" ? "lm-studio" : "ollama");
+
+    // 0. Dynamic Multi-Brain Checkbox Queue Architecture
+    if (options.activeBrains && options.activeBrains.length > 0) {
+      // Safety net: if a cloud provider has a usable key (apiKeys map, the currently
+      // selected apiProvider/apiKey pair, or an environment variable) but was never
+      // explicitly ticked, try it anyway before giving up. A valid key should never
+      // go unused just because a checkbox wasn't checked.
+      const knownCloudProviders = ["anthropic", "openai", "gemini", "openrouter", "deepseek", "groq", "mistral", "xai"];
+      const hasUsableKey = (p: string) =>
+        !!(
+          options.apiKeys?.[p] ||
+          (p === options.apiProvider && options.apiKey) ||
+          process.env[`${p.toUpperCase()}_API_KEY`]
+        );
+      const extraBrains = knownCloudProviders.filter(
+        (p) => hasUsableKey(p) && !options.activeBrains!.includes(p)
+      );
+      const brainQueue = [...options.activeBrains, ...extraBrains];
+
+      let failoverLog: string[] = [];
+      for (const brain of brainQueue) {
+        try {
+          if (brain === "antigravity") {
+            const res = await this.antigravity.execute(latestPrompt, systemInstructions, exactModelName);
+            return {
+              content: res.content,
+              engine: res.engine,
+              thoughts: res.thoughts,
+              failoverOccurred: failoverLog.length > 0,
+              failoverReason: failoverLog.length > 0 ? failoverLog.join(" -> ") : undefined,
+              executedBrain: "antigravity",
+            };
+          } else if (brain === "ollama") {
+            const res = await this.callOpenAiCompatible(
+              this.ollamaUrl,
+              options.ollamaModel || fallbackModelName || this.ollamaModel,
+              messages,
+              systemInstructions
+            );
+            return {
+              content: res,
+              engine: "ollama",
+              failoverOccurred: failoverLog.length > 0,
+              failoverReason: failoverLog.length > 0 ? failoverLog.join(" -> ") : undefined,
+              executedBrain: "ollama",
+            };
+          } else if (brain === "omniroute") {
+            const res = await this.callOpenAiCompatible(
+              this.omniRouteUrl,
+              options.modelNames?.omniroute || "auto",
+              messages,
+              systemInstructions
+            );
+            return {
+              content: res,
+              engine: "ollama", // reuses the local-engine union member; it's a local-gateway process either way
+              failoverOccurred: failoverLog.length > 0,
+              failoverReason: failoverLog.length > 0 ? failoverLog.join(" -> ") : undefined,
+              executedBrain: "omniroute",
+            };
+          } else if (brain === "lm-studio") {
+            const res = await this.callOpenAiCompatible(
+              this.lmStudioUrl,
+              options.lmStudioModel || fallbackModelName || this.lmStudioModel,
+              messages,
+              systemInstructions
+            );
+            return {
+              content: res,
+              engine: "lm-studio",
+              failoverOccurred: failoverLog.length > 0,
+              failoverReason: failoverLog.length > 0 ? failoverLog.join(" -> ") : undefined,
+              executedBrain: "lm-studio",
+            };
+          } else {
+            // Cloud API provider (openrouter, gemini, openai, anthropic, deepseek, groq, mistral, xai, custom)
+            const key = options.apiKeys?.[brain] || (brain === options.apiProvider ? options.apiKey : "") || "";
+            // Only honor a single global model name when there's exactly one brain queued.
+            // With a real multi-brain failover list, a model picked for one provider (e.g.
+            // a Gemini model string) is invalid for the others and breaks every brain after
+            // the first. Use options.modelNames for a real per-brain override.
+            const singleBrain = brainQueue.length === 1;
+            let targetModel = options.modelNames?.[brain] || (singleBrain ? exactModelName : undefined);
+            if (!targetModel || targetModel === "auto") {
+              if (brain === "openrouter") targetModel = "openrouter/auto";
+              else if (brain === "gemini") targetModel = "gemini-3.1-pro";
+              else if (brain === "openai") targetModel = "gpt-5.6";
+              else if (brain === "anthropic") targetModel = "claude-sonnet-5";
+              else if (brain === "deepseek") targetModel = "deepseek-r1";
+              else if (brain === "groq") targetModel = "llama-3.3-70b-versatile";
+              else if (brain === "mistral") targetModel = "mistral-large-latest";
+              else if (brain === "xai") targetModel = "grok-2-1212";
+            }
+            const content = await this.callCloudApi(
+              brain,
+              key,
+              brain === options.apiProvider ? options.apiBaseUrl : undefined,
+              targetModel,
+              messages,
+              systemInstructions
+            );
+            return {
+              content,
+              engine: "api-key",
+              thoughts: [],
+              failoverOccurred: failoverLog.length > 0,
+              failoverReason: failoverLog.length > 0 ? failoverLog.join(" -> ") : undefined,
+              executedBrain: brain,
+            };
+          }
+        } catch (err) {
+          const msg = `[${brain.toUpperCase()} failed: ${(err as Error).message}]`;
+          console.warn("[AiRouter Dynamic Queue] " + msg);
+          failoverLog.push(msg);
+        }
+      }
+      // All brains failed — produce a clean, short error message
+      const cleanLog = failoverLog.map(s => {
+        // Strip the giant Windows PATH error spam — keep first sentence only
+        const firstLine = s.split("\n")[0].replace(/\s{2,}/g, " ").slice(0, 120);
+        return firstLine;
+      });
+      throw new Error(`AI routing failed: All available brains [${brainQueue.join(", ")}] failed or are unreachable. Failover log: ${cleanLog.join(" -> ")}`);
+    }
+
+    // 1. If preferred is auto, antigravity, or api-key, try Online Engine first
+    if (preferredEngine === "auto" || preferredEngine === "antigravity" || preferredEngine === "api-key") {
+      if (onlineMode === "api-key" || preferredEngine === "api-key") {
+        try {
+          const content = await this.callCloudApi(
+            options.apiProvider || "openrouter",
+            options.apiKey || "",
+            options.apiBaseUrl,
+            exactModelName || "openrouter/auto",
+            messages,
+            systemInstructions
+          );
+          return {
+            content,
+            engine: "api-key",
+            thoughts: [],
+            failoverOccurred: false,
+            executedBrain: options.apiProvider || "openrouter",
+          };
+        } catch (apiErr) {
+          const msg = `Cloud API (${options.apiProvider || "openrouter"}) failed: ${(apiErr as Error).message}`;
+          console.warn("[AiRouter] " + msg);
+          if (preferredEngine === "api-key") {
+            throw new Error(`Cloud API Key execution failed. Error: ${(apiErr as Error).message}`);
+          }
+          failoverOccurred = true;
+          failoverReason = `${msg}. Auto-switching to Local (${localMode.toUpperCase()})...`;
+        }
+      } else {
+        // Antigravity Free Bridge
+        try {
+          const res = await this.antigravity.execute(latestPrompt, systemInstructions, exactModelName);
+          return {
+            content: res.content,
+            engine: res.engine,
+            thoughts: res.thoughts,
+            failoverOccurred: false,
+            executedBrain: "antigravity",
+          };
+        } catch (err) {
+          const msg = `Antigravity local bridge failed (${(err as Error).message})`;
+          console.warn("[AiRouter] " + msg);
+          if (preferredEngine === "antigravity") {
+            throw new Error(`Antigravity Bridge failed: ${(err as Error).message}`);
+          }
+          failoverOccurred = true;
+          failoverReason = `${msg}. Auto-switching to Local (${localMode.toUpperCase()})...`;
+        }
+      }
+    }
+
+    // 2. Try Local Engine (Ollama or LM Studio Bionic)
+    if (preferredEngine === "auto" || preferredEngine === "ollama" || preferredEngine === "lm-studio" || failoverOccurred) {
+      if (localMode === "lm-studio" || preferredEngine === "lm-studio") {
+        try {
+          const res = await this.callOpenAiCompatible(
+            this.lmStudioUrl,
+            fallbackModelName || (preferredEngine === "lm-studio" ? exactModelName : undefined) || this.lmStudioModel,
+            messages,
+            systemInstructions
+          );
+          return {
+            content: res,
+            engine: "lm-studio",
+            failoverOccurred,
+            failoverReason: failoverOccurred ? failoverReason : undefined,
+            executedBrain: "lm-studio",
+          };
+        } catch (lmErr) {
+          const msg = `LM Studio Bionic failed (${(lmErr as Error).message}).`;
+          console.warn("[AiRouter] " + msg);
+          if (preferredEngine === "lm-studio") {
+            throw new Error(`LM Studio Bionic is unreachable. Is LM Studio running? Error: ${(lmErr as Error).message}`);
+          }
+          failoverOccurred = true;
+          failoverReason = failoverReason ? `${failoverReason} -> ${msg}` : msg;
+          // Try Ollama as secondary backup if in auto mode
+          try {
+            const res = await this.callOpenAiCompatible(
+              this.ollamaUrl,
+              fallbackModelName || this.ollamaModel,
+              messages,
+              systemInstructions
+            );
+            return {
+              content: res,
+              engine: "ollama",
+              failoverOccurred,
+              failoverReason: failoverReason + " Auto-switched to Ollama.",
+              executedBrain: "ollama",
+            };
+          } catch (ollamaErr) {
+            throw new Error(`All local AI engines unreachable. Last error: ${(ollamaErr as Error).message}`);
+          }
+        }
+      } else {
+        // Ollama local server
+        try {
+          const res = await this.callOpenAiCompatible(
+            this.ollamaUrl,
+            fallbackModelName || (preferredEngine === "ollama" ? exactModelName : undefined) || this.ollamaModel,
+            messages,
+            systemInstructions
+          );
+          return {
+            content: res,
+            engine: "ollama",
+            failoverOccurred,
+            failoverReason: failoverOccurred ? failoverReason : undefined,
+            executedBrain: "ollama",
+          };
+        } catch (ollamaErr) {
+          const msg = `Ollama connection failed (${(ollamaErr as Error).message}).`;
+          console.warn("[AiRouter] " + msg);
+          if (preferredEngine === "ollama") {
+            throw new Error(`Ollama is unreachable. Is Ollama running? Error: ${(ollamaErr as Error).message}`);
+          }
+          failoverOccurred = true;
+          failoverReason = failoverReason ? `${failoverReason} -> ${msg}` : msg;
+          // Try LM Studio as secondary backup if in auto mode
+          try {
+            const res = await this.callOpenAiCompatible(
+              this.lmStudioUrl,
+              fallbackModelName || this.lmStudioModel,
+              messages,
+              systemInstructions
+            );
+            return {
+              content: res,
+              engine: "lm-studio",
+              failoverOccurred,
+              failoverReason: failoverReason + " Auto-switched to LM Studio Bionic.",
+              executedBrain: "lm-studio",
+            };
+          } catch (lmErr) {
+            throw new Error(`All local AI engines unreachable. Last error: ${(lmErr as Error).message}`);
+          }
+        }
+      }
+    }
+
+    throw new Error("All configured AI engines are unreachable. Check your local AI server is running.");
+  }
+
+  private async callCloudApi(
+    provider: string,
+    apiKey: string,
+    baseUrl?: string,
+    model?: string,
+    messages: ChatMessage[] = [],
+    systemInstructions?: string
+  ): Promise<string> {
+    const key = apiKey ||
+      (provider === "openrouter" ? process.env.OPENROUTER_API_KEY :
+       provider === "openai" ? process.env.OPENAI_API_KEY :
+       provider === "gemini" ? process.env.GEMINI_API_KEY :
+       provider === "anthropic" ? process.env.ANTHROPIC_API_KEY :
+       provider === "deepseek" ? process.env.DEEPSEEK_API_KEY :
+       provider === "groq" ? process.env.GROQ_API_KEY :
+       provider === "mistral" ? process.env.MISTRAL_API_KEY :
+       provider === "xai" ? process.env.XAI_API_KEY : undefined);
+
+    if (!key && provider !== "custom") {
+      throw new Error(`API Key is missing for ${provider.toUpperCase()}. Please provide your API Key in UI model selection or env variables.`);
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout for cloud inference
+
+    try {
+      // 1. Google Gemini Native REST API
+      if (provider === "gemini") {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model || "gemini-3.1-pro"}:generateContent?key=${key}`;
+        const contents = messages.map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        }));
+        const body: any = { contents };
+        if (systemInstructions) {
+          body.systemInstruction = { parts: [{ text: systemInstructions }] };
+        }
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          throw new Error(`HTTP ${res.status}: ${res.statusText} (${errText})`);
+        }
+        const data = await res.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated by Gemini API.";
+      }
+
+      // 2. Anthropic Claude Native REST API
+      if (provider === "anthropic") {
+        const url = "https://api.anthropic.com/v1/messages";
+        const anthropicMessages = messages
+          .filter((m) => m.role !== "system")
+          .map((m) => ({
+            role: m.role === "assistant" ? "assistant" : "user",
+            content: m.content,
+          }));
+        const body: any = {
+          model: model || "claude-sonnet-5",
+          max_tokens: 4096,
+          messages: anthropicMessages,
+        };
+        if (systemInstructions) {
+          body.system = systemInstructions;
+        }
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "x-api-key": key || "",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          throw new Error(`HTTP ${res.status}: ${res.statusText} (${errText})`);
+        }
+        const data = await res.json();
+        return data.content?.[0]?.text || "No response generated by Anthropic API.";
+      }
+
+      // 3. OpenAI-Compatible Providers (OpenRouter, OpenAI, DeepSeek, Groq, Mistral, xAI, Custom)
+      let url = baseUrl;
+      if (!url) {
+        if (provider === "openrouter") url = "https://openrouter.ai/api/v1/chat/completions";
+        else if (provider === "openai") url = "https://api.openai.com/v1/chat/completions";
+        else if (provider === "deepseek") url = "https://api.deepseek.com/chat/completions";
+        else if (provider === "groq") url = "https://api.groq.com/openai/v1/chat/completions";
+        else if (provider === "mistral") url = "https://api.mistral.ai/v1/chat/completions";
+        else if (provider === "xai") url = "https://api.x.ai/v1/chat/completions";
+        else url = "https://api.openai.com/v1/chat/completions";
+      }
+
+      const headers: any = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${key || "local-no-key"}`,
+      };
+      if (provider === "openrouter") {
+        headers["HTTP-Referer"] = "https://ultron.ai";
+        headers["X-Title"] = "U.L.T.R.O.N.";
+      }
+
+      const fullMessages = systemInstructions
+        ? [{ role: "system", content: systemInstructions }, ...messages]
+        : messages;
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: model || (provider === "openrouter" ? "openrouter/auto" : "gpt-5.6"),
+          messages: fullMessages,
+          temperature: 0.7,
+          stream: false,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status}: ${res.statusText} (${errText})`);
+      }
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || `No response generated by ${provider.toUpperCase()}.`;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw err;
+    }
+  }
+
+  private async callOpenAiCompatible(
+    url: string,
+    model: string,
+    messages: ChatMessage[],
+    systemInstructions?: string
+  ): Promise<string> {
+    const fullMessages = systemInstructions
+      ? [{ role: "system", content: systemInstructions }, ...messages]
+      : messages;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout for local models
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer local-no-key-required",
+        },
+        body: JSON.stringify({
+          model,
+          messages: fullMessages,
+          temperature: 0.7,
+          stream: false,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || "No response generated by local model.";
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw err;
+    }
+  }
+}

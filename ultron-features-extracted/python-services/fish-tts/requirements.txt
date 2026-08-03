@@ -1,0 +1,16 @@
+# Fish Speech bridge - one-time setup dependencies.
+# Verify these against https://github.com/fishaudio/fish-speech before
+# running setup.sh; version pins for fast-moving ML repos go stale quickly
+# and this file has not been installed/tested in this environment (no
+# internet access to PyPI's large wheels / the checkpoint host from here).
+
+torch>=2.1.0          # CPU build is fine but slow; install a CUDA build for real-time-ish latency
+torchaudio>=2.1.0
+huggingface_hub         # used by setup.sh to fetch the checkpoint
+# fish-speech is a research repo, not a stable PyPI package - install it
+# straight from source instead of listing it here as a pip name:
+#   pip install "git+https://github.com/fishaudio/fish-speech.git@v1.4.3"
+# Pin the tag/commit yourself after checking the repo's current release -
+# this file has not been run in an environment with internet access, so
+# treat the exact tag/API above as a starting point to verify, not a
+# guarantee.

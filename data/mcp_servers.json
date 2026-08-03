@@ -1,0 +1,58 @@
+[
+  {
+    "id": "filesystem",
+    "name": "MCP Filesystem",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-filesystem",
+      "D:\\AI Creations\\Ultron"
+    ],
+    "status": "stopped",
+    "tools": []
+  },
+  {
+    "id": "fetch",
+    "name": "MCP Fetch",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-fetch"
+    ],
+    "status": "stopped",
+    "tools": []
+  },
+  {
+    "id": "memory",
+    "name": "MCP Memory",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-memory"
+    ],
+    "status": "stopped",
+    "tools": []
+  },
+  {
+    "id": "git",
+    "name": "MCP Git",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-git"
+    ],
+    "status": "stopped",
+    "tools": []
+  },
+  {
+    "id": "playwright",
+    "name": "MCP Playwright",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-playwright"
+    ],
+    "status": "stopped",
+    "tools": []
+  }
+]

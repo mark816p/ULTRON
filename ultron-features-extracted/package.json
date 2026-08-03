@@ -1,0 +1,127 @@
+{
+  "name": "ultron-orb-ui",
+  "version": "51.5.2",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "app": "next build && electron .",
+    "build:installer": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --publish=never",
+    "build:installer:publish": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --publish=always"
+  },
+  "build": {
+    "appId": "com.mark816p.ultron",
+    "productName": "ULTRON",
+    "asar": false,
+    "npmRebuild": false,
+    "compression": "normal",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "mark816p",
+        "repo": "ULTRON"
+      }
+    ],
+    "artifactName": "ULTRON-Setup.exe",
+    "extraMetadata": {
+      "version": "51.5.2"
+    },
+    "files": [
+      "next.config.mjs",
+      ".next/**/*",
+      "!.next/cache/**/*",
+      "public/**/*",
+      "package.json",
+      "main.js",
+      "node_modules/**/*",
+      "!node_modules/**/{test,tests,__tests__,spec,specs,fixtures,coverage,e2e}/**/*",
+      "!node_modules/**/{example,examples,demo,demos,sample,samples}/**/*",
+      "!node_modules/**/{benchmark,benchmarks,perf}/**/*",
+      "!node_modules/**/{doc,docs,documentation,website,www,gh-pages}/**/*",
+      "!node_modules/**/*.{md,markdown,txt,rst,log}",
+      "!node_modules/**/*.map",
+      "!node_modules/**/*.{ts,tsx,flow}",
+      "!node_modules/**/tsconfig*.json",
+      "!node_modules/**/.eslintrc*",
+      "!node_modules/**/.prettierrc*",
+      "!node_modules/**/jest.config.*",
+      "!node_modules/**/rollup.config.*",
+      "!node_modules/**/webpack.config.*",
+      "!node_modules/**/.nyc_output/**/*",
+      "!node_modules/**/CHANGELOG*",
+      "!node_modules/**/HISTORY*",
+      "!node_modules/**/AUTHORS*",
+      "!node_modules/**/CONTRIBUTING*",
+      "!node_modules/**/SECURITY*",
+      "!node_modules/@img/sharp-libvips-linux*/**/*",
+      "!node_modules/@img/sharp-linux*/**/*",
+      "!node_modules/@img/sharp-linuxmusl*/**/*",
+      "!node_modules/@img/sharp-darwin*/**/*",
+      "!node_modules/@next/swc-linux*/**/*",
+      "!node_modules/@next/swc-darwin*/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "public/favicon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "public/favicon.ico",
+      "artifactName": "ULTRON-Setup.dmg"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "public/favicon.ico",
+      "artifactName": "ULTRON-Setup.AppImage"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false,
+      "guid": "4A9D38C2-817B-4F29-875D-32A29C5B2A1E",
+      "shortcutName": "U.L.T.R.O.N.",
+      "installerSidebar": null,
+      "uninstallerSidebar": null
+    },
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
+    "@mediapipe/tasks-vision": "^0.10.35",
+    "electron-updater": "^6.8.9",
+    "kokoro-js": "^1.2.1",
+    "never-forget-engine": "file:../never-forget-engine",
+    "next": "^16.2.10",
+    "omniroute": "^3.8.49",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "^0.185.0",
+    "concurrently": "^10.0.4",
+    "cross-env": "^10.1.0",
+    "electron": "43.2.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "^5",
+    "wait-on": "^9.1.0"
+  }
+}

@@ -36,6 +36,9 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "ultron-features-extracted",
+    "__tests__",
+    "dist"
   ]
 }

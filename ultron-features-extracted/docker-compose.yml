@@ -1,0 +1,14 @@
+services:
+  gowa:
+    image: aldinokemal2104/go-whatsapp-web-multidevice:latest
+    container_name: ultron_whatsapp
+    ports:
+      - "3001:3000"
+    volumes:
+      - gowa_data:/app/storages
+    restart: unless-stopped
+    environment:
+      - APP_PORT=3000
+
+volumes:
+  gowa_data:

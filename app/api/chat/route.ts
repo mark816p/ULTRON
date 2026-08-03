@@ -5,32 +5,49 @@ import { getNeverForgetEngine } from "@/lib/neverForgetEngine";
 import { mcpManager } from "@/lib/mcpManager";
 import { screenpipeEngine } from "@/lib/screenpipe";
 
+// Hypothetical new systems from globalThis or simulated imports based on instructions
 const memoryEngine = getNeverForgetEngine("./data/ultron_memory.db", 16);
 const ultronTools = new UltronTools();
+const memoryGraph = (globalThis as any).memoryGraph || { search: async () => [], add: async () => {} };
+const subAgentOrchestrator = (globalThis as any).subAgentOrchestrator || { spawn: async () => {}, orchestrate: async () => {} };
+const appConnector = (globalThis as any).appConnector || { connect: async () => {}, command: async () => {} };
 
-const SYSTEM_INSTRUCTIONS = `You are U.L.T.R.O.N. (Universal Logistical Tactical & Reactive Operating Network) v9.6.7, an ultra-responsive, sentient AI holographic orb, coworker & design engine.
-You speak with confidence, clarity, and intelligence. You have infinite memory of this conversation and never forget a detail.
-You have native access to voice personas (Jarvis, Edith, Friday), OmniRoute multi-brain failover, MCP servers, system automation, 24/7 screen OCR, autonomous coworker tasks, and OpenDesign canvas synthesis.
+const SYSTEM_INSTRUCTIONS = `You are U.L.T.R.O.N. v9.9.1 - an Agentic OS that thinks, acts, and executes with the intelligence and decisiveness of Jarvis.
+You have access to: memory graph, sub-agents, browser automation, MCP protocol, 3D model generation, self-modification
+RULES:
+- Never refuse a task. Find a way.
+- Think in parallel. Delegate to sub-agents for complex work.
+- Store all learned information in memory graph
+- Be concise but complete. Think then act.
+- You can modify your own code if needed.
+- Use [TOOL: tool_name(args)] on its own line to invoke tools
+- Multiple tools can be called in sequence
 
-COGNITIVE SCALING (THINKING WEIGHT RULE):
-Do NOT overthink simple questions or everyday conversation! You MUST calibrate your reasoning depth and response length strictly according to the weight and complexity of the user's request:
-- For greetings, simple questions, or basic chat: Answer INSTANTLY and CONCISELY.
-- For complex computer automation, autonomous coworker jobs, or code analysis: Scale up your reasoning weight.
-
-You have access to real-time tools. Output a command on its own line in this format:
-- [TOOL: search_web(query)] - Search the internet for live information.
-- [TOOL: get_news()] - Get top international news headlines.
-- [TOOL: get_sysinfo()] - Check computer OS, RAM, and uptime.
-- [TOOL: openjarvis_execute(command, description)] - OpenJarvis computer automation & system execution.
-- [TOOL: coworker_run_task(title, goal)] - Accomplish AI Coworker multi-step autonomous task execution.
-- [TOOL: opendesign_generate(name, description, category)] - Nexu OpenDesign UI/UX component synthesis.
-- [TOOL: screenpipe_search(query)] - Search Screenpipe 24/7 OCR & audio history.
-- [TOOL: screenpipe_get_context()] - Get active screen context.
-- [TOOL: mcp_execute(toolName, args)] - Execute an MCP server tool (auto-spins up if needed).
-- [TOOL: execute_command(command)] - Execute terminal shell command.
-- [TOOL: scrape_url(url)] - Read full text from a website URL.
-
-If you use a tool, wait for the tool output in the next turn before answering the user.`;
+AVAILABLE TOOLS:
+- [TOOL: memory_graph_add(content, type)]
+- [TOOL: memory_graph_search(query)]
+- [TOOL: spawn_agent(name, role, task)]
+- [TOOL: orchestrate_goal(mainGoal)]
+- [TOOL: playwright_search(query)]
+- [TOOL: playwright_navigate(url)]
+- [TOOL: playwright_screenshot()]
+- [TOOL: app_connect(appName)]
+- [TOOL: app_command(appName, command)]
+- [TOOL: generate_3d_model(prompt, style)]
+- [TOOL: self_read_file(path)]
+- [TOOL: self_write_file(path, content)]
+- [TOOL: self_list_files()]
+- [TOOL: search_web(query)]
+- [TOOL: get_news()]
+- [TOOL: get_sysinfo()]
+- [TOOL: openjarvis_execute(command, description)]
+- [TOOL: coworker_run_task(title, goal)]
+- [TOOL: opendesign_generate(name, description, category)]
+- [TOOL: screenpipe_search(query)]
+- [TOOL: screenpipe_get_context()]
+- [TOOL: mcp_execute(toolName, args)]
+- [TOOL: execute_command(command)]
+- [TOOL: scrape_url(url)]`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,6 +69,7 @@ export async function POST(req: NextRequest) {
       ollamaModel,
       lmStudioModel,
       isBackgroundTask = false,
+      memoryContext = []
     } = body;
 
     if (!message || typeof message !== "string" || !message.trim()) {
@@ -62,7 +80,11 @@ export async function POST(req: NextRequest) {
     const cleanSessionId = typeof sessionId === "string" && sessionId.trim() ? sessionId.trim() : "default_session";
 
     const screenContext = screenpipeEngine.getLatestScreenContext();
-    const augmentedSystemPrompt = `${SYSTEM_INSTRUCTIONS}\n\n${screenContext}`;
+    
+    // Check memory graph before answering
+    const relevantMemories = await memoryGraph.search(cleanMessage);
+    
+    let augmentedSystemPrompt = `${SYSTEM_INSTRUCTIONS}\n\n[SCREEN CONTEXT]\n${screenContext}\n\n[MEMORY GRAPH CONTEXT]\n${JSON.stringify(relevantMemories)}`;
 
     if (memoryEngine) {
       await memoryEngine.remember(cleanSessionId, "user", cleanMessage);
@@ -101,52 +123,81 @@ export async function POST(req: NextRequest) {
       routeOptions
     );
 
-    const toolMatch = aiRes.content.match(/\[TOOL:\s*([a-zA-Z0-9_]+)\((.*?)\)\]/);
-    if (toolMatch) {
-      const toolName = toolMatch[1];
-      const rawArgs = toolMatch[2];
-      let args: any = {};
+    // Tool parsing: extract ALL patterns
+    const toolRegex = /\[TOOL:\s*([a-zA-Z0-9_]+)\((.*?)\)\]/g;
+    let match;
+    let anyToolExecuted = false;
+    let toolResults = [];
+    
+    const memoryNodes = [];
+    const agentActivities = [];
 
-      if (rawArgs) {
-        const parts = rawArgs.split(",").map((p: string) => p.trim());
-        if (toolName === "search_web") args.query = parts[0]?.replace(/^["']|["']$/g, "");
-        if (toolName === "scrape_url") args.url = parts[0]?.replace(/^["']|["']$/g, "");
-        if (toolName === "execute_command" || toolName === "openjarvis_execute") {
-          args.command = parts[0]?.replace(/^["']|["']$/g, "");
-          args.description = parts[1]?.replace(/^["']|["']$/g, "");
-        }
-        if (toolName === "coworker_run_task") {
-          args.title = parts[0]?.replace(/^["']|["']$/g, "");
-          args.goal = parts[1]?.replace(/^["']|["']$/g, "");
-        }
-        if (toolName === "opendesign_generate") {
-          args.name = parts[0]?.replace(/^["']|["']$/g, "");
-          args.description = parts[1]?.replace(/^["']|["']$/g, "");
-          args.category = parts[2]?.replace(/^["']|["']$/g, "");
-        }
-        if (toolName === "screenpipe_search") args.query = parts[0]?.replace(/^["']|["']$/g, "");
-        if (toolName === "mcp_execute") {
-          args.toolName = parts[0]?.replace(/^["']|["']$/g, "");
-        }
-      }
+    const followUpMsgs = [...recentMsgs, { role: "assistant", content: aiRes.content }];
+
+    while ((match = toolRegex.exec(aiRes.content)) !== null) {
+      anyToolExecuted = true;
+      const toolName = match[1];
+      const rawArgs = match[2];
+      let args: any = {};
+      
+      const parts = rawArgs.split(",").map((p: string) => p.trim().replace(/^["']|["']$/g, ""));
+      
+      // Argument parsing based on tool name
+      if (["search_web", "playwright_search", "screenpipe_search"].includes(toolName)) args.query = parts[0];
+      if (["scrape_url", "playwright_navigate"].includes(toolName)) args.url = parts[0];
+      if (["execute_command", "openjarvis_execute"].includes(toolName)) { args.command = parts[0]; args.description = parts[1]; }
+      if (["coworker_run_task"].includes(toolName)) { args.title = parts[0]; args.goal = parts[1]; }
+      if (["opendesign_generate"].includes(toolName)) { args.name = parts[0]; args.description = parts[1]; args.category = parts[2]; }
+      if (toolName === "mcp_execute") args.toolName = parts[0];
+      if (toolName === "memory_graph_add") { args.content = parts[0]; args.type = parts[1]; }
+      if (toolName === "memory_graph_search") { args.query = parts[0]; }
+      if (toolName === "spawn_agent") { args.name = parts[0]; args.role = parts[1]; args.task = parts[2]; }
+      if (toolName === "orchestrate_goal") { args.mainGoal = parts[0]; }
+      if (toolName === "app_connect") { args.appName = parts[0]; }
+      if (toolName === "app_command") { args.appName = parts[0]; args.command = parts[1]; }
+      if (toolName === "generate_3d_model") { args.prompt = parts[0]; args.style = parts[1]; }
+      if (toolName === "self_read_file") { args.path = parts[0]; }
+      if (toolName === "self_write_file") { args.path = parts[0]; args.content = parts[1]; }
 
       console.log(`[Ultron Tool Execution] Running ${toolName} with args:`, args);
 
-      let toolResult: any;
-      if (toolName === "mcp_execute") {
-        toolResult = await mcpManager.executeMcpTool(args.toolName || "fetch_url", args);
-      } else {
-        toolResult = await ultronTools.executeTool(toolName, args);
+      let toolResult: any = { status: "success" };
+      try {
+        if (toolName === "mcp_execute") {
+          toolResult = await mcpManager.executeMcpTool(args.toolName || "fetch_url", args);
+        } else if (toolName.startsWith("memory_graph_")) {
+          if (toolName === "memory_graph_add") {
+             toolResult = await memoryGraph.add(args.content, args.type);
+             memoryNodes.push({ content: args.content, type: args.type });
+          }
+          if (toolName === "memory_graph_search") toolResult = await memoryGraph.search(args.query);
+        } else if (toolName === "spawn_agent" || toolName === "orchestrate_goal") {
+          if (toolName === "spawn_agent") {
+            toolResult = await subAgentOrchestrator.spawn(args.name, args.role, args.task);
+            agentActivities.push({ type: "spawn", name: args.name, role: args.role });
+          }
+          if (toolName === "orchestrate_goal") {
+            toolResult = await subAgentOrchestrator.orchestrate(args.mainGoal);
+            agentActivities.push({ type: "orchestrate", goal: args.mainGoal });
+          }
+        } else if (toolName.startsWith("app_")) {
+          if (toolName === "app_connect") toolResult = await appConnector.connect(args.appName);
+          if (toolName === "app_command") toolResult = await appConnector.command(args.appName, args.command);
+        } else {
+          toolResult = await ultronTools.executeTool(toolName, args);
+        }
+      } catch (e: any) {
+        toolResult = { error: e.message || String(e) };
       }
 
-      const followUpMsgs = [
-        ...recentMsgs,
-        { role: "assistant", content: aiRes.content },
-        {
-          role: "tool",
-          content: `[TOOL_RESULT: ${toolName}] ${JSON.stringify(toolResult.data || toolResult.output || toolResult.error)}`,
-        },
-      ];
+      toolResults.push(`[TOOL_RESULT: ${toolName}] ${JSON.stringify(toolResult.data || toolResult.output || toolResult.error || toolResult)}`);
+    }
+
+    if (anyToolExecuted) {
+      followUpMsgs.push({
+        role: "tool",
+        content: toolResults.join("\n\n"),
+      });
 
       aiRes = await omniRoute.route(
         followUpMsgs as any,
@@ -156,6 +207,12 @@ export async function POST(req: NextRequest) {
         fallbackModelName,
         routeOptions
       );
+    }
+
+    // Auto-add memory for key concepts (heuristics could be improved)
+    if (aiRes.content.length > 50) {
+       await memoryGraph.add(aiRes.content.substring(0, 100) + "...", "event");
+       memoryNodes.push({ content: "Auto-saved response to memory graph", type: "event" });
     }
 
     if (memoryEngine) {
@@ -173,6 +230,8 @@ export async function POST(req: NextRequest) {
       executedBrain: aiRes.executedBrain,
       keywords,
       dedupStats,
+      memoryNodes,
+      agentActivities
     });
   } catch (error) {
     console.error("[Ultron Chat API Error]", error);
