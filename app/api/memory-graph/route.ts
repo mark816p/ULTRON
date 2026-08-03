@@ -7,12 +7,6 @@ declare global {
   var memoryGraphEdges: Map<string, any>;
 }
 
-if (!globalThis.memoryGraphNodes) {
-  globalThis.memoryGraphNodes = new Map();
-  globalThis.memoryGraphEdges = new Map();
-  loadGraphFromDisk();
-}
-
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'memory_graph.json');
 
@@ -34,6 +28,13 @@ function loadGraphFromDisk() {
     }
   }
 }
+
+if (!globalThis.memoryGraphNodes) {
+  globalThis.memoryGraphNodes = new Map();
+  globalThis.memoryGraphEdges = new Map();
+  loadGraphFromDisk();
+}
+
 
 function saveGraphToDisk() {
   ensureDataDir();
