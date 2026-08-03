@@ -5,7 +5,7 @@
     "name": "mark816p",
     "email": "mark816p@github.com"
   },
-  "version": "9.9.1",
+  "version": "9.9.2",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -19,7 +19,7 @@
   "build": {
     "appId": "com.mark816p.ultron",
     "productName": "ULTRON",
-    "asar": true,
+    "asar": false,
     "compression": "store",
     "npmRebuild": false,
     "win": {
@@ -47,7 +47,7 @@
       }
     ],
     "extraMetadata": {
-      "version": "9.9.1"
+      "version": "9.9.2"
     },
     "artifactName": "ULTRON-Setup.${ext}",
     "files": [

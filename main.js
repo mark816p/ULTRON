@@ -15,9 +15,7 @@ autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
 function getAppDir() {
-  return app.isPackaged
-    ? path.join(process.resourcesPath, 'app')
-    : __dirname;
+  return __dirname;
 }
 
 function getNextBin() {
@@ -56,7 +54,7 @@ function writeErrorPage(errorText) {
 <html>
 <head><meta charset="utf-8"><title>U.L.T.R.O.N. Diagnostics</title></head>
 <body style="background:#0c0c0c;color:#e6e6e6;font-family:sans-serif;padding:50px;text-align:center;margin:0;">
-  <h2 style="color:#ffffff;margin-bottom:12px;">U.L.T.R.O.N. Neural Bridge Diagnostics v9.6.7</h2>
+  <h2 style="color:#ffffff;margin-bottom:12px;">U.L.T.R.O.N. Neural Bridge Diagnostics v9.9.2</h2>
   <p style="color:#aaaaaa;margin-bottom:20px;">Server initialization on port ${PORT} encountered an issue.</p>
   <pre style="background:#1a1a1a;padding:15px;border-radius:6px;display:inline-block;color:#ff4444;
     text-align:left;white-space:pre-wrap;word-break:break-all;max-width:85%;font-size:12px;">${errorText.slice(0, 4000)}</pre>
@@ -87,7 +85,7 @@ function writeLoadingPage() {
 </head>
 <body>
   <div class="ring"></div>
-  <div class="title">U.L.T.R.O.N. v9.6.7</div>
+  <div class="title">U.L.T.R.O.N. v9.9.2</div>
   <div class="sub">INITIALIZING AUTONOMOUS COWORKER, SYSTEM AUTOMATION & OCR MEMORY...</div>
 </body>
 </html>`;
